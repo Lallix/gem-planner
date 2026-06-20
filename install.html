@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Install GEM Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans','Segoe UI',sans-serif;background:#F6FBFB;color:#2C3E3D;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:white;border-radius:24px;padding:36px 28px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(27,138,107,0.12);border:1px solid #E4F0EF;text-align:center}
+.gem{margin-bottom:16px}
+.app-name{font-size:26px;font-weight:800;color:#1B8A6B;letter-spacing:-0.5px;margin-bottom:4px}
+.app-sub{font-size:13px;color:#8FA8A6;margin-bottom:28px;letter-spacing:0.5px}
+.qr-wrap{background:#F6FBFB;border-radius:16px;padding:16px;display:inline-block;margin-bottom:24px;border:1px solid #E4F0EF}
+.qr-wrap img{width:180px;height:180px;display:block}
+.or-divider{display:flex;align-items:center;gap:12px;margin:0 0 20px;color:#8FA8A6;font-size:12px}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:#E4F0EF}
+.app-link{display:block;background:#1B8A6B;color:white;text-decoration:none;border-radius:12px;padding:14px 20px;font-size:14px;font-weight:700;margin-bottom:24px;letter-spacing:0.2px;transition:opacity .2s}
+.app-link:active{opacity:.8}
+.steps-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#8FA8A6;margin-bottom:14px}
+.tabs{display:flex;gap:8px;margin-bottom:16px;background:#F6FBFB;border-radius:10px;padding:4px}
+.tab{flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:transparent;color:#8FA8A6;transition:all .2s;font-family:inherit}
+.tab.active{background:white;color:#1B8A6B;box-shadow:0 1px 4px rgba(27,138,107,0.12)}
+.steps{text-align:left}
+.step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.step-num{width:26px;height:26px;border-radius:50%;background:#E8F5F0;color:#1B8A6B;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:13px;line-height:1.5;color:#2C3E3D}
+.step-text strong{color:#1B8A6B}
+.note{background:#FFF0F3;border-radius:10px;padding:12px 14px;font-size:12px;color:#c4607a;line-height:1.5;margin-top:16px;text-align:left}
+.footer{margin-top:24px;font-size:11px;color:#8FA8A6;line-height:1.6}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- Logo -->
+  <div class="gem">
+    <svg width="56" height="56" viewBox="0 0 64 64">
+      <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
+      <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
+      <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
+      <polygon points="56,20 56,44 32,28" fill="#52D9A0"/>
+      <polygon points="8,44 32,60 32,28" fill="#1B8A6B"/>
+      <polygon points="56,44 32,60 32,28" fill="#2ECC8F"/>
+      <polygon points="32,4 56,20 8,20" fill="#5DEEBC" opacity="0.6"/>
+    </svg>
+  </div>
+  <div class="app-name">GEM Planner</div>
+  <div class="app-sub">Groceries · Expenses · Meal plans</div>
+
+  <!-- QR code -->
+  <div class="qr-wrap">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQgAAAEICAIAAAAslP2oAAAE+0lEQVR4nO3dMY7sRBRAUQaxDJZIyip+yhLZRxN8EqTroKR6qvJwTty4Pf59VZIfZX99Pp9fgP/69fQJwI2EAUEYEIQBQRgQhAFBGBCEAUEYEIQBQRgQhAFBGBCEAUEYEH5b/Q9+//HHxHls9/effy19fvXvejr+ruszffzV733yXX8PVgwIwoAgDAjCgCAMCMKAIAwIy3OMJ6v3iXc5NTeYvn8//XdNe/vvwYoBQRgQhAFBGBCEAUEYEIQBYdsc48l3vR//9HdNf36XXftPpr/3yfTvwYoBQRgQhAFBGBCEAUEYEIQBYXyO8Xa3zROe7Jqf8JMVA4IwIAgDgjAgCAOCMCAIA4I5xr923e8/9b6IXd9r7vGTFQOCMCAIA4IwIAgDgjAgCAPC+Bzjtvvfq/f7V+/rn3pO1KpT53Pb7+GJFQOCMCAIA4IwIAgDgjAgCAPCtjnGbffpV+2aP5x6b8Zt7+V4++/BigFBGBCEAUEYEIQBQRgQhAHh6/P5nD6HK0w/V2rX3GB6/vCW/RLTrBgQhAFBGBCEAUEYEIQBQRgQlvdjfNf7/afek33qur3le0+xYkAQBgRhQBAGBGFAEAYEYUDYth9j15xh9fin9id81/nAqX0dp67nEysGBGFAEAYEYUAQBgRhQBAGhGPPlTq1H2PaqX0Ib9+nscuu62zFgCAMCMKAIAwIwoAgDAjCgHDsuVK73Hbf/bb9GKfmBre992OVFQOCMCAIA4IwIAgDgjAgCAPC8n6Mt9/XX/3eJ7edz5NTz5t6+3zJigFBGBCEAUEYEIQBQRgQhAFheT/GqtvmA6vevs9k1+dvu87T52PFgCAMCMKAIAwIwoAgDAjCgDD+fozb/j/+6eNMe/t5nmI/BmwgDAjCgCAMCMKAIAwIwoBw3Rxj1VvmFW95X8Rtz8s6tT/HigFBGBCEAUEYEIQBQRgQhAFh/LlSu9z2Hu5pt70nZNd84LZ9I0+sGBCEAUEYEIQBQRgQhAFBGBBeM8eYfg/0Lqf2dUzPGabfO776d03Pc6wYEIQBQRgQhAFBGBCEAUEYEJbnGLvuE++6X37bvGJ6f8jbn3916vlUq6wYEIQBQRgQhAFBGBCEAUEYEJbnGNPziunPv2U/w23vFXn7966yYkAQBgRhQBAGBGFAEAYEYUBYfs/3W973vOs4tz0navo837K/ZfrfxYoBQRgQhAFBGBCEAUEYEIQBYXw/xm3Hmb5PP/1cqVNum5NMX2crBgRhQBAGBGFAEAYEYUAQBoRt+zFuM33f/dT+k2mnnve163ruum5WDAjCgCAMCMKAIAwIwoAgDAjL+zGe3Hbffdfnp4/z9udl3bZPYxcrBgRhQBAGBGFAEAYEYUAQBoRtc4wn0/f7dx3n1NzgtrnKqePv2o+xa25jxYAgDAjCgCAMCMKAIAwIwoAwPse4zam5wW3PlTr1vKzp43iuFAwSBgRhQBAGBGFAEAYEYUD4380xTu2j2HWcXd+76zqcmntMP0fLigFBGBCEAUEYEIQBQRgQhAFhfI5x6r0Zq1bP8y3Ppzr13onp93J4zzccIAwIwoAgDAjCgCAMCMKAsG2Ocdt7mp/smg+c2ucw/XyqU/OQ6bnEKisGBGFAEAYEYUAQBgRhQBAGhK/P53P6HOA6VgwIwoAgDAjCgCAMCMKAIAwIwoAgDAjCgCAMCMKAIAwIwoAgDAj/ANFTQES7d1zEAAAAAElFTkSuQmCC" alt="Scan to open GEM Planner"/>
+  </div>
+  <div style="font-size:11px;color:#8FA8A6;margin-bottom:20px">Scan with your phone camera to open</div>
+
+  <!-- Direct link -->
+  <div class="or-divider">or open the link directly</div>
+  <a class="app-link" href="https://lallix.github.io/gem-planner" target="_blank">
+    Open GEM Planner →
+  </a>
+
+  <!-- Install instructions -->
+  <div class="steps-title">How to install on your phone</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('android')">Android</button>
+    <button class="tab" onclick="showTab('iphone')">iPhone</button>
+  </div>
+
+  <div id="tab-android" class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Open the link above in <strong>Chrome</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Tap the <strong>three dots (⋮)</strong> menu in the top right</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">Tap <strong>Install</strong> — the GEM gem icon will appear on your home screen</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-text">Open the app and <strong>sign in</strong> with the credentials you received</div>
+    </div>
+  </div>
+
+  <div id="tab-iphone" class="steps hidden">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Open the link above in <strong>Safari</strong> (must be Safari, not Chrome)</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Tap the <strong>Share button</strong> at the bottom of the screen (the box with an arrow pointing up)</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">Tap <strong>Add</strong> — the GEM gem icon will appear on your home screen</div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-text">Open the app and <strong>sign in</strong> with the credentials you received</div>
+    </div>
+    <div class="note">⚠️ On iPhone, you must use Safari — installing from Chrome or other browsers is not supported by Apple.</div>
+  </div>
+
+  <div class="footer">
+    Your sign-in details will be shared with you separately.<br/>
+    Contact your GEM admin if you need help.
+  </div>
+</div>
+
+<script>
+function showTab(tab){
+  document.getElementById('tab-android').classList.toggle('hidden', tab!=='android');
+  document.getElementById('tab-iphone').classList.toggle('hidden', tab!=='iphone');
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', (i===0&&tab==='android')||(i===1&&tab==='iphone'));
+  });
+}
+</script>
+</body>
+</html>
