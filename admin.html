@@ -290,7 +290,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <script>
 const SURL='https://mjaschvxhdupoemaezjt.supabase.co';
 const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
-const db=supabase.createClient(SURL,SKEY);
+const db=supabase.createClient(SURL,SKEY,{
+  auth:{persistSession:true,storageKey:'gem-admin-session'}
+});
 
 const STORES={woolworths:'Woolworths',checkers:'Checkers',pnp:'Pick n Pay',spar:'Spar',walmart:'Walmart',other:'Other'};
 const CAT_COLORS={dinner:'var(--amber)',baking:'var(--accent)',lunch:'var(--primary)',other:'var(--purple)'};
@@ -307,8 +309,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
 });
 
 async function verifyAdmin(user){
-  const {data:profile}=await db.from('profiles').select('full_name,is_admin').eq('id',user.id).single();
-  if(!profile?.is_admin){
+  // Check admin from JWT app_metadata — no database query, no RLS issues
+  // Same approach as the survey app
+  const meta=user.app_metadata||{};
+  if(!meta.is_admin){
     document.getElementById('auth-error').textContent='Access denied — admin accounts only.';
     await db.auth.signOut();
     return;
