@@ -639,8 +639,17 @@ async function signOut(){ await db.auth.signOut(); }
 // ══ LOAD USER ══
 async function loadUser(user){
   currentUser=user;
-  const {data:profile,error:profileErr}=await db.from('profiles').select('full_name,is_admin').eq('id',user.id).single();
+  const {data:profile,error:profileErr}=await db.from('profiles').select('full_name,is_admin,is_disabled').eq('id',user.id).single();
   if(profileErr) console.error('Profile fetch error:',profileErr);
+
+  // Block disabled users — sign out and show message
+  if(profile?.is_disabled){
+    await db.auth.signOut();
+    document.getElementById('auth-error').textContent='⛔ Your account has been disabled. Please contact your GEM admin.';
+    showAuth();
+    return;
+  }
+
   isAdmin=profile?.is_admin||false;
   const name=profile?.full_name||user.email.split('@')[0];
   document.getElementById('profile-name').textContent=name;
