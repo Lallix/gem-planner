@@ -6,6 +6,7 @@
 <title>GEM Planner — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -219,10 +220,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="section-header">
         <div>
           <div class="section-title">🍽️ Recipes</div>
-          <div class="section-sub">All recipes — manage sharing and visibility</div>
+          <div class="section-sub">All recipes across all users</div>
         </div>
       </div>
       <div id="recipe-table"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Grocery master list upload -->
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🛍️ Grocery Master List</div>
+          <div class="section-sub">Upload Excel to populate items for all users</div>
+        </div>
+      </div>
+      <div style="padding:16px 20px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;background:var(--primary-pale);border-radius:8px;padding:10px 12px;line-height:1.6">
+          Upload an Excel file (.xlsx) with columns: <strong>Item, Category, Unit, Notes</strong><br/>
+          Items will be added to the selected user's grocery list — or set to your own account to share with everyone.
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Upload for user</div>
+            <select id="grocery-upload-user" class="modal-input" style="margin:0">
+              <option value="">Select user...</option>
+            </select>
+          </div>
+          <div>
+            <input type="file" id="grocery-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleGroceryUpload(this)"/>
+            <button class="btn btn-primary" onclick="document.getElementById('grocery-file').click()">📂 Upload Excel</button>
+          </div>
+        </div>
+        <div id="grocery-upload-status" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+        <div id="grocery-stats" style="margin-top:10px"></div>
+      </div>
     </div>
 
   </div>
@@ -378,6 +409,16 @@ async function refreshAll(){
     renderUsers();
     renderReceipts();
     renderRecipes();
+    // Populate grocery user dropdown
+    const groceryUserSel=document.getElementById('grocery-upload-user');
+    if(groceryUserSel){
+      groceryUserSel.innerHTML='<option value="">Select user...</option>';
+      allUsers.forEach(u=>{
+        const o=document.createElement('option');
+        o.value=u.id; o.textContent=(u.full_name||u.email);
+        groceryUserSel.appendChild(o);
+      });
+    }
 
     document.getElementById('last-refresh').textContent=
       'Last refreshed: '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
@@ -672,6 +713,75 @@ function showToast(msg){
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('auth-screen').style.display!=='none') signIn();
 });
+
+// ══ GROCERY UPLOAD ══
+async function handleGroceryUpload(input){
+  if(!input.files||!input.files[0]) return;
+  const userId=document.getElementById('grocery-upload-user').value;
+  if(!userId){showToast('Please select a user first');input.value='';return;}
+  const statusEl=document.getElementById('grocery-upload-status');
+  statusEl.textContent='Reading file...';
+  statusEl.style.color='var(--muted)';
+
+  try{
+    const file=input.files[0];
+    input.value='';
+    const data=await readFileAsArrayBuffer(file);
+    const XLSX=window.XLSX;
+    const wb=XLSX.read(data,{type:'arraybuffer'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+    if(!rows.length){statusEl.textContent='No data found in file';return;}
+
+    // Validate and map columns
+    const items=rows.map(r=>({
+      user_id:userId,
+      name:(r['Item']||r['item']||r['NAME']||'').toString().trim(),
+      category:(r['Category']||r['category']||'Other').toString().trim(),
+      unit:(r['Unit']||r['unit']||'').toString().trim()||null,
+      notes:(r['Notes']||r['notes']||'').toString().trim()||null,
+    })).filter(i=>i.name);
+
+    if(!items.length){statusEl.textContent='No valid items found — check column headers (Item, Category, Unit, Notes)';statusEl.style.color='var(--accent)';return;}
+
+    statusEl.textContent='Uploading '+items.length+' items...';
+
+    // Delete existing for this user and re-insert
+    await db.from('grocery_items').delete().eq('user_id',userId);
+    const chunkSize=50;
+    let uploaded=0;
+    for(let i=0;i<items.length;i+=chunkSize){
+      const chunk=items.slice(i,i+chunkSize);
+      const {error}=await db.from('grocery_items').insert(chunk);
+      if(error){statusEl.textContent='Error at row '+(i+1)+': '+error.message;statusEl.style.color='var(--accent)';return;}
+      uploaded+=chunk.length;
+      statusEl.textContent='Uploaded '+uploaded+' of '+items.length+'...';
+    }
+
+    // Show summary
+    const cats={};
+    items.forEach(i=>{cats[i.category]=(cats[i.category]||0)+1;});
+    const summary=Object.entries(cats).map(([c,n])=>n+' '+c).join(', ');
+    statusEl.textContent='✓ '+items.length+' items uploaded successfully';
+    statusEl.style.color='var(--emerald)';
+    document.getElementById('grocery-stats').innerHTML='<div style="font-size:11px;color:var(--muted);background:var(--primary-pale);border-radius:8px;padding:8px 12px">'+summary+'</div>';
+    showToast('✓ '+items.length+' grocery items uploaded');
+
+  }catch(e){
+    statusEl.textContent='Error: '+e.message;
+    statusEl.style.color='var(--accent)';
+    console.error(e);
+  }
+}
+
+function readFileAsArrayBuffer(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(new Error('Could not read file'));
+    r.readAsArrayBuffer(file);
+  });
+}
 </script>
 </body>
 </html>
