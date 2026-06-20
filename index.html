@@ -16,62 +16,40 @@
 :root{
   --primary:#6CC2C0;--primary-mid:#86CAC3;--primary-soft:#ACD9D9;--primary-pale:#CFE8E4;
   --accent:#FF8FAB;--accent-mid:#FFB6C8;--accent-soft:#FFD6E0;--accent-pale:#FFF0F3;
-  --blue-mid:#B8D8F0;--blue-pale:#D6EEFF;
-  --bg:#F6FBFB;--card:#FFFFFF;--text:#2C3E3D;--muted:#8FA8A6;--line:#E4F0EF;
+  --blue:#4A90D9;--blue-mid:#B8D8F0;--blue-pale:#D6EEFF;
+  --purple:#9B7FD4;--purple-pale:#EDE8F9;
+  --amber:#F5A623;--amber-pale:#FEF3DC;
   --emerald:#1B8A6B;--emerald-pale:#E8F5F0;
+  --bg:#F6FBFB;--card:#FFFFFF;--text:#2C3E3D;--muted:#8FA8A6;--line:#E4F0EF;
   --font:'DM Sans','Segoe UI',sans-serif;
 }
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-
-/* ── Layout ── */
-#app{max-width:430px;margin:0 auto;min-height:100vh;position:relative;background:var(--bg)}
+#app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg)}
 .screen{display:none;padding-bottom:90px}
 .screen.active{display:block}
 
 /* ── Top bar ── */
-#topbar{
-  background:var(--card);padding:12px 16px 10px;
-  display:flex;justify-content:space-between;align-items:center;
-  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;
-  box-shadow:0 2px 8px rgba(108,194,192,0.08)
-}
+#topbar{background:var(--card);padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(108,194,192,0.08)}
 .gem-logo{display:flex;align-items:center;gap:8px}
 .gem-logo svg{width:28px;height:28px}
-.gem-logo-text{font-size:15px;font-weight:800;letter-spacing:-0.5px;
-  background:linear-gradient(90deg,var(--primary),var(--accent));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.gem-logo-text{font-size:15px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 #topbar-time{font-size:13px;font-weight:600;color:var(--muted)}
-#topbar-user{font-size:11px;color:var(--muted);cursor:pointer}
+#topbar-user{font-size:13px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px}
 
 /* ── Bottom nav ── */
-#bottom-nav{
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:430px;background:var(--card);
-  border-top:1px solid var(--line);display:flex;
-  padding:8px 0 20px;z-index:100;
-  box-shadow:0 -4px 20px rgba(108,194,192,0.10)
-}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
-  font-size:9px;font-weight:500;color:var(--muted);cursor:pointer;padding:4px 0;transition:color .2s}
+#bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--line);display:flex;padding:8px 0 20px;z-index:100;box-shadow:0 -4px 20px rgba(108,194,192,0.10)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;font-weight:500;color:var(--muted);cursor:pointer;padding:4px 0;transition:color .2s}
 .nav-item.active{color:var(--primary);font-weight:700}
 .nav-emoji{font-size:22px;line-height:1}
 .nav-dot{width:18px;height:3px;border-radius:2px;background:var(--primary);margin-top:2px}
 
 /* ── Cards ── */
-.card{background:var(--card);border-radius:16px;padding:14px 16px;
-  margin:0 14px 12px;border:1px solid var(--line);
-  box-shadow:0 2px 8px rgba(108,194,192,0.06)}
-.card-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
-  color:var(--muted);font-weight:600;margin-bottom:8px}
+.card{background:var(--card);border-radius:16px;padding:14px 16px;margin:0 14px 12px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(108,194,192,0.06)}
+.card-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
 .card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 
-/* ── Hero budget card ── */
-.hero-card{
-  margin:14px 14px 12px;
-  background:linear-gradient(135deg,#4aada9,var(--primary),var(--primary-mid));
-  border-radius:20px;padding:18px 20px;
-  display:flex;align-items:center;justify-content:space-between
-}
+/* ── Hero ── */
+.hero-card{margin:14px 14px 12px;background:linear-gradient(135deg,#4aada9,var(--primary),var(--primary-mid));border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
 .hero-left{flex:1;color:white}
 .hero-eyebrow{font-size:10px;opacity:.8;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:4px}
 .hero-amount{font-size:24px;font-weight:800;letter-spacing:-0.5px}
@@ -80,10 +58,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .hero-bar{height:100%;background:white;border-radius:3px;transition:width .6s ease}
 .hero-sub{font-size:11px;opacity:.85;margin-top:5px}
 .ring-wrap{position:relative;margin-left:16px;flex-shrink:0}
-.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  font-size:13px;font-weight:800;color:white;text-align:center}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:800;color:white;text-align:center}
 
-/* ── Stat pills ── */
+/* ── Stats ── */
 .stats-row{display:flex;gap:8px;padding:0 14px;margin-bottom:12px}
 .stat-pill{flex:1;border-radius:14px;padding:10px 8px;border:1px solid transparent}
 .stat-pill-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
@@ -93,11 +70,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 /* ── Store rows ── */
 .store-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .store-row:last-child{border-bottom:none}
-.store-logo-wrap{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+.store-logo-wrap{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:white}
 .store-logo-wrap img{width:100%;height:100%;object-fit:contain;padding:3px}
-.store-logo-badge{width:36px;height:36px;border-radius:8px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:white}
+.store-logo-badge{width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:white}
 .store-bar-bg{flex:1;height:6px;background:var(--line);border-radius:4px;overflow:hidden}
 .store-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
 
@@ -105,87 +80,114 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .receipt-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .receipt-row:last-child{border-bottom:none}
 
-/* ── Chart bars ── */
+/* ── Chart ── */
 .chart-bars{display:flex;align-items:flex-end;gap:8px;height:72px;margin-top:8px}
 .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
 .chart-bar{width:100%;border-radius:6px 6px 0 0;transition:height .3s ease}
 
-/* ── Alert banner ── */
-.alert-banner{margin:0 14px 12px;background:linear-gradient(135deg,var(--accent-pale),rgba(255,214,224,.5));
-  border-radius:14px;padding:13px 14px;border:1px solid var(--accent-soft);
-  display:flex;align-items:center;gap:12px}
+/* ── Screen headers ── */
+.screen-header{padding:16px 14px 8px;display:flex;justify-content:space-between;align-items:center}
+.screen-title{font-size:20px;font-weight:800;color:var(--text)}
+.screen-sub{font-size:12px;color:var(--muted);margin-top:2px}
 
-/* ── Pill badge ── */
-.pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block}
+/* ── Recipe cards ── */
+.recipe-card{background:var(--card);border-radius:14px;padding:14px;margin:0 14px 10px;border:1px solid var(--line);cursor:pointer;transition:transform .15s}
+.recipe-card:active{transform:scale(.98)}
+.recipe-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;margin-bottom:6px}
+.recipe-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.recipe-meta{font-size:11px;color:var(--muted)}
+.recipe-share-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;float:right}
+
+/* ── Shopping list ── */
+.list-section-header{padding:12px 14px 6px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.list-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--line);cursor:pointer}
+.list-item:last-child{border-bottom:none}
+.list-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.list-check.checked{background:var(--primary);border-color:var(--primary)}
+.list-item-name{flex:1;font-size:14px;color:var(--text);transition:all .2s}
+.list-item-name.checked{color:var(--muted);text-decoration:line-through}
+.list-item-amount{font-size:12px;color:var(--muted)}
+
+/* ── Plan grid ── */
+.plan-day{background:var(--card);border-radius:12px;padding:12px;margin:0 14px 8px;border:1px solid var(--line)}
+.plan-day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.plan-day-name{font-size:13px;font-weight:700;color:var(--text)}
+.plan-day-date{font-size:11px;color:var(--muted)}
+.plan-slot{border-radius:8px;padding:8px 10px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:4px}
+.plan-slot:last-child{margin-bottom:0}
+.plan-slot-empty{background:var(--bg);border:1.5px dashed var(--line);color:var(--muted)}
+.plan-slot-filled{background:var(--primary-pale);border:1px solid var(--primary-soft);color:var(--text)}
+
+/* ── Profile ── */
+.profile-hero{margin:14px 14px 12px;background:linear-gradient(135deg,var(--emerald),#2ECC8F);border-radius:20px;padding:20px;display:flex;align-items:center;gap:16px}
+.profile-avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;flex-shrink:0}
+.profile-name{font-size:18px;font-weight:800;color:white}
+.profile-email{font-size:12px;color:rgba(255,255,255,.8);margin-top:2px}
+.profile-role-badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.25);color:white}
+
+/* ── Admin ── */
+.admin-user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.admin-user-row:last-child{border-bottom:none}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-pale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0}
 
 /* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;
-  cursor:pointer;border:none;transition:opacity .2s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:opacity .2s}
 .btn:active{opacity:.8}
 .btn-primary{background:var(--primary);color:white}
 .btn-accent{background:var(--accent);color:white}
+.btn-emerald{background:var(--emerald);color:white}
+.btn-purple{background:var(--purple);color:white}
+.btn-amber{background:var(--amber);color:white}
 .btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-outline-accent{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn-danger{background:transparent;color:#e53e3e;border:1.5px solid #e53e3e}
 .btn-full{width:100%}
+.btn-sm{padding:6px 14px;font-size:12px}
 
-/* ── Auth screen ── */
-#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;padding:32px 24px;background:var(--bg)}
-.auth-gem{margin-bottom:16px}
-.auth-title{font-size:26px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px}
-.auth-sub{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center}
-.auth-card{background:var(--card);border-radius:20px;padding:24px;width:100%;
-  max-width:360px;border:1px solid var(--line);box-shadow:0 4px 20px rgba(108,194,192,0.10)}
-.auth-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
-  font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);
-  margin-bottom:12px;outline:none;transition:border .2s}
+/* ── FAB ── */
+.fab{position:fixed;bottom:82px;right:calc(50% - 215px + 16px);width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:90;transition:transform .2s}
+.fab:active{transform:scale(.93)}
+.fab-primary{background:var(--primary);color:white}
+.fab-accent{background:var(--accent);color:white}
+.fab-purple{background:var(--purple);color:white}
+
+/* ── Auth ── */
+#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--bg)}
+.auth-card{background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:360px;border:1px solid var(--line);box-shadow:0 4px 20px rgba(108,194,192,0.10)}
+.auth-input{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:12px;outline:none;transition:border .2s}
 .auth-input:focus{border-color:var(--primary)}
 .auth-error{font-size:12px;color:var(--accent);margin-bottom:12px;text-align:center;min-height:18px}
 .auth-switch{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
 .auth-switch span{color:var(--primary);font-weight:700;cursor:pointer}
 
-/* ── Admin screen ── */
-.admin-user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.admin-user-row:last-child{border-bottom:none}
-.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-pale);
-  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0}
+/* ── Modals ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:10px;outline:none;transition:border .2s}
+.modal-input:focus{border-color:var(--primary)}
+.modal-row{display:flex;gap:10px;margin-top:6px}
+.modal-section{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
 
-/* ── Placeholder ── */
-.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:60vh;gap:14px;padding:32px;text-align:center}
-.placeholder-icon{font-size:56px}
-.placeholder-title{font-size:20px;font-weight:700}
-.placeholder-sub{font-size:13px;color:var(--muted);max-width:240px;line-height:1.6}
-
-/* ── Utility ── */
-.section-pad{padding:0 14px}
-.mt-12{margin-top:12px}
-.text-muted{color:var(--muted)}
-.text-sm{font-size:12px}
-.text-xs{font-size:10px}
-.fw-700{font-weight:700}
-.flex{display:flex}.flex-1{flex:1}.items-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}
+/* ── Misc ── */
+.pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block}
+.alert-banner{margin:0 14px 12px;border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:12px}
+.divider{height:1px;background:var(--line);margin:0 14px 12px}
+.empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
+.empty-state-icon{font-size:40px;margin-bottom:10px}
 .hidden{display:none!important}
-.spinner{width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--primary);
-  border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
+.spinner{width:24px;height:24px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:16px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Toast ── */
-#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:var(--text);color:white;padding:10px 20px;border-radius:20px;
-  font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════════════════
-     AUTH SCREEN
-══════════════════════════════════════════════════════════ -->
+<!-- ══ AUTH ══ -->
 <div id="auth-screen">
-  <div class="auth-gem">
-    <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="32,4 56,20 56,44 32,60 8,44 8,20" fill="#1B8A6B" opacity="0.15"/>
+  <div style="margin-bottom:16px">
+    <svg width="72" height="72" viewBox="0 0 64 64">
       <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
       <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
       <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
@@ -195,43 +197,35 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <polygon points="32,4 56,20 8,20" fill="#5DEEBC" opacity="0.6"/>
     </svg>
   </div>
-  <div class="auth-title">GEM Planner</div>
-  <div class="auth-sub">Groceries · Expenses · Meal plans</div>
-
+  <div style="font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px">GEM Planner</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:32px">Groceries · Expenses · Meal plans</div>
   <div class="auth-card">
     <div id="auth-error" class="auth-error"></div>
-
     <div id="signin-form">
       <input class="auth-input" type="email" id="signin-email" placeholder="Email address" autocomplete="email"/>
       <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password"/>
       <button class="btn btn-primary btn-full" onclick="signIn()">Sign in</button>
-      <div class="auth-switch">First time? <span onclick="showSignup()">Create account</span></div>
+      <div class="auth-switch">New to GEM? <span onclick="showSignup()">Request access</span></div>
     </div>
-
     <div id="signup-form" class="hidden">
-      <input class="auth-input" type="text" id="signup-name" placeholder="Your name"/>
-      <input class="auth-input" type="email" id="signup-email" placeholder="Email address" autocomplete="email"/>
-      <input class="auth-input" type="password" id="signup-password" placeholder="Choose a password" autocomplete="new-password"/>
-      <div id="invite-gate" style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:var(--primary-pale);border-radius:8px;line-height:1.5">
-        ⚠️ New accounts require admin approval. Enter your invite code below, or ask your GEM admin to create your account.
+      <div style="background:var(--amber-pale);border-radius:8px;padding:10px 12px;font-size:12px;color:#8a6200;margin-bottom:14px;line-height:1.5">
+        ⚠️ Accounts are created by the GEM admin. Contact your admin to get access, or enter your details below to request an account.
       </div>
-      <input class="auth-input" type="text" id="signup-code" placeholder="Invite code (optional)"/>
+      <input class="auth-input" type="text" id="signup-name" placeholder="Your name"/>
+      <input class="auth-input" type="email" id="signup-email" placeholder="Email address"/>
+      <input class="auth-input" type="password" id="signup-password" placeholder="Choose a password"/>
       <button class="btn btn-primary btn-full" onclick="signUp()">Request access</button>
       <div class="auth-switch">Already have an account? <span onclick="showSignin()">Sign in</span></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
-     MAIN APP
-══════════════════════════════════════════════════════════ -->
+<!-- ══ MAIN APP ══ -->
 <div id="app" class="hidden">
-
-  <!-- Top bar -->
   <div id="topbar">
     <div id="topbar-time">--:--</div>
     <div class="gem-logo">
-      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 64 64">
         <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
         <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
         <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
@@ -242,15 +236,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </svg>
       <span class="gem-logo-text">GEM Planner</span>
     </div>
-    <div id="topbar-user" onclick="showScreen('profile')">👤</div>
+    <div id="topbar-user" onclick="showScreen('profile')">
+      <span id="topbar-initial" style="width:28px;height:28px;border-radius:50%;background:var(--primary-pale);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--primary)">?</span>
+    </div>
   </div>
 
-  <!-- ── HOME / DASHBOARD ── -->
+  <!-- HOME -->
   <div id="screen-home" class="screen active">
     <div class="hero-card">
       <div class="hero-left">
         <div class="hero-eyebrow" id="hero-month">June 2026</div>
-        <div class="hero-amount" id="hero-spent">R 0</div>
+        <div class="hero-amount" id="hero-spent">R 0.00</div>
         <div class="hero-budget" id="hero-budget-label">of R 0 budget</div>
         <div class="hero-bar-wrap"><div class="hero-bar" id="hero-bar" style="width:0%"></div></div>
         <div class="hero-sub" id="hero-sub">Set your budget to get started</div>
@@ -258,8 +254,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="ring-wrap">
         <svg id="ring-svg" width="72" height="72" style="transform:rotate(-90deg)">
           <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="7"/>
-          <circle id="ring-progress" cx="36" cy="36" r="32" fill="none" stroke="white"
-            stroke-width="7" stroke-dasharray="0 201" stroke-linecap="round"/>
+          <circle id="ring-progress" cx="36" cy="36" r="32" fill="none" stroke="white" stroke-width="7" stroke-dasharray="0 201" stroke-linecap="round"/>
         </svg>
         <div class="ring-center" id="ring-pct">0%</div>
       </div>
@@ -272,7 +267,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="stat-pill-sub" id="stat-week-sub">0 receipts</div>
       </div>
       <div class="stat-pill" style="background:var(--blue-pale);border-color:rgba(184,216,240,0.4)">
-        <div class="stat-pill-label" style="color:#5a9ec0">Avg/week</div>
+        <div class="stat-pill-label" style="color:var(--blue)">Avg/week</div>
         <div class="stat-pill-value" id="stat-avg">R 0</div>
         <div class="stat-pill-sub">this month</div>
       </div>
@@ -283,174 +278,179 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
 
-    <!-- Store breakdown -->
     <div class="card">
       <div class="card-row">
         <div class="card-label" style="margin-bottom:0">By store this month</div>
-        <div class="text-xs text-muted">auto-detected 💡</div>
+        <div style="font-size:10px;color:var(--muted)">auto-detected 💡</div>
       </div>
-      <div style="font-size:11px;color:var(--primary);background:var(--primary-pale);border-radius:8px;padding:7px 10px;margin:8px 0 4px">
-        💡 Stores appear here automatically when you scan a receipt
+      <div style="font-size:11px;color:var(--emerald);background:var(--emerald-pale);border-radius:8px;padding:7px 10px;margin:6px 0 4px">
+        💡 Stores appear automatically when you scan a receipt
       </div>
-      <div id="store-list"><div class="text-sm text-muted" style="padding:12px 0;text-align:center">No receipts yet — scan your first receipt!</div></div>
+      <div id="store-list"><div class="empty-state" style="padding:16px 0">No receipts yet</div></div>
     </div>
 
-    <!-- Weekly chart -->
     <div class="card">
       <div class="card-row">
         <div class="card-label" style="margin-bottom:0">Weekly spend</div>
         <div class="pill" style="background:var(--primary-pale);color:var(--primary)" id="chart-month-label">June</div>
       </div>
       <div class="chart-bars" id="weekly-chart">
-        <div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your weekly chart</div>
+        <div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your chart</div>
       </div>
     </div>
 
-    <!-- Recent receipts -->
     <div class="card">
       <div class="card-row">
         <div class="card-label" style="margin-bottom:0">Recent receipts</div>
-        <div class="text-sm fw-700" style="color:var(--primary);cursor:pointer" onclick="showScreen('scan')">See all →</div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);cursor:pointer" onclick="showScreen('scan')">See all →</div>
       </div>
-      <div id="recent-receipts"><div class="text-sm text-muted" style="padding:12px 0;text-align:center">No receipts yet</div></div>
+      <div id="recent-receipts"><div class="empty-state" style="padding:16px 0">No receipts yet</div></div>
     </div>
 
-    <!-- Price alert -->
-    <div class="alert-banner" id="price-alert" style="display:none">
+    <div class="alert-banner" id="price-alert" style="display:none;background:linear-gradient(135deg,var(--accent-pale),rgba(255,214,224,.5));border:1px solid var(--accent-soft)">
       <div style="font-size:24px">📈</div>
       <div style="flex:1">
         <div style="font-size:13px;font-weight:700;color:var(--accent)">Prices up this month</div>
-        <div class="text-sm text-muted mt-2" id="price-alert-text"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="price-alert-text"></div>
       </div>
-      <div class="text-sm fw-700" style="color:var(--accent);cursor:pointer" onclick="showScreen('trends')">View →</div>
+      <div style="font-size:12px;font-weight:700;color:var(--accent);cursor:pointer">View →</div>
     </div>
 
-    <!-- Set budget shortcut -->
-    <div class="section-pad" style="padding-bottom:12px">
+    <div style="padding:0 14px 12px">
       <button class="btn btn-outline btn-full" onclick="openBudgetModal()">⚙️ Set monthly budget</button>
     </div>
   </div>
 
-  <!-- ── SCAN ── -->
+  <!-- SCAN -->
   <div id="screen-scan" class="screen">
-    <div class="placeholder">
-      <div class="placeholder-icon">📷</div>
-      <div class="placeholder-title">Scan Receipt</div>
-      <div class="placeholder-sub">Photo your till slip or import an email receipt — coming in the next build</div>
-      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;margin-top:8px">
-        <button class="btn btn-primary btn-full">📸 Take a photo</button>
-        <button class="btn btn-outline btn-full">📧 Import email receipt</button>
-        <button class="btn btn-outline btn-full" onclick="openManualReceipt()">✏️ Enter manually</button>
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">Receipts</div>
+        <div class="screen-sub">All your shopping records</div>
       </div>
+      <button class="btn btn-primary btn-sm" onclick="openManualReceipt()">+ Add</button>
+    </div>
+    <div style="display:flex;gap:8px;padding:0 14px 12px">
+      <div style="flex:1;background:var(--primary-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--primary-soft)">
+        <div style="font-size:24px;margin-bottom:4px">📸</div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary)">Photo scan</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Coming soon</div>
+      </div>
+      <div style="flex:1;background:var(--blue-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--blue-mid)">
+        <div style="font-size:24px;margin-bottom:4px">📧</div>
+        <div style="font-size:12px;font-weight:700;color:var(--blue)">Email import</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Coming soon</div>
+      </div>
+      <div style="flex:1;background:var(--accent-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--accent-mid)" onclick="openManualReceipt()">
+        <div style="font-size:24px;margin-bottom:4px">✏️</div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent)">Manual entry</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Available now</div>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div id="all-receipts"><div class="spinner"></div></div>
     </div>
   </div>
 
-  <!-- ── PLAN ── -->
+  <!-- PLAN -->
   <div id="screen-plan" class="screen">
-    <div class="placeholder">
-      <div class="placeholder-icon">📅</div>
-      <div class="placeholder-title">Meal Planner</div>
-      <div class="placeholder-sub">Plan dinners and baking days, then auto-generate your shopping list — coming next</div>
-      <button class="btn btn-primary" style="margin-top:8px">Start planning this week</button>
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">Meal Planner</div>
+        <div class="screen-sub" id="plan-week-label">This week</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="generateShoppingList()">→ List</button>
     </div>
+    <div id="plan-grid"><div class="spinner"></div></div>
   </div>
 
-  <!-- ── LIST ── -->
+  <!-- LIST -->
   <div id="screen-list" class="screen">
-    <div class="placeholder">
-      <div class="placeholder-icon">🛒</div>
-      <div class="placeholder-title">Shopping List</div>
-      <div class="placeholder-sub">Meal plan items, school lunches and misc — all in one ticked list — coming next</div>
-      <button class="btn btn-accent" style="margin-top:8px">Create this week's list</button>
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">Shopping List</div>
+        <div class="screen-sub" id="list-week-label">This week</div>
+      </div>
+      <button class="btn btn-accent btn-sm" onclick="openAddListItem()">+ Add</button>
     </div>
+    <div id="shopping-list-content"><div class="spinner"></div></div>
   </div>
 
-  <!-- ── RECIPES ── -->
+  <!-- RECIPES -->
   <div id="screen-recipes" class="screen">
-    <div class="placeholder">
-      <div class="placeholder-icon">🍽️</div>
-      <div class="placeholder-title">Recipes</div>
-      <div class="placeholder-sub">Your recipe library — add your own, import from Pinterest or Facebook, share with family — coming next</div>
-      <button class="btn btn-primary" style="margin-top:8px">Add first recipe</button>
+    <div class="screen-header">
+      <div>
+        <div class="screen-title">Recipes</div>
+        <div class="screen-sub">Your kitchen collection</div>
+      </div>
     </div>
+    <div style="display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto">
+      <button class="pill" style="background:var(--primary-pale);color:var(--primary);cursor:pointer;white-space:nowrap" onclick="filterRecipes('all')">All</button>
+      <button class="pill" style="background:var(--amber-pale);color:var(--amber);cursor:pointer;white-space:nowrap" onclick="filterRecipes('dinner')">🍽️ Dinner</button>
+      <button class="pill" style="background:var(--accent-pale);color:var(--accent);cursor:pointer;white-space:nowrap" onclick="filterRecipes('baking')">🥐 Baking</button>
+      <button class="pill" style="background:var(--purple-pale);color:var(--purple);cursor:pointer;white-space:nowrap" onclick="filterRecipes('shared')">👨‍👩‍👧 Shared</button>
+    </div>
+    <div id="recipe-list"><div class="spinner"></div></div>
+    <button class="fab fab-accent" onclick="openAddRecipe()">+</button>
   </div>
 
-  <!-- ── PROFILE / ADMIN ── -->
+  <!-- PROFILE -->
   <div id="screen-profile" class="screen">
-    <div style="padding:16px 14px 0">
-      <div class="card-label">My account</div>
-    </div>
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-        <div style="width:52px;height:52px;border-radius:50%;background:var(--primary-pale);
-          display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--primary)">
-          <span id="profile-initial">?</span>
-        </div>
-        <div>
-          <div style="font-size:16px;font-weight:700" id="profile-name">Loading...</div>
-          <div class="text-sm text-muted" id="profile-email"></div>
-          <div class="pill mt-12" id="profile-role" style="background:var(--primary-pale);color:var(--primary);margin-top:4px">Member</div>
-        </div>
+    <div class="profile-hero">
+      <div class="profile-avatar" id="profile-avatar">G</div>
+      <div>
+        <div class="profile-name" id="profile-name">Loading...</div>
+        <div class="profile-email" id="profile-email"></div>
+        <div class="profile-role-badge" id="profile-role">Member</div>
       </div>
-      <button class="btn btn-outline btn-full" onclick="signOut()">Sign out</button>
     </div>
 
-    <!-- Admin panel -->
-    <div id="admin-panel" class="hidden">
-      <div style="padding:0 14px">
-        <div class="card-label">Admin — User management</div>
+    <div class="card">
+      <div class="card-label">Account settings</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-outline btn-full" onclick="openEditName()">✏️ Change my name</button>
+        <button class="btn btn-outline btn-full" onclick="openBudgetModal()">⚙️ Set monthly budget</button>
+        <button class="btn btn-danger btn-full" onclick="signOut()">Sign out</button>
       </div>
-      <div class="card">
-        <div class="card-row">
-          <div style="font-size:13px;font-weight:700">App users</div>
-          <button class="btn btn-primary" style="padding:6px 14px;font-size:12px" onclick="openCreateUser()">+ Add user</button>
-        </div>
-        <div id="user-list"><div class="spinner mt-12"></div></div>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <div style="padding:0 14px 6px;display:flex;justify-content:space-between;align-items:center">
+        <div class="card-label" style="margin:0">⭐ Admin — Users</div>
+        <button class="btn btn-emerald btn-sm" onclick="openCreateUser()">+ Add user</button>
+      </div>
+      <div class="card" style="padding:0 16px">
+        <div id="user-list"><div class="spinner"></div></div>
       </div>
     </div>
   </div>
 
   <!-- Bottom nav -->
   <nav id="bottom-nav">
-    <div class="nav-item active" data-screen="home" onclick="showScreen('home')">
-      <div class="nav-emoji">🏠</div><div>Home</div><div class="nav-dot"></div>
-    </div>
-    <div class="nav-item" data-screen="scan" onclick="showScreen('scan')">
-      <div class="nav-emoji">📷</div><div>Scan</div>
-    </div>
-    <div class="nav-item" data-screen="plan" onclick="showScreen('plan')">
-      <div class="nav-emoji">📅</div><div>Plan</div>
-    </div>
-    <div class="nav-item" data-screen="list" onclick="showScreen('list')">
-      <div class="nav-emoji">🛒</div><div>List</div>
-    </div>
-    <div class="nav-item" data-screen="recipes" onclick="showScreen('recipes')">
-      <div class="nav-emoji">🍽️</div><div>Recipes</div>
-    </div>
+    <div class="nav-item active" data-screen="home" onclick="showScreen('home')"><div class="nav-emoji">🏠</div><div>Home</div><div class="nav-dot"></div></div>
+    <div class="nav-item" data-screen="scan" onclick="showScreen('scan')"><div class="nav-emoji">📷</div><div>Scan</div></div>
+    <div class="nav-item" data-screen="plan" onclick="showScreen('plan')"><div class="nav-emoji">📅</div><div>Plan</div></div>
+    <div class="nav-item" data-screen="list" onclick="showScreen('list')"><div class="nav-emoji">🛒</div><div>List</div></div>
+    <div class="nav-item" data-screen="recipes" onclick="showScreen('recipes')"><div class="nav-emoji">🍽️</div><div>Recipes</div></div>
   </nav>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
-     MODALS
-══════════════════════════════════════════════════════════ -->
-
-<!-- Budget modal -->
-<div id="modal-budget" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px">
-    <div style="font-size:16px;font-weight:700;margin-bottom:16px">Set monthly budget</div>
-    <input class="auth-input" type="number" id="budget-input" placeholder="e.g. 6000" step="100"/>
-    <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn btn-outline flex-1" onclick="closeBudgetModal()">Cancel</button>
+<!-- ══ MODALS ══ -->
+<div id="modal-budget" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">💰 Set monthly budget</div>
+    <input class="modal-input" type="number" id="budget-input" placeholder="e.g. 6000" step="100"/>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-budget')">Cancel</button>
       <button class="btn btn-primary flex-1" onclick="saveBudget()">Save budget</button>
     </div>
   </div>
 </div>
 
-<!-- Manual receipt modal -->
-<div id="modal-receipt" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px;max-height:80vh;overflow-y:auto">
-    <div style="font-size:16px;font-weight:700;margin-bottom:16px">Add receipt manually</div>
-    <select class="auth-input" id="receipt-store">
+<div id="modal-receipt" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">🧾 Add receipt</div>
+    <select class="modal-input" id="receipt-store">
       <option value="">Select store...</option>
       <option value="woolworths">Woolworths</option>
       <option value="checkers">Checkers / Sixty60</option>
@@ -459,447 +459,574 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <option value="walmart">Walmart</option>
       <option value="other">Other</option>
     </select>
-    <input class="auth-input" type="date" id="receipt-date"/>
-    <input class="auth-input" type="number" id="receipt-total" placeholder="Total amount (R)" step="0.01"/>
-    <input class="auth-input" type="number" id="receipt-items" placeholder="Number of items" step="1"/>
-    <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn btn-outline flex-1" onclick="closeReceiptModal()">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="saveReceipt()">Save receipt</button>
+    <input class="modal-input" type="date" id="receipt-date"/>
+    <input class="modal-input" type="number" id="receipt-total" placeholder="Total amount (R)" step="0.01"/>
+    <input class="modal-input" type="number" id="receipt-items" placeholder="Number of items"/>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-receipt')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="saveReceipt()">Save</button>
     </div>
   </div>
 </div>
 
-<!-- Create user modal (admin) -->
-<div id="modal-create-user" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:flex-end;justify-content:center">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px">
-    <div style="font-size:16px;font-weight:700;margin-bottom:4px">Create new user</div>
-    <div class="text-sm text-muted" style="margin-bottom:16px">They'll use these credentials to sign in</div>
-    <input class="auth-input" type="text" id="new-user-name" placeholder="Full name"/>
-    <input class="auth-input" type="email" id="new-user-email" placeholder="Email address"/>
-    <input class="auth-input" type="password" id="new-user-password" placeholder="Temporary password"/>
+<div id="modal-edit-name" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">✏️ Change your name</div>
+    <input class="modal-input" type="text" id="edit-name-input" placeholder="Your name"/>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-edit-name')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="saveName()">Save name</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-create-user" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">👤 Create new user</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">They'll use these credentials to sign in to GEM Planner</div>
+    <input class="modal-input" type="text" id="new-user-name" placeholder="Full name"/>
+    <input class="modal-input" type="email" id="new-user-email" placeholder="Email address"/>
+    <input class="modal-input" type="password" id="new-user-password" placeholder="Temporary password (min 6 chars)"/>
     <div id="create-user-error" class="auth-error"></div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-outline flex-1" onclick="closeCreateUser()">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="createUser()">Create user</button>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-create-user')">Cancel</button>
+      <button class="btn btn-emerald flex-1" onclick="createUser()">Create user</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<div id="modal-add-recipe" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">🍽️ Add recipe</div>
+    <input class="modal-input" type="text" id="recipe-title" placeholder="Recipe name"/>
+    <select class="modal-input" id="recipe-category">
+      <option value="dinner">🍽️ Dinner</option>
+      <option value="baking">🥐 Baking</option>
+      <option value="lunch">🥗 Lunch</option>
+      <option value="other">Other</option>
+    </select>
+    <textarea class="modal-input" id="recipe-desc" placeholder="Short description" rows="2" style="resize:none"></textarea>
+    <textarea class="modal-input" id="recipe-ingredients" placeholder="Ingredients (one per line)" rows="4" style="resize:none"></textarea>
+    <textarea class="modal-input" id="recipe-instructions" placeholder="Method / instructions" rows="4" style="resize:none"></textarea>
+    <div style="display:flex;gap:8px">
+      <input class="modal-input" type="number" id="recipe-prep" placeholder="Prep (min)" style="flex:1;margin-bottom:0"/>
+      <input class="modal-input" type="number" id="recipe-cook" placeholder="Cook (min)" style="flex:1;margin-bottom:0"/>
+      <input class="modal-input" type="number" id="recipe-serves" placeholder="Serves" style="flex:1;margin-bottom:10px"/>
+    </div>
+    <div class="modal-section">Sharing</div>
+    <select class="modal-input" id="recipe-visibility">
+      <option value="private">🔒 Private — only me</option>
+      <option value="everyone">🌐 Everyone on GEM</option>
+    </select>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-recipe')">Cancel</button>
+      <button class="btn btn-accent flex-1" onclick="saveRecipe()">Save recipe</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-add-list-item" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">🛒 Add to list</div>
+    <input class="modal-input" type="text" id="list-item-name" placeholder="Item name"/>
+    <input class="modal-input" type="text" id="list-item-amount" placeholder="Amount (e.g. 2, 500g)"/>
+    <select class="modal-input" id="list-item-category">
+      <option value="misc">📦 Misc</option>
+      <option value="meal_plan">🍽️ Meal plan</option>
+      <option value="school_lunch">🎒 School lunch</option>
+      <option value="baking">🥐 Baking</option>
+    </select>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item')">Cancel</button>
+      <button class="btn btn-accent flex-1" onclick="saveListItem()">Add to list</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════
-// SUPABASE INIT
-// ══════════════════════════════════════════════════════════════
-const SUPABASE_URL  = 'https://mjaschvxhdupoemaezjt.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// ══ SUPABASE ══
+const SURL = 'https://mjaschvxhdupoemaezjt.supabase.co';
+const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
+const db = supabase.createClient(SURL, SKEY);
 
-// ══════════════════════════════════════════════════════════════
-// STORE CONFIG
-// ══════════════════════════════════════════════════════════════
+// ══ STORE CONFIG ══
 const STORES = {
-  woolworths: { label:'Woolworths',      brand:'#1A1A1A', bar:'#6CC2C0', logo:'logos/woolworths.png' },
-  checkers:   { label:'Checkers',        brand:'#00B5AD', bar:'#FFB6C8', logo:'logos/checkers.png'   },
-  pnp:        { label:'Pick n Pay',      brand:'#004F9F', bar:'#B8D8F0', logo:'logos/pnp.jpg'        },
-  spar:       { label:'Spar',            brand:'#007A3D', bar:'#C2DFC2', logo:'logos/spar.jpg'       },
-  walmart:    { label:'Walmart',         brand:'#0071CE', bar:'#B8D8F0', logo:'logos/walmart.png'    },
-  other:      { label:'Other',           brand:'#8FA8A6', bar:'#ACD9D9', logo:null                   },
+  woolworths:{label:'Woolworths',brand:'#1A1A1A',bar:'#6CC2C0',logo:'logos/woolworths.png'},
+  checkers:  {label:'Checkers',  brand:'#00B5AD',bar:'#FFB6C8',logo:'logos/checkers.png'},
+  pnp:       {label:'Pick n Pay',brand:'#004F9F',bar:'#B8D8F0',logo:'logos/pnp.jpg'},
+  spar:      {label:'Spar',      brand:'#007A3D',bar:'#C2DFC2',logo:'logos/spar.jpg'},
+  walmart:   {label:'Walmart',   brand:'#0071CE',bar:'#B8D8F0',logo:'logos/walmart.png'},
+  other:     {label:'Other',     brand:'#8FA8A6',bar:'#ACD9D9',logo:null},
 };
 
-function storeLogo(key, hasActivity, size=36) {
-  const cfg = STORES[key] || STORES.other;
-  if (hasActivity && cfg.logo) {
+const CATEGORY_COLORS = {
+  dinner:'#F5A623', baking:'#FF8FAB', lunch:'#6CC2C0', other:'#9B7FD4'
+};
+const CATEGORY_LABELS = {
+  dinner:'🍽️ Dinner', baking:'🥐 Baking', lunch:'🥗 Lunch', other:'Other',
+  meal_plan:'🍽️ Meal plan', school_lunch:'🎒 School lunch', misc:'📦 Misc'
+};
+
+function storeLogo(key, size=36) {
+  const cfg = STORES[key]||STORES.other;
+  if(cfg.logo) {
     return `<div class="store-logo-wrap" style="width:${size}px;height:${size}px">
-      <img src="${cfg.logo}" alt="${cfg.label}" onerror="this.parentNode.innerHTML='<span style=font-size:${Math.round(size*.35)}px;font-weight:800;color:white>${cfg.label.charAt(0)}</span>';this.parentNode.style.background='${cfg.brand}'"/>
+      <img src="${cfg.logo}" alt="${cfg.label}" onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style=font-size:${Math.round(size*.35)}px;font-weight:800;color:white>${cfg.label.charAt(0)}</span>'"/>
     </div>`;
   }
   return `<div class="store-logo-badge" style="background:${cfg.brand};width:${size}px;height:${size}px;font-size:${Math.round(size*.35)}px">${cfg.label.charAt(0)}</div>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════════════
-let currentUser = null;
-let isAdmin     = false;
-let receipts    = [];
-let budget      = 0;
+// ══ STATE ══
+let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shoppingItems=[], currentFilter='all';
 
-// ══════════════════════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
-  updateClock();
-  setInterval(updateClock, 30000);
-
-  // Set today's date as default in receipt modal
+// ══ INIT ══
+document.addEventListener('DOMContentLoaded', async()=>{
+  updateClock(); setInterval(updateClock,30000);
   document.getElementById('receipt-date').value = new Date().toISOString().split('T')[0];
-
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    await loadUser(session.user);
-    showApp();
-  } else {
-    showAuth();
-  }
-
-  db.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
-      await loadUser(session.user);
-      showApp();
-    } else if (event === 'SIGNED_OUT') {
-      showAuth();
-    }
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  const {data:{session}} = await db.auth.getSession();
+  if(session){ await loadUser(session.user); showApp(); }
+  else showAuth();
+  db.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'&&session){ await loadUser(session.user); showApp(); }
+    else if(event==='SIGNED_OUT') showAuth();
   });
 });
 
-function updateClock() {
-  const now = new Date();
+function updateClock(){
   document.getElementById('topbar-time').textContent =
-    now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
 
-// ══════════════════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════════════════
-function showAuth() {
-  document.getElementById('auth-screen').classList.remove('hidden');
-  document.getElementById('app').classList.add('hidden');
+// ══ AUTH ══
+function showAuth(){ document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
+function showApp(){ document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadDashboard(); }
+function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
+function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
+
+async function signIn(){
+  const email=document.getElementById('signin-email').value.trim();
+  const password=document.getElementById('signin-password').value;
+  const errEl=document.getElementById('auth-error');
+  errEl.textContent='';
+  if(!email||!password){errEl.textContent='Please enter your email and password';return;}
+  const {error}=await db.auth.signInWithPassword({email,password});
+  if(error) errEl.textContent=error.message;
 }
 
-function showApp() {
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  loadDashboard();
+async function signUp(){
+  document.getElementById('auth-error').textContent='New accounts are created by the GEM admin. Please contact your admin to get access.';
 }
 
-function showSignup() {
-  document.getElementById('signin-form').classList.add('hidden');
-  document.getElementById('signup-form').classList.remove('hidden');
-  document.getElementById('auth-error').textContent = '';
+async function signOut(){ await db.auth.signOut(); }
+
+// ══ LOAD USER ══
+async function loadUser(user){
+  currentUser=user;
+  const {data:profile}=await db.from('profiles').select('*').eq('id',user.id).single();
+  isAdmin=profile?.is_admin||false;
+  const name=profile?.full_name||user.email.split('@')[0];
+  document.getElementById('profile-name').textContent=name;
+  document.getElementById('profile-email').textContent=user.email;
+  document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('edit-name-input').value=name;
+  const roleEl=document.getElementById('profile-role');
+  if(isAdmin){ roleEl.textContent='⭐ Admin'; document.getElementById('admin-panel').classList.remove('hidden'); loadUserList(); }
+  else roleEl.textContent='Member';
 }
 
-function showSignin() {
-  document.getElementById('signup-form').classList.add('hidden');
-  document.getElementById('signin-form').classList.remove('hidden');
-  document.getElementById('auth-error').textContent = '';
+// ══ DASHBOARD ══
+async function loadDashboard(){
+  const now=new Date();
+  const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthName=now.toLocaleString('default',{month:'long'});
+  document.getElementById('hero-month').textContent=`${monthName} ${now.getFullYear()}`;
+  document.getElementById('chart-month-label').textContent=monthName;
+  const {data:bd}=await db.from('budgets').select('amount').eq('user_id',currentUser.id).eq('month',monthKey).single();
+  budget=bd?.amount||0;
+  const monthStart=`${monthKey}-01`;
+  const {data:rx}=await db.from('receipts').select('*').eq('user_id',currentUser.id).gte('receipt_date',monthStart).order('receipt_date',{ascending:false});
+  receipts=rx||[];
+  renderDashboard(now,monthName);
 }
 
-async function signIn() {
-  const email    = document.getElementById('signin-email').value.trim();
-  const password = document.getElementById('signin-password').value;
-  const errEl    = document.getElementById('auth-error');
-  errEl.textContent = '';
-  if (!email || !password) { errEl.textContent = 'Please enter your email and password'; return; }
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) errEl.textContent = error.message;
-}
+function fmt(n){ return Number(n).toLocaleString('en-ZA',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtR(n){ return `R ${fmt(n)}`; }
 
-async function signUp() {
-  // Self-registration is disabled — show message
-  document.getElementById('auth-error').textContent =
-    'New accounts are created by the GEM admin. Please contact your admin to get access.';
-}
-
-async function signOut() {
-  await db.auth.signOut();
-}
-
-// ══════════════════════════════════════════════════════════════
-// LOAD USER
-// ══════════════════════════════════════════════════════════════
-async function loadUser(user) {
-  currentUser = user;
-  const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
-  isAdmin = profile?.is_admin || false;
-
-  // Update profile screen
-  const name = profile?.full_name || user.email.split('@')[0];
-  document.getElementById('profile-name').textContent    = name;
-  document.getElementById('profile-email').textContent   = user.email;
-  document.getElementById('profile-initial').textContent = name.charAt(0).toUpperCase();
-  document.getElementById('topbar-user').textContent     = name.charAt(0).toUpperCase() + ' 👤';
-
-  const roleEl = document.getElementById('profile-role');
-  if (isAdmin) {
-    roleEl.textContent = '⭐ Admin';
-    roleEl.style.background = '#FFF0F3';
-    roleEl.style.color = '#FF8FAB';
-    document.getElementById('admin-panel').classList.remove('hidden');
-    loadUserList();
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════════════════════════
-async function loadDashboard() {
-  const now       = new Date();
-  const monthKey  = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const monthName = now.toLocaleString('default', { month:'long' });
-
-  document.getElementById('hero-month').textContent      = `${monthName} ${now.getFullYear()}`;
-  document.getElementById('chart-month-label').textContent = monthName;
-
-  // Load budget
-  const { data: budgetData } = await db.from('budgets')
-    .select('amount').eq('user_id', currentUser.id).eq('month', monthKey).single();
-  budget = budgetData?.amount || 0;
-
-  // Load receipts this month
-  const monthStart = `${monthKey}-01`;
-  const { data: rxData } = await db.from('receipts')
-    .select('*').eq('user_id', currentUser.id)
-    .gte('receipt_date', monthStart).order('receipt_date', { ascending: false });
-  receipts = rxData || [];
-
-  renderDashboard(now, monthName);
-}
-
-function renderDashboard(now, monthName) {
-  const totalSpent = receipts.reduce((s, r) => s + (r.total || 0), 0);
-  const pct        = budget > 0 ? Math.min(Math.round((totalSpent / budget) * 100), 100) : 0;
-  const remaining  = budget - totalSpent;
-
-  // Hero
-  document.getElementById('hero-spent').textContent  = `R ${totalSpent.toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-  document.getElementById('hero-budget-label').textContent = budget > 0 ? `of R ${budget.toLocaleString()} budget` : 'No budget set';
-  document.getElementById('hero-bar').style.width    = `${pct}%`;
-  document.getElementById('ring-pct').textContent    = `${pct}%`;
-  document.getElementById('hero-sub').textContent    = budget > 0
-    ? `${pct}% used · R ${remaining.toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})} remaining`
-    : 'Tap "Set monthly budget" below';
-
-  // Ring
-  const circ = 2 * Math.PI * 32;
-  document.getElementById('ring-progress').setAttribute('stroke-dasharray', `${circ*(pct/100)} ${circ}`);
-  document.getElementById('ring-progress').setAttribute('stroke', pct > 85 ? '#FFB6C8' : 'white');
+function renderDashboard(now,monthName){
+  const totalSpent=receipts.reduce((s,r)=>s+(r.total||0),0);
+  const pct=budget>0?Math.min(Math.round((totalSpent/budget)*100),100):0;
+  const remaining=budget-totalSpent;
+  document.getElementById('hero-spent').textContent=fmtR(totalSpent);
+  document.getElementById('hero-budget-label').textContent=budget>0?`of R ${budget.toLocaleString()} budget`:'No budget set yet';
+  document.getElementById('hero-bar').style.width=`${pct}%`;
+  document.getElementById('ring-pct').textContent=`${pct}%`;
+  document.getElementById('hero-sub').textContent=budget>0?`${pct}% used · ${fmtR(remaining)} remaining`:'Tap "Set monthly budget" below';
+  const circ=2*Math.PI*32;
+  document.getElementById('ring-progress').setAttribute('stroke-dasharray',`${circ*(pct/100)} ${circ}`);
+  document.getElementById('ring-progress').setAttribute('stroke',pct>85?'#FFB6C8':'white');
 
   // Stats
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay() + 1);
-  const weekReceipts = receipts.filter(r => new Date(r.receipt_date) >= weekStart);
-  const weekTotal    = weekReceipts.reduce((s, r) => s + (r.total||0), 0);
-  const weeksInMonth = Math.ceil(now.getDate() / 7);
-  const avgWeek      = weeksInMonth > 0 ? totalSpent / weeksInMonth : 0;
-  const daysLeft     = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate() - now.getDate();
-  const predicted    = totalSpent + (avgWeek / 7) * daysLeft;
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
+  weekStart.setHours(0,0,0,0);
+  const weekRx=receipts.filter(r=>new Date(r.receipt_date)>=weekStart);
+  const weekTotal=weekRx.reduce((s,r)=>s+(r.total||0),0);
+  const weeksIn=Math.max(1,Math.ceil(now.getDate()/7));
+  const avgWeek=totalSpent/weeksIn;
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const daysLeft=daysInMonth-now.getDate();
+  const predicted=totalSpent+(avgWeek/7)*daysLeft;
+  document.getElementById('stat-week').textContent=`R ${Math.round(weekTotal).toLocaleString()}`;
+  document.getElementById('stat-week-sub').textContent=`${weekRx.length} receipt${weekRx.length!==1?'s':''}`;
+  document.getElementById('stat-avg').textContent=`R ${Math.round(avgWeek).toLocaleString()}`;
+  document.getElementById('stat-predicted').textContent=`R ${Math.round(predicted).toLocaleString()}`;
 
-  document.getElementById('stat-week').textContent     = `R ${weekTotal.toLocaleString('en-ZA', {maximumFractionDigits:0})}`;
-  document.getElementById('stat-week-sub').textContent = `${weekReceipts.length} receipt${weekReceipts.length!==1?'s':''}`;
-  document.getElementById('stat-avg').textContent      = `R ${Math.round(avgWeek).toLocaleString('en-ZA')}`;
-  document.getElementById('stat-predicted').textContent= `R ${Math.round(predicted).toLocaleString('en-ZA')}`;
-
-  // Store breakdown
-  const storeMap = {};
-  receipts.forEach(r => {
-    const k = r.store_key || 'other';
-    if (!storeMap[k]) storeMap[k] = { key:k, name: r.store_name||STORES[k]?.label||k, total:0, count:0 };
-    storeMap[k].total += r.total||0;
-    storeMap[k].count++;
-  });
-  const storeArr = Object.values(storeMap).sort((a,b) => b.total - a.total);
-
-  if (storeArr.length === 0) {
-    document.getElementById('store-list').innerHTML = `<div class="text-sm text-muted" style="padding:12px 0;text-align:center">No receipts yet — scan your first receipt!</div>`;
-  } else {
-    document.getElementById('store-list').innerHTML = storeArr.map(s => {
-      const pctStore = totalSpent > 0 ? Math.round((s.total/totalSpent)*100) : 0;
-      const cfg = STORES[s.key] || STORES.other;
-      return `<div class="store-row">
-        ${storeLogo(s.key, true, 36)}
+  // Stores
+  const sm={};
+  receipts.forEach(r=>{const k=r.store_key||'other';if(!sm[k])sm[k]={key:k,total:0};sm[k].total+=r.total||0;});
+  const sa=Object.values(sm).sort((a,b)=>b.total-a.total);
+  document.getElementById('store-list').innerHTML=sa.length===0
+    ?'<div class="empty-state" style="padding:16px 0">No receipts yet</div>'
+    :sa.map(s=>{
+      const cfg=STORES[s.key]||STORES.other;
+      const p=totalSpent>0?Math.round((s.total/totalSpent)*100):0;
+      return `<div class="store-row">${storeLogo(s.key,36)}
         <div style="flex:1;min-width:0">
-          <div class="text-sm fw-700" style="margin-bottom:3px">${cfg.label}</div>
-          <div class="store-bar-bg"><div class="store-bar-fill" style="width:${pctStore}%;background:${cfg.bar}"></div></div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:3px">${cfg.label}</div>
+          <div class="store-bar-bg"><div class="store-bar-fill" style="width:${p}%;background:${cfg.bar}"></div></div>
         </div>
         <div style="text-align:right;flex-shrink:0">
-          <div class="text-sm fw-700">R ${s.total.toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-          <div class="text-xs text-muted">${pctStore}%</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+          <div style="font-size:12px;font-weight:700">${fmtR(s.total)}</div>
+          <div style="font-size:10px;color:var(--muted)">${p}%</div>
+        </div></div>`;}).join('');
 
-  // Weekly chart
-  const weeklyMap = {};
-  receipts.forEach(r => {
-    const d = new Date(r.receipt_date);
-    const wn = `W${Math.ceil(d.getDate()/7)}`;
-    weeklyMap[wn] = (weeklyMap[wn]||0) + (r.total||0);
-  });
-  const weeks = ['W1','W2','W3','W4','W5'];
-  const weeklyData = weeks.map(w => ({ week:w, amount: weeklyMap[w]||0 })).filter(w => w.amount > 0);
-  const currentWeek = `W${Math.ceil(now.getDate()/7)}`;
-
-  if (weeklyData.length === 0) {
-    document.getElementById('weekly-chart').innerHTML = `<div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your weekly chart</div>`;
-  } else {
-    const maxAmt = Math.max(...weeklyData.map(w => w.amount));
-    document.getElementById('weekly-chart').innerHTML = weeklyData.map(w => {
-      const h = Math.max(8, Math.round((w.amount/maxAmt)*60));
-      const isActive = w.week === currentWeek;
+  // Chart
+  const wm={};
+  receipts.forEach(r=>{const d=new Date(r.receipt_date);const wn=`W${Math.ceil(d.getDate()/7)}`;wm[wn]=(wm[wn]||0)+(r.total||0);});
+  const wd=['W1','W2','W3','W4','W5'].map(w=>({week:w,amount:wm[w]||0})).filter(w=>w.amount>0);
+  const curW=`W${Math.ceil(now.getDate()/7)}`;
+  document.getElementById('weekly-chart').innerHTML=wd.length===0
+    ?'<div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your chart</div>'
+    :wd.map(w=>{const h=Math.max(8,Math.round((w.amount/Math.max(...wd.map(x=>x.amount)))*60));const a=w.week===curW;
       return `<div class="chart-col">
-        <div style="font-size:9px;font-weight:700;color:${isActive?'var(--primary)':'transparent'};margin-bottom:2px">
-          R${(w.amount/1000).toFixed(1)}k
-        </div>
-        <div class="chart-bar" style="height:${h}px;background:${isActive?'linear-gradient(180deg,#86CAC3,#6CC2C0)':'var(--primary-pale)'}"></div>
-        <div style="font-size:9px;color:${isActive?'var(--primary)':'var(--muted)'};font-weight:${isActive?700:400}">${w.week}</div>
-      </div>`;
-    }).join('');
-  }
+        <div style="font-size:9px;font-weight:700;color:${a?'var(--primary)':'transparent'};margin-bottom:2px">R${(w.amount/1000).toFixed(1)}k</div>
+        <div class="chart-bar" style="height:${h}px;background:${a?'linear-gradient(180deg,#86CAC3,#6CC2C0)':'var(--primary-pale)'}"></div>
+        <div style="font-size:9px;color:${a?'var(--primary)':'var(--muted)'};font-weight:${a?700:400}">${w.week}</div>
+      </div>`;}).join('');
 
   // Recent receipts
-  const recent = receipts.slice(0, 4);
-  if (recent.length === 0) {
-    document.getElementById('recent-receipts').innerHTML = `<div class="text-sm text-muted" style="padding:12px 0;text-align:center">No receipts yet</div>`;
-  } else {
-    document.getElementById('recent-receipts').innerHTML = recent.map(r => {
-      const cfg = STORES[r.store_key] || STORES.other;
-      const d   = new Date(r.receipt_date).toLocaleDateString('en-ZA', {day:'numeric', month:'short'});
-      return `<div class="receipt-row">
-        ${storeLogo(r.store_key, true, 38)}
+  const recent=receipts.slice(0,4);
+  document.getElementById('recent-receipts').innerHTML=recent.length===0
+    ?'<div class="empty-state" style="padding:16px 0">No receipts yet</div>'
+    :recent.map(r=>{
+      const cfg=STORES[r.store_key]||STORES.other;
+      const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+      return `<div class="receipt-row">${storeLogo(r.store_key,38)}
         <div style="flex:1;min-width:0">
-          <div class="text-sm fw-700">${cfg.label}</div>
-          <div class="text-xs text-muted">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
+          <div style="font-size:13px;font-weight:600">${cfg.label}</div>
+          <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
         </div>
-        <div class="text-sm fw-700">R ${(r.total||0).toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-      </div>`;
-    }).join('');
-  }
+        <div style="font-size:14px;font-weight:700">${fmtR(r.total||0)}</div>
+      </div>`;}).join('');
 }
 
-// ══════════════════════════════════════════════════════════════
-// BUDGET MODAL
-// ══════════════════════════════════════════════════════════════
-function openBudgetModal() {
-  document.getElementById('budget-input').value = budget || '';
-  document.getElementById('modal-budget').classList.remove('hidden');
-}
-function closeBudgetModal() { document.getElementById('modal-budget').classList.add('hidden'); }
-
-async function saveBudget() {
-  const amount = parseFloat(document.getElementById('budget-input').value);
-  if (!amount || amount <= 0) { showToast('Enter a valid amount'); return; }
-  const now      = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const { error } = await db.from('budgets').upsert(
-    { user_id: currentUser.id, month: monthKey, amount },
-    { onConflict: 'user_id,month' }
-  );
-  if (error) { showToast('Error saving budget'); return; }
-  budget = amount;
-  closeBudgetModal();
-  renderDashboard(new Date(), new Date().toLocaleString('default', { month:'long' }));
-  showToast('Budget saved ✓');
+// ══ SCAN SCREEN ══
+async function loadAllReceipts(){
+  const {data:rx}=await db.from('receipts').select('*').eq('user_id',currentUser.id).order('receipt_date',{ascending:false});
+  const all=rx||[];
+  document.getElementById('all-receipts').innerHTML=all.length===0
+    ?'<div class="empty-state"><div class="empty-state-icon">🧾</div>No receipts yet — add your first one!</div>'
+    :all.map(r=>{
+      const cfg=STORES[r.store_key]||STORES.other;
+      const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+      return `<div class="receipt-row" style="padding:12px 16px">${storeLogo(r.store_key,38)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${cfg.label}</div>
+          <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:700">${fmtR(r.total||0)}</div>
+        </div>
+      </div>`;}).join('');
 }
 
-// ══════════════════════════════════════════════════════════════
-// MANUAL RECEIPT MODAL
-// ══════════════════════════════════════════════════════════════
-function openManualReceipt() { document.getElementById('modal-receipt').classList.remove('hidden'); }
-function closeReceiptModal() { document.getElementById('modal-receipt').classList.add('hidden'); }
+// ══ RECIPES ══
+async function loadRecipes(){
+  const {data:own}=await db.from('recipes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const {data:shared}=await db.from('recipes').select('*').eq('visibility','everyone').neq('user_id',currentUser.id);
+  allRecipes=[...(own||[]),...(shared||[])];
+  renderRecipes();
+}
 
-async function saveReceipt() {
-  const storeKey = document.getElementById('receipt-store').value;
-  const date     = document.getElementById('receipt-date').value;
-  const total    = parseFloat(document.getElementById('receipt-total').value);
-  const items    = parseInt(document.getElementById('receipt-items').value) || null;
+function filterRecipes(f){ currentFilter=f; renderRecipes(); }
 
-  if (!storeKey || !date || !total) { showToast('Please fill in all fields'); return; }
+function renderRecipes(){
+  let list=allRecipes;
+  if(currentFilter==='dinner') list=list.filter(r=>r.category==='dinner');
+  else if(currentFilter==='baking') list=list.filter(r=>r.category==='baking');
+  else if(currentFilter==='shared') list=list.filter(r=>r.visibility==='everyone');
+  const colors={dinner:'#F5A623',baking:'#FF8FAB',lunch:'#6CC2C0',other:'#9B7FD4'};
+  const bgs={dinner:'#FEF3DC',baking:'#FFF0F3',lunch:'#CFE8E4',other:'#EDE8F9'};
+  document.getElementById('recipe-list').innerHTML=list.length===0
+    ?'<div class="empty-state"><div class="empty-state-icon">🍽️</div>No recipes yet — add your first one!</div>'
+    :list.map(r=>{
+      const col=colors[r.category]||'#9B7FD4';
+      const bg=bgs[r.category]||'#EDE8F9';
+      const shareLabel=r.visibility==='everyone'?'<span class="recipe-share-badge" style="background:var(--primary-pale);color:var(--primary)">🌐 Everyone</span>':r.visibility==='shared'?'<span class="recipe-share-badge" style="background:var(--blue-pale);color:var(--blue)">👨‍👩‍👧 Shared</span>':'';
+      const meta=[r.prep_time?`⏱ ${r.prep_time}min prep`:'',r.cook_time?`🔥 ${r.cook_time}min cook`:'',r.servings?`🍽 Serves ${r.servings}`:''].filter(Boolean).join(' · ');
+      return `<div class="recipe-card" onclick="viewRecipe('${r.id}')">
+        <div>${shareLabel}<span class="recipe-tag" style="background:${bg};color:${col}">${CATEGORY_LABELS[r.category]||r.category}</span></div>
+        <div class="recipe-title">${r.title}</div>
+        ${meta?`<div class="recipe-meta">${meta}</div>`:''}
+        ${r.description?`<div style="font-size:12px;color:var(--muted);margin-top:4px">${r.description}</div>`:''}
+      </div>`;}).join('');
+}
 
-  const { error } = await db.from('receipts').insert({
-    user_id:      currentUser.id,
-    store_key:    storeKey,
-    store_name:   STORES[storeKey]?.label || storeKey,
-    total,
-    item_count:   items,
-    method:       'manual',
-    receipt_date: date,
+function viewRecipe(id){
+  const r=allRecipes.find(x=>x.id===id);
+  if(!r) return;
+  showToast(`Opening: ${r.title}`);
+}
+
+async function saveRecipe(){
+  const title=document.getElementById('recipe-title').value.trim();
+  if(!title){showToast('Please enter a recipe name');return;}
+  const {error}=await db.from('recipes').insert({
+    user_id:currentUser.id,
+    title,
+    category:document.getElementById('recipe-category').value,
+    description:document.getElementById('recipe-desc').value,
+    instructions:document.getElementById('recipe-instructions').value,
+    prep_time:parseInt(document.getElementById('recipe-prep').value)||null,
+    cook_time:parseInt(document.getElementById('recipe-cook').value)||null,
+    servings:parseInt(document.getElementById('recipe-serves').value)||4,
+    visibility:document.getElementById('recipe-visibility').value,
   });
-
-  if (error) { showToast('Error saving receipt'); console.error(error); return; }
-  closeReceiptModal();
-  showToast('Receipt saved ✓');
-  await loadDashboard();
+  if(error){showToast('Error saving recipe');console.error(error);return;}
+  // Save ingredients
+  const ingLines=document.getElementById('recipe-ingredients').value.split('\n').filter(l=>l.trim());
+  // get the recipe id we just created
+  const {data:newR}=await db.from('recipes').select('id').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).single();
+  if(newR&&ingLines.length){
+    await db.from('recipe_ingredients').insert(ingLines.map((l,i)=>({recipe_id:newR.id,name:l.trim(),sort_order:i})));
+  }
+  closeModal('modal-add-recipe');
+  showToast('Recipe saved ✓');
+  loadRecipes();
+  // Clear fields
+  ['recipe-title','recipe-desc','recipe-ingredients','recipe-instructions','recipe-prep','recipe-cook'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('recipe-serves').value='';
 }
 
-// ══════════════════════════════════════════════════════════════
-// ADMIN — USER MANAGEMENT
-// ══════════════════════════════════════════════════════════════
-async function loadUserList() {
-  const { data: users, error } = await db.from('profiles').select('*').order('created_at');
-  if (error) return;
-  document.getElementById('user-list').innerHTML = users.length === 0
-    ? '<div class="text-sm text-muted">No users yet</div>'
-    : users.map(u => `
+// ══ SHOPPING LIST ══
+async function loadShoppingList(){
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  const ws=weekStart.toISOString().split('T')[0];
+  document.getElementById('list-week-label').textContent=`Week of ${weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})}`;
+  const {data:items}=await db.from('shopping_list_items').select('*').eq('user_id',currentUser.id).gte('created_at',ws+'T00:00:00').order('category').order('created_at');
+  shoppingItems=items||[];
+  renderShoppingList();
+}
+
+function renderShoppingList(){
+  if(shoppingItems.length===0){
+    document.getElementById('shopping-list-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">🛒</div>Your list is empty — add items or generate from your meal plan!</div>';
+    return;
+  }
+  const groups={meal_plan:[],school_lunch:[],baking:[],misc:[]};
+  shoppingItems.forEach(i=>{const g=groups[i.category]||groups.misc;g.push(i);});
+  const groupOrder=['meal_plan','school_lunch','baking','misc'];
+  const groupColors={meal_plan:'var(--amber)',school_lunch:'var(--blue)',baking:'var(--accent)',misc:'var(--muted)'};
+  let html='';
+  groupOrder.forEach(g=>{
+    if(!groups[g]||groups[g].length===0) return;
+    html+=`<div class="list-section-header" style="color:${groupColors[g]}">${CATEGORY_LABELS[g]||g}</div>
+    <div style="background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">`;
+    html+=groups[g].map(item=>`
+      <div class="list-item" onclick="toggleListItem('${item.id}','${!item.is_checked}')">
+        <div class="list-check ${item.is_checked?'checked':''}">${item.is_checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>':''}</div>
+        <div class="list-item-name ${item.is_checked?'checked':''}">${item.name}</div>
+        ${item.amount?`<div class="list-item-amount">${item.amount}</div>`:''}
+      </div>`).join('');
+    html+='</div>';
+  });
+  document.getElementById('shopping-list-content').innerHTML=html;
+}
+
+async function toggleListItem(id,checked){
+  await db.from('shopping_list_items').update({is_checked:checked==='true'}).eq('id',id);
+  const item=shoppingItems.find(i=>i.id===id);
+  if(item) item.is_checked=checked==='true';
+  renderShoppingList();
+}
+
+async function saveListItem(){
+  const name=document.getElementById('list-item-name').value.trim();
+  if(!name){showToast('Please enter an item name');return;}
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
+  const {error}=await db.from('shopping_list_items').insert({
+    user_id:currentUser.id,
+    name,
+    amount:document.getElementById('list-item-amount').value.trim()||null,
+    category:document.getElementById('list-item-category').value,
+    week_start:weekStart.toISOString().split('T')[0],
+  });
+  if(error){showToast('Error adding item');return;}
+  closeModal('modal-add-list-item');
+  document.getElementById('list-item-name').value='';
+  document.getElementById('list-item-amount').value='';
+  showToast('Added to list ✓');
+  loadShoppingList();
+}
+
+function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
+
+// ══ MEAL PLAN ══
+async function loadMealPlan(){
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  document.getElementById('plan-week-label').textContent=`Week of ${weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})}`;
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  document.getElementById('plan-grid').innerHTML=days.map((day,i)=>{
+    const date=new Date(weekStart); date.setDate(weekStart.getDate()+i);
+    const dateStr=date.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+    return `<div class="plan-day">
+      <div class="plan-day-header">
+        <div class="plan-day-name">${day}</div>
+        <div class="plan-day-date">${dateStr}</div>
+      </div>
+      <div class="plan-slot plan-slot-empty" onclick="showToast('Meal assignment coming soon!')">
+        <span style="font-size:16px">🍽️</span><span>Tap to assign dinner</span>
+      </div>
+    </div>`;}).join('');
+}
+
+// ══ ADMIN — USERS ══
+async function loadUserList(){
+  const {data:users}=await db.from('profiles').select('*').order('created_at');
+  document.getElementById('user-list').innerHTML=(users||[]).length===0
+    ?'<div class="empty-state" style="padding:12px 0">No users yet</div>'
+    :(users||[]).map(u=>`
       <div class="admin-user-row">
         <div class="user-avatar">${(u.full_name||u.email||'?').charAt(0).toUpperCase()}</div>
         <div style="flex:1;min-width:0">
-          <div class="text-sm fw-700">${u.full_name || '—'}</div>
-          <div class="text-xs text-muted">${u.email}</div>
+          <div style="font-size:13px;font-weight:700">${u.full_name||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">${u.email}</div>
         </div>
         <div class="pill" style="background:${u.is_admin?'var(--accent-pale)':'var(--primary-pale)'};color:${u.is_admin?'var(--accent)':'var(--primary)'}">
-          ${u.is_admin ? '⭐ Admin' : 'Member'}
+          ${u.is_admin?'⭐ Admin':'Member'}
         </div>
       </div>`).join('');
 }
 
-function openCreateUser() { document.getElementById('modal-create-user').classList.remove('hidden'); }
-function closeCreateUser() {
-  document.getElementById('modal-create-user').classList.add('hidden');
-  document.getElementById('create-user-error').textContent = '';
-}
-
-async function createUser() {
-  const name     = document.getElementById('new-user-name').value.trim();
-  const email    = document.getElementById('new-user-email').value.trim();
-  const password = document.getElementById('new-user-password').value;
-  const errEl    = document.getElementById('create-user-error');
-  errEl.textContent = '';
-
-  if (!name || !email || !password) { errEl.textContent = 'All fields are required'; return; }
-  if (password.length < 6)          { errEl.textContent = 'Password must be at least 6 characters'; return; }
-
-  // Create via Supabase admin API — note: this requires the service role key
-  // For now we use signUp which creates the user, then the admin manually promotes
-  const { error } = await db.auth.signUp({
-    email, password,
-    options: { data: { full_name: name } }
-  });
-
-  if (error) { errEl.textContent = error.message; return; }
-  closeCreateUser();
+async function createUser(){
+  const name=document.getElementById('new-user-name').value.trim();
+  const email=document.getElementById('new-user-email').value.trim();
+  const password=document.getElementById('new-user-password').value;
+  const errEl=document.getElementById('create-user-error');
+  errEl.textContent='';
+  if(!name||!email||!password){errEl.textContent='All fields are required';return;}
+  if(password.length<6){errEl.textContent='Password must be at least 6 characters';return;}
+  const {error}=await db.auth.signUp({email,password,options:{data:{full_name:name}}});
+  if(error){errEl.textContent=error.message;return;}
+  closeModal('modal-create-user');
+  ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
   showToast(`Account created for ${name} ✓`);
-  setTimeout(loadUserList, 1000);
+  setTimeout(loadUserList,1500);
 }
 
-// ══════════════════════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════════════════════
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+// ══ PROFILE — EDIT NAME ══
+function openEditName(){
+  const current=document.getElementById('profile-name').textContent;
+  document.getElementById('edit-name-input').value=current;
+  openModal('modal-edit-name');
+}
+
+async function saveName(){
+  const name=document.getElementById('edit-name-input').value.trim();
+  if(!name){showToast('Please enter your name');return;}
+  const {error}=await db.from('profiles').update({full_name:name}).eq('id',currentUser.id);
+  if(error){showToast('Error saving name');return;}
+  document.getElementById('profile-name').textContent=name;
+  document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
+  closeModal('modal-edit-name');
+  showToast('Name updated ✓');
+}
+
+// ══ BUDGET ══
+function openBudgetModal(){ document.getElementById('budget-input').value=budget||''; openModal('modal-budget'); }
+async function saveBudget(){
+  const amount=parseFloat(document.getElementById('budget-input').value);
+  if(!amount||amount<=0){showToast('Enter a valid amount');return;}
+  const now=new Date();
+  const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const {error}=await db.from('budgets').upsert({user_id:currentUser.id,month:monthKey,amount},{onConflict:'user_id,month'});
+  if(error){showToast('Error saving budget');return;}
+  budget=amount; closeModal('modal-budget');
+  renderDashboard(new Date(),new Date().toLocaleString('default',{month:'long'}));
+  showToast('Budget saved ✓');
+}
+
+// ══ RECEIPTS ══
+function openManualReceipt(){ document.getElementById('receipt-date').value=new Date().toISOString().split('T')[0]; openModal('modal-receipt'); }
+async function saveReceipt(){
+  const storeKey=document.getElementById('receipt-store').value;
+  const date=document.getElementById('receipt-date').value;
+  const total=parseFloat(document.getElementById('receipt-total').value);
+  const items=parseInt(document.getElementById('receipt-items').value)||null;
+  if(!storeKey||!date||!total){showToast('Please fill in all required fields');return;}
+  const {error}=await db.from('receipts').insert({user_id:currentUser.id,store_key:storeKey,store_name:STORES[storeKey]?.label||storeKey,total,item_count:items,method:'manual',receipt_date:date});
+  if(error){showToast('Error saving receipt');console.error(error);return;}
+  closeModal('modal-receipt');
+  ['receipt-total','receipt-items'].forEach(id=>document.getElementById(id).value='');
+  showToast('Receipt saved ✓');
+  await loadDashboard();
+  loadAllReceipts();
+}
+
+// ══ NAVIGATION ══
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(`screen-${name}`).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    const isActive = n.dataset.screen === name;
-    n.classList.toggle('active', isActive);
-    const existing = n.querySelector('.nav-dot');
-    if (existing && !isActive) existing.remove();
-    if (isActive && !existing) {
-      const dot = document.createElement('div');
-      dot.className = 'nav-dot';
-      n.appendChild(dot);
-    }
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    const a=n.dataset.screen===name;
+    n.classList.toggle('active',a);
+    const d=n.querySelector('.nav-dot');
+    if(d&&!a)d.remove();
+    if(a&&!d){const dot=document.createElement('div');dot.className='nav-dot';n.appendChild(dot);}
   });
+  // Lazy load screens
+  if(name==='scan') loadAllReceipts();
+  if(name==='recipes') loadRecipes();
+  if(name==='list') loadShoppingList();
+  if(name==='plan') loadMealPlan();
+  if(name==='profile'&&isAdmin) loadUserList();
 }
 
-// ══════════════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════════════
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+// ══ MODALS ══
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+function openAddRecipe(){ openModal('modal-add-recipe'); }
+function openAddListItem(){ openModal('modal-add-list-item'); }
+function openCreateUser(){ document.getElementById('create-user-error').textContent=''; openModal('modal-create-user'); }
+
+// Close modal on overlay click
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden');
+});
+
+// ══ TOAST ══
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
 }
 </script>
 </body>
