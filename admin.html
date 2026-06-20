@@ -516,42 +516,56 @@ async function createUser(){
   const makeAdmin=document.getElementById('new-user-admin').checked;
   const errEl=document.getElementById('create-user-error');
   errEl.textContent='';
+  errEl.style.color='';
+  document.getElementById('temp-password-display').innerHTML='';
+
+  console.log('createUser called', {name, email, makeAdmin});
   if(!name||!email){errEl.textContent='Name and email are required';return;}
 
-  // Auto-generate a temp password — same pattern as survey app
   const tempPwd='GEM@'+Math.random().toString(36).slice(-6).toUpperCase();
 
-  const {data,error}=await db.auth.signUp({
-    email,
-    password:tempPwd,
-    options:{data:{full_name:name}}
-  });
+  try {
+    console.log('Calling signUp...');
+    const {data,error}=await db.auth.signUp({
+      email, password:tempPwd, options:{data:{full_name:name}}
+    });
+    console.log('signUp result:', JSON.stringify({data:data?.user?.id, error:error?.message}));
 
-  if(error){
-    errEl.textContent=error.message.includes('already registered')
-      ?'An account with this email already exists.'
-      :error.message;
-    return;
+    if(error){
+      errEl.textContent=error.message.includes('already registered')
+        ?'An account with this email already exists.'
+        :error.message;
+      return;
+    }
+
+    if(data?.user){
+      console.log('Upserting profile...');
+      const {error:pe}=await db.from('profiles').upsert({
+        id:data.user.id, email, full_name:name, is_admin:makeAdmin
+      },{onConflict:'id'});
+      if(pe) console.error('Profile upsert error:', pe.message);
+      else console.log('Profile upserted OK');
+    }
+
+    errEl.style.color='var(--emerald)';
+    errEl.textContent='✓ Account created for '+name;
+    const displayEl=document.getElementById('temp-password-display');
+    const safePwd=tempPwd;
+    displayEl.innerHTML=`
+      <div style="background:var(--emerald-pale);border:1px solid #ACD9D9;border-radius:10px;padding:12px 14px;margin-top:8px">
+        <div style="font-size:11px;color:var(--emerald);font-weight:700;margin-bottom:6px">TEMPORARY PASSWORD — share with ${name}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:2px;margin-bottom:10px">${safePwd}</div>
+        <button class="btn btn-primary btn-sm" id="copy-pwd-btn">Copy password</button>
+      </div>`;
+    document.getElementById('copy-pwd-btn').addEventListener('click',()=>{
+      navigator.clipboard.writeText(safePwd).then(()=>showToast('Copied ✓'));
+    });
+    setTimeout(refreshAll, 1500);
+
+  } catch(e) {
+    errEl.textContent='Error: '+e.message;
+    console.error('createUser exception:', e);
   }
-
-  // Update profile with name and admin flag
-  if(data?.user){
-    await db.from('profiles').upsert({
-      id:data.user.id, email, full_name:name, is_admin:makeAdmin
-    },{onConflict:'id'});
-  }
-
-  // Show temp password prominently — admin copies and shares with user
-  document.getElementById('create-user-error').style.color='var(--emerald)';
-  errEl.textContent='✓ Account created! Temp password: '+tempPwd;
-  const displayEl=document.getElementById('temp-password-display');
-  displayEl.innerHTML=`
-    <div style="background:var(--emerald-pale);border:1px solid var(--primary-soft);border-radius:10px;padding:12px 14px;margin-top:8px">
-      <div style="font-size:11px;color:var(--emerald);font-weight:700;margin-bottom:4px">TEMPORARY PASSWORD — share with ${name}</div>
-      <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:2px;margin-bottom:8px">${tempPwd}</div>
-      <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${tempPwd}').then(()=>showToast('Copied!'))">Copy password</button>
-    </div>`;
-  setTimeout(()=>{refreshAll();},2000);
 }
 
 // ══ RESET PASSWORD ══
