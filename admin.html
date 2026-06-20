@@ -536,12 +536,13 @@ async function createUser(){
   // Show temp password prominently — admin copies and shares with user
   document.getElementById('create-user-error').style.color='var(--emerald)';
   errEl.textContent='✓ Account created! Temp password: '+tempPwd;
-  document.getElementById('temp-password-display').innerHTML=
-    '<div style="background:var(--emerald-pale);border:1px solid var(--primary);border-radius:10px;padding:12px 14px;margin-top:8px">'+
-    '<div style="font-size:11px;color:var(--emerald);font-weight:700;margin-bottom:4px">TEMPORARY PASSWORD — share with '+name+'</div>'+
-    '<div style="font-size:18px;font-weight:800;color:var(--text);letter-spacing:1px">'+tempPwd+'</div>'+
-    '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="navigator.clipboard.writeText(''+tempPwd+'').then(()=>showToast('Copied!'))">Copy password</button>'+
-    '</div>';
+  const displayEl=document.getElementById('temp-password-display');
+  displayEl.innerHTML=`
+    <div style="background:var(--emerald-pale);border:1px solid var(--primary-soft);border-radius:10px;padding:12px 14px;margin-top:8px">
+      <div style="font-size:11px;color:var(--emerald);font-weight:700;margin-bottom:4px">TEMPORARY PASSWORD — share with ${name}</div>
+      <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:2px;margin-bottom:8px">${tempPwd}</div>
+      <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${tempPwd}').then(()=>showToast('Copied!'))">Copy password</button>
+    </div>`;
   setTimeout(()=>{refreshAll();},2000);
 }
 
@@ -549,7 +550,6 @@ async function createUser(){
 function openResetPassword(userId, name){
   pendingResetUserId=userId;
   document.getElementById('reset-user-name').textContent=name;
-  document.getElementById('reset-password').value='';
   document.getElementById('reset-error').textContent='';
   openModal('modal-reset-password');
 }
