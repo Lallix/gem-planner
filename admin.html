@@ -504,7 +504,7 @@ function renderRecipes(){
 
 // ══ CREATE USER ══
 function openCreateUser(){
-  ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
+  ['new-user-name','new-user-email'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('new-user-admin').checked=false;
   document.getElementById('create-user-error').textContent='';
   openModal('modal-create-user');
