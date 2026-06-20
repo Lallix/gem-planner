@@ -145,7 +145,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .btn-sm{padding:6px 14px;font-size:12px}
 
 /* ── FAB ── */
-.fab{position:fixed;bottom:82px;right:calc(50% - 215px + 16px);width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:90;transition:transform .2s}
+.fab{position:fixed;bottom:82px;right:16px;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:90;transition:transform .2s}
 .fab:active{transform:scale(.93)}
 .fab-primary{background:var(--primary);color:white}
 .fab-accent{background:var(--accent);color:white}
@@ -175,6 +175,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .divider{height:1px;background:var(--line);margin:0 14px 12px}
 .empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
 .empty-state-icon{font-size:40px;margin-bottom:10px}
+.filter-pill{font-size:13px;font-weight:700;padding:7px 16px;border-radius:20px;cursor:pointer;border:none;font-family:var(--font);white-space:nowrap;opacity:0.6;transition:opacity .2s}
+.filter-pill.filter-active{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 .hidden{display:none!important}
 .spinner{width:24px;height:24px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:16px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -328,28 +330,39 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="screen-title">Receipts</div>
         <div class="screen-sub">All your shopping records</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="openManualReceipt()">+ Add</button>
     </div>
     <div style="display:flex;gap:8px;padding:0 14px 12px">
-      <div style="flex:1;background:var(--primary-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--primary-soft)">
-        <div style="font-size:24px;margin-bottom:4px">📸</div>
+      <div style="flex:1;background:var(--primary-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--primary-soft);active:opacity:.8" onclick="openPhotoScan()">
+        <div style="font-size:28px;margin-bottom:6px">📸</div>
         <div style="font-size:12px;font-weight:700;color:var(--primary)">Photo scan</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Coming soon</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Take a photo</div>
       </div>
-      <div style="flex:1;background:var(--blue-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--blue-mid)">
-        <div style="font-size:24px;margin-bottom:4px">📧</div>
-        <div style="font-size:12px;font-weight:700;color:var(--blue)">Email import</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Coming soon</div>
+      <div style="flex:1;background:var(--blue-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--blue-mid)" onclick="openEmailImport()">
+        <div style="font-size:28px;margin-bottom:6px">📄</div>
+        <div style="font-size:12px;font-weight:700;color:var(--blue)">Upload receipt</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">PDF or image</div>
       </div>
-      <div style="flex:1;background:var(--accent-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px dashed var(--accent-mid)" onclick="openManualReceipt()">
-        <div style="font-size:24px;margin-bottom:4px">✏️</div>
-        <div style="font-size:12px;font-weight:700;color:var(--accent)">Manual entry</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Available now</div>
+      <div style="flex:1;background:var(--accent-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--accent-mid)" onclick="openManualReceipt()">
+        <div style="font-size:28px;margin-bottom:6px">✏️</div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent)">Manual</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Type it in</div>
+      </div>
+    </div>
+    <!-- Google Vision key prompt -->
+    <div id="vision-key-banner" class="hidden" style="margin:0 14px 12px;background:var(--amber-pale);border:1px solid var(--amber);border-radius:12px;padding:12px 14px">
+      <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px">⚙️ Set up photo scanning</div>
+      <div style="font-size:11px;color:var(--text);margin-bottom:8px">Enter your Google Vision API key to enable photo and document scanning</div>
+      <div style="display:flex;gap:8px">
+        <input id="vision-key-input" type="text" placeholder="AIza..." style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--line);font-size:12px;font-family:var(--font)"/>
+        <button class="btn btn-amber btn-sm" onclick="saveVisionKey()">Save</button>
       </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div id="all-receipts"><div class="spinner"></div></div>
     </div>
+    <!-- Hidden file inputs -->
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoScan(this)"/>
+    <input type="file" id="email-input" accept="image/*,.pdf" style="display:none" onchange="handleEmailImport(this)"/>
   </div>
 
   <!-- PLAN -->
@@ -385,10 +398,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <div style="display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto">
-      <button class="pill" style="background:var(--primary-pale);color:var(--primary);cursor:pointer;white-space:nowrap" onclick="filterRecipes('all')">All</button>
-      <button class="pill" style="background:var(--amber-pale);color:var(--amber);cursor:pointer;white-space:nowrap" onclick="filterRecipes('dinner')">🍽️ Dinner</button>
-      <button class="pill" style="background:var(--accent-pale);color:var(--accent);cursor:pointer;white-space:nowrap" onclick="filterRecipes('baking')">🥐 Baking</button>
-      <button class="pill" style="background:var(--purple-pale);color:var(--purple);cursor:pointer;white-space:nowrap" onclick="filterRecipes('shared')">👨‍👩‍👧 Shared</button>
+      <button id="filter-all" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="filterRecipes('all')">All</button>
+      <button id="filter-dinner" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="filterRecipes('dinner')">🍽️ Dinner</button>
+      <button id="filter-baking" class="filter-pill" style="background:var(--accent-pale);color:var(--accent)" onclick="filterRecipes('baking')">🥐 Baking</button>
+      <button id="filter-shared" class="filter-pill" style="background:var(--purple-pale);color:var(--purple)" onclick="filterRecipes('shared')">👨‍👩‍👧 Shared</button>
     </div>
     <div id="recipe-list"><div class="spinner"></div></div>
     <button class="fab fab-accent" onclick="openAddRecipe()">+</button>
@@ -552,6 +565,38 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item')">Cancel</button>
       <button class="btn btn-accent flex-1" onclick="saveListItem()">Add to list</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo/Email scan review modal -->
+<div id="modal-scan-review" class="modal-overlay hidden">
+  <div class="modal-sheet" style="max-height:90vh">
+    <div class="modal-title" id="scan-review-title">📸 Review scanned receipt</div>
+    <div id="scan-status" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+    <!-- Parsed fields -->
+    <div class="modal-section">Store</div>
+    <select class="modal-input" id="scan-store">
+      <option value="">Select store...</option>
+      <option value="woolworths">Woolworths</option>
+      <option value="checkers">Checkers / Sixty60</option>
+      <option value="pnp">Pick n Pay</option>
+      <option value="spar">Spar</option>
+      <option value="walmart">Walmart</option>
+      <option value="other">Other</option>
+    </select>
+    <div class="modal-section">Date</div>
+    <input class="modal-input" type="date" id="scan-date"/>
+    <div class="modal-section">Total amount (R)</div>
+    <input class="modal-input" type="number" id="scan-total" placeholder="e.g. 342.50" step="0.01"/>
+    <div class="modal-section">Number of items</div>
+    <input class="modal-input" type="number" id="scan-items" placeholder="e.g. 12"/>
+    <div class="modal-section">Items detected</div>
+    <textarea class="modal-input" id="scan-items-text" rows="4" placeholder="Items will appear here after scanning..." style="resize:none;font-size:12px"></textarea>
+    <div id="scan-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-scan-review')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="saveScanReceipt()">Save receipt</button>
     </div>
   </div>
 </div>
@@ -790,7 +835,7 @@ async function loadRecipes(){
   renderRecipes();
 }
 
-function filterRecipes(f){ currentFilter=f; renderRecipes(); }
+function filterRecipes(f){ setFilterActive(f); currentFilter=f; renderRecipes(); }
 
 function renderRecipes(){
   let list=allRecipes;
@@ -1111,6 +1156,160 @@ function showToast(msg){
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+// ══ GOOGLE VISION KEY ══
+function getVisionKey(){ return localStorage.getItem('gem-vision-key')||''; }
+function saveVisionKey(){
+  const k=document.getElementById('vision-key-input').value.trim();
+  if(!k){showToast('Please enter a valid key');return;}
+  localStorage.setItem('gem-vision-key',k);
+  document.getElementById('vision-key-banner').classList.add('hidden');
+  showToast('Vision API key saved ✓');
+}
+function checkVisionKey(){
+  if(!getVisionKey()){
+    document.getElementById('vision-key-banner').classList.remove('hidden');
+    return false;
+  }
+  return true;
+}
+
+// ══ PHOTO SCAN ══
+function openPhotoScan(){
+  if(!checkVisionKey()) return;
+  document.getElementById('photo-input').click();
+}
+
+async function handlePhotoScan(input){
+  if(!input.files||!input.files[0]) return;
+  const file=input.files[0];
+  input.value='';
+  showScanModal('📸 Review scanned receipt');
+  document.getElementById('scan-status').textContent='Scanning receipt... please wait';
+  try {
+    const b64=await fileToBase64(file);
+    const text=await callVisionAPI(b64.split(',')[1]);
+    if(text){ parseReceiptText(text); document.getElementById('scan-status').textContent='✓ Scanned — review and correct if needed'; }
+    else { document.getElementById('scan-status').textContent='Could not read receipt — fill in manually'; }
+  } catch(e) {
+    document.getElementById('scan-status').textContent='Scan failed: '+e.message;
+  }
+}
+
+// ══ EMAIL / DOC IMPORT ══
+function openEmailImport(){
+  if(!checkVisionKey()) return;
+  document.getElementById('email-input').click();
+}
+
+async function handleEmailImport(input){
+  if(!input.files||!input.files[0]) return;
+  const file=input.files[0];
+  input.value='';
+  showScanModal('📄 Review imported receipt');
+  document.getElementById('scan-status').textContent='Reading document... please wait';
+  try {
+    const b64=await fileToBase64(file);
+    const feature=file.type==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION';
+    const text=await callVisionAPI(b64.split(',')[1],feature);
+    if(text){ parseReceiptText(text); document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed'; }
+    else { document.getElementById('scan-status').textContent='Could not read file — fill in manually'; }
+  } catch(e) {
+    document.getElementById('scan-status').textContent='Read failed: '+e.message;
+  }
+}
+
+function showScanModal(title){
+  document.getElementById('scan-review-title').textContent=title;
+  document.getElementById('scan-status').textContent='';
+  document.getElementById('scan-store').value='';
+  document.getElementById('scan-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('scan-total').value='';
+  document.getElementById('scan-items').value='';
+  document.getElementById('scan-items-text').value='';
+  document.getElementById('scan-error').textContent='';
+  openModal('modal-scan-review');
+}
+
+// ══ GOOGLE VISION API ══
+async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
+  const key=getVisionKey();
+  const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+key,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({requests:[{image:{content:base64Image},features:[{type:feature,maxResults:1}]}]})
+  });
+  if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Vision API error');}
+  const data=await res.json();
+  return data.responses?.[0]?.fullTextAnnotation?.text||data.responses?.[0]?.textAnnotations?.[0]?.description||null;
+}
+
+// ══ PARSE OCR TEXT ══
+function parseReceiptText(text){
+  document.getElementById('scan-items-text').value=text;
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const lower=text.toLowerCase();
+  const storeMap={woolworths:'woolworths',woolies:'woolworths',checkers:'checkers',sixty60:'checkers','pick n pay':'pnp','pick & pay':'pnp',pnp:'pnp',spar:'spar',walmart:'walmart'};
+  for(const [kw,key] of Object.entries(storeMap)){
+    if(lower.includes(kw)){document.getElementById('scan-store').value=key;break;}
+  }
+  const datePatterns=[/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/];
+  for(const pat of datePatterns){
+    const m=text.match(pat);
+    if(m){
+      try{
+        const d=pat.source.startsWith('(\\d{4})')?new Date(m[1]+'-'+m[2]+'-'+m[3]):new Date(m[3]+'-'+m[2]+'-'+m[1]);
+        if(!isNaN(d.getTime())){document.getElementById('scan-date').value=d.toISOString().split('T')[0];break;}
+      }catch(e){}
+    }
+  }
+  const totalMatch=text.match(/(?:total|amount due|balance due|grand total|totaal)[:\s]*r?\s*([\d\s,]+\.?\d*)/i)||text.match(/r\s*([\d,]+\.\d{2})\s*$/im);
+  if(totalMatch){
+    const num=parseFloat(totalMatch[1].replace(/[\s,]/g,''));
+    if(!isNaN(num)&&num>0&&num<100000) document.getElementById('scan-total').value=num.toFixed(2);
+  }
+  const itemLines=lines.filter(l=>/r?\s*\d+[.,]\d{2}/i.test(l)&&!/total|subtotal|vat|tax|change|tender/i.test(l));
+  if(itemLines.length>0) document.getElementById('scan-items').value=itemLines.length;
+}
+
+// ══ SAVE SCANNED RECEIPT ══
+async function saveScanReceipt(){
+  const storeKey=document.getElementById('scan-store').value;
+  const date=document.getElementById('scan-date').value;
+  const total=parseFloat(document.getElementById('scan-total').value);
+  const items=parseInt(document.getElementById('scan-items').value)||null;
+  const errEl=document.getElementById('scan-error');
+  errEl.textContent='';
+  if(!storeKey||!date||!total){errEl.textContent='Please fill in store, date and total';return;}
+  const {error}=await db.from('receipts').insert({
+    user_id:currentUser.id,store_key:storeKey,
+    store_name:STORES[storeKey]?.label||storeKey,
+    total,item_count:items,method:'scan',receipt_date:date,
+  });
+  if(error){errEl.textContent='Error: '+error.message;return;}
+  closeModal('modal-scan-review');
+  showToast('✓ Receipt saved');
+  await loadDashboard();
+  loadAllReceipts();
+}
+
+// ══ FILE TO BASE64 ══
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=()=>reject(new Error('Could not read file'));
+    r.readAsDataURL(file);
+  });
+}
+
+// ══ FILTER ACTIVE STATE ══
+function setFilterActive(f){
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('filter-active'));
+  const el=document.getElementById('filter-'+f);
+  if(el) el.classList.add('filter-active');
+}
+
 </script>
 </body>
 </html>
