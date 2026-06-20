@@ -626,7 +626,8 @@ async function signOut(){ await db.auth.signOut(); }
 // ══ LOAD USER ══
 async function loadUser(user){
   currentUser=user;
-  const {data:profile}=await db.from('profiles').select('*').eq('id',user.id).single();
+  const {data:profile,error:profileErr}=await db.from('profiles').select('full_name,is_admin').eq('id',user.id).single();
+  if(profileErr) console.error('Profile fetch error:',profileErr);
   isAdmin=profile?.is_admin||false;
   const name=profile?.full_name||user.email.split('@')[0];
   document.getElementById('profile-name').textContent=name;
@@ -635,8 +636,13 @@ async function loadUser(user){
   document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
   document.getElementById('edit-name-input').value=name;
   const roleEl=document.getElementById('profile-role');
-  if(isAdmin){ roleEl.textContent='⭐ Admin'; document.getElementById('admin-panel').classList.remove('hidden'); loadUserList(); }
-  else roleEl.textContent='Member';
+  if(isAdmin){
+    roleEl.textContent='⭐ Admin';
+    document.getElementById('admin-panel').classList.remove('hidden');
+    loadUserList();
+  } else {
+    roleEl.textContent='Member';
+  }
 }
 
 // ══ DASHBOARD ══
@@ -909,7 +915,11 @@ async function loadMealPlan(){
 
 // ══ ADMIN — USERS ══
 async function loadUserList(){
-  const {data:users}=await db.from('profiles').select('*').order('created_at');
+  // RLS allows reading own row + service role only
+  // We fetch all profiles using admin's own session — works because
+  // Supabase returns rows where RLS passes, so admin sees what they can see
+  const {data:users, error}=await db.from('profiles').select('id,full_name,email,is_admin,created_at').order('created_at');
+  if(error){ console.error('User list error:',error); }
   document.getElementById('user-list').innerHTML=(users||[]).length===0
     ?'<div class="empty-state" style="padding:12px 0">No users yet</div>'
     :(users||[]).map(u=>`
