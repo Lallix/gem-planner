@@ -374,6 +374,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
       <button class="btn btn-primary btn-sm" onclick="generateShoppingList()">→ List</button>
     </div>
+    <!-- Week tabs -->
+    <div style="display:flex;gap:8px;padding:0 14px 12px">
+      <button id="plan-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="switchPlanWeek(0)">This week</button>
+      <button id="plan-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="switchPlanWeek(1)">Next week</button>
+    </div>
     <div id="plan-grid"><div class="spinner"></div></div>
   </div>
 
@@ -961,22 +966,63 @@ async function saveListItem(){
 function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
 
 // ══ MEAL PLAN ══
+let currentPlanWeekOffset=0;
+
+function switchPlanWeek(offset){
+  currentPlanWeekOffset=offset;
+  // Update tab active state
+  document.getElementById('plan-tab-this').classList.toggle('filter-active', offset===0);
+  document.getElementById('plan-tab-next').classList.toggle('filter-active', offset===1);
+  loadMealPlan();
+}
+
 async function loadMealPlan(){
   const now=new Date();
-  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
-  document.getElementById('plan-week-label').textContent=`Week of ${weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'})}`;
+  // Calculate start of current week (Monday)
+  const thisMonday=new Date(now);
+  thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
+  thisMonday.setHours(0,0,0,0);
+  // Apply week offset
+  const weekStart=new Date(thisMonday);
+  weekStart.setDate(thisMonday.getDate()+(currentPlanWeekOffset*7));
+
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const startStr=weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+  const endStr=weekEnd.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+  document.getElementById('plan-week-label').textContent=`${startStr} — ${endStr}`;
+
+  // Load any existing meal plan entries for this week from Supabase
+  const ws=weekStart.toISOString().split('T')[0];
+  const {data:entries}=await db.from('meal_plan_entries')
+    .select('*,recipes(title,category)')
+    .eq('user_id',currentUser.id)
+    .gte('meal_plan_id', ws)
+    .order('day_of_week');
+
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const today=new Date(); today.setHours(0,0,0,0);
+
   document.getElementById('plan-grid').innerHTML=days.map((day,i)=>{
     const date=new Date(weekStart); date.setDate(weekStart.getDate()+i);
     const dateStr=date.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-    return `<div class="plan-day">
+    const isToday=date.getTime()===today.getTime();
+    const isPast=date<today;
+    const dayEntry=entries?.find(e=>e.day_of_week===i);
+
+    return `<div class="plan-day" style="${isToday?'border-color:var(--primary);border-width:2px;':''}${isPast?'opacity:0.6;':''}">
       <div class="plan-day-header">
-        <div class="plan-day-name">${day}</div>
+        <div class="plan-day-name" style="${isToday?'color:var(--primary);font-weight:800;':''}">${day}${isToday?' <span style="font-size:10px;background:var(--primary);color:white;padding:1px 7px;border-radius:10px;font-weight:700;vertical-align:middle">Today</span>':''}</div>
         <div class="plan-day-date">${dateStr}</div>
       </div>
-      <div class="plan-slot plan-slot-empty" onclick="showToast('Meal assignment coming soon!')">
-        <span style="font-size:16px">🍽️</span><span>Tap to assign dinner</span>
-      </div>
+      ${dayEntry?.recipes
+        ?`<div class="plan-slot plan-slot-filled">
+            <span style="font-size:16px">${dayEntry.recipes.category==='baking'?'🥐':'🍽️'}</span>
+            <span style="font-size:13px;font-weight:600">${dayEntry.recipes.title}</span>
+          </div>`
+        :`<div class="plan-slot plan-slot-empty" onclick="showToast('Tap a recipe to add it to your plan')">
+            <span style="font-size:16px">+</span><span>Add dinner</span>
+          </div>`
+      }
     </div>`;}).join('');
 }
 
