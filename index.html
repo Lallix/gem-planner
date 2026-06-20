@@ -933,11 +933,45 @@ async function createUser(){
   errEl.textContent='';
   if(!name||!email||!password){errEl.textContent='All fields are required';return;}
   if(password.length<6){errEl.textContent='Password must be at least 6 characters';return;}
-  const {error}=await db.auth.signUp({email,password,options:{data:{full_name:name}}});
-  if(error){errEl.textContent=error.message;return;}
+
+  // Sign up the new user
+  const {data,error}=await db.auth.signUp({
+    email, password,
+    options:{data:{full_name:name}}
+  });
+
+  if(error){
+    // "User already registered" is a common one
+    if(error.message.includes('already registered')){
+      errEl.textContent='An account with this email already exists.';
+    } else {
+      errEl.textContent=error.message;
+    }
+    return;
+  }
+
+  // If email confirmation is ON in Supabase, the user object still exists
+  // but needs to confirm. Insert profile manually to ensure name is set.
+  if(data?.user){
+    await db.from('profiles').upsert({
+      id: data.user.id,
+      email: email,
+      full_name: name,
+      is_admin: false
+    }, { onConflict: 'id' });
+  }
+
   closeModal('modal-create-user');
   ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
-  showToast(`Account created for ${name} ✓`);
+
+  // Check if email confirmation is required
+  if(data?.user?.identities?.length===0){
+    showToast(`⚠️ ${name} already exists — check Supabase`);
+  } else if(!data?.session){
+    showToast(`✓ Account created — ${name} must confirm their email`);
+  } else {
+    showToast(`Account created for ${name} ✓`);
+  }
   setTimeout(loadUserList,1500);
 }
 
@@ -952,7 +986,11 @@ async function saveName(){
   const name=document.getElementById('edit-name-input').value.trim();
   if(!name){showToast('Please enter your name');return;}
   const {error}=await db.from('profiles').update({full_name:name}).eq('id',currentUser.id);
-  if(error){showToast('Error saving name');return;}
+  if(error){
+    console.error('Name update error:',error);
+    showToast('Error: '+error.message);
+    return;
+  }
   document.getElementById('profile-name').textContent=name;
   document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase();
   document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
