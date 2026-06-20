@@ -387,10 +387,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
     </div>
     <!-- Basket tabs -->
-    <div style="display:flex;gap:8px;padding:0 14px 12px">
+    <div style="display:flex;gap:8px;padding:0 14px 8px">
       <button id="list-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="switchListBasket('this_week')">This week</button>
       <button id="list-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="switchListBasket('next_week')">Next week</button>
       <button id="list-tab-monthly" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="switchListBasket('monthly')">Monthly</button>
+    </div>
+    <!-- Store filter -->
+    <div style="display:flex;gap:6px;padding:0 14px 12px;overflow-x:auto">
+      <button id="store-filter-all" class="filter-pill filter-active" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('')">All stores</button>
+      <button id="store-filter-woolworths" class="filter-pill" style="background:#F0F0F0;color:#1A1A1A;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('woolworths')">W</button>
+      <button id="store-filter-checkers" class="filter-pill" style="background:#E0F7F6;color:#00B5AD;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('checkers')">C</button>
+      <button id="store-filter-pnp" class="filter-pill" style="background:#E6EEF9;color:#004F9F;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('pnp')">PnP</button>
+      <button id="store-filter-spar" class="filter-pill" style="background:#E6F4EC;color:#007A3D;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('spar')">S</button>
+      <button id="store-filter-walmart" class="filter-pill" style="background:#E6F2FB;color:#0071CE;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('walmart')">WM</button>
+      <button id="store-filter-other" class="filter-pill" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('other')">Other</button>
     </div>
     <div id="shopping-list-content"><div class="spinner"></div></div>
   </div>
@@ -569,6 +579,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <option value="baking">🥐 Baking</option>
       <option value="cleaning">🧹 Cleaning</option>
     </select>
+    <div class="modal-section">Store</div>
+    <select class="modal-input" id="list-item-store">
+      <option value="">Any store</option>
+      <option value="woolworths">Woolworths</option>
+      <option value="checkers">Checkers / Sixty60</option>
+      <option value="pnp">Pick n Pay</option>
+      <option value="spar">Spar</option>
+      <option value="walmart">Walmart</option>
+      <option value="other">Other</option>
+    </select>
     <div class="modal-section">Add to</div>
     <select class="modal-input" id="list-item-basket">
       <option value="this_week">📅 This week</option>
@@ -675,11 +695,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div id="grocery-items-list" style="max-height:50vh;overflow-y:auto"></div>
     <!-- Basket selector for grocery items -->
     <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
-      <div style="display:flex;gap:8px">
-        <button class="filter-pill filter-active" id="basket-this" onclick="setGroceryBasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
-        <button class="filter-pill" id="basket-next" onclick="setGroceryBasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill" id="basket-monthly" onclick="setGroceryBasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
+          <select id="grocery-item-store" class="modal-input" style="margin:0;font-size:12px;padding:7px 10px">
+            <option value="">Any store</option>
+            <option value="woolworths">Woolworths</option>
+            <option value="checkers">Checkers</option>
+            <option value="pnp">Pick n Pay</option>
+            <option value="spar">Spar</option>
+            <option value="walmart">Walmart</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
+          <div style="display:flex;gap:6px">
+            <button class="filter-pill filter-active" id="basket-this" onclick="setGroceryBasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
+            <button class="filter-pill" id="basket-next" onclick="setGroceryBasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
+            <button class="filter-pill" id="basket-monthly" onclick="setGroceryBasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1023,26 +1059,55 @@ async function loadShoppingList(){
   renderShoppingList();
 }
 
+let currentListStoreFilter='';
+
+function setListStoreFilter(storeKey){
+  currentListStoreFilter=storeKey;
+  document.querySelectorAll('[id^="store-filter-"]').forEach(b=>b.classList.remove('filter-active'));
+  const activeId='store-filter-'+(storeKey||'all');
+  const activeEl=document.getElementById(activeId);
+  if(activeEl) activeEl.classList.add('filter-active');
+  renderShoppingList();
+}
+
 function renderShoppingList(){
-  if(shoppingItems.length===0){
-    document.getElementById('shopping-list-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">🛒</div>Your list is empty — add items or generate from your meal plan!</div>';
+  // Apply store filter
+  let items=shoppingItems;
+  if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
+
+  if(items.length===0){
+    const msg=currentListStoreFilter
+      ?'<div class="empty-state"><div class="empty-state-icon">🏪</div>No items for '+( STORES[currentListStoreFilter]?.label||currentListStoreFilter)+'</div>'
+      :'<div class="empty-state"><div class="empty-state-icon">🛒</div>Your list is empty — add items or tap 🛍️ to browse groceries!</div>';
+    document.getElementById('shopping-list-content').innerHTML=msg;
     return;
   }
+
+  // Group by store first if filtering all, else by category
+  const storeColors={'woolworths':'#1A1A1A','checkers':'#00B5AD','pnp':'#004F9F','spar':'#007A3D','walmart':'#0071CE','other':'#8FA8A6'};
+  const storeBgs={'woolworths':'#F0F0F0','checkers':'#E0F7F6','pnp':'#E6EEF9','spar':'#E6F4EC','walmart':'#E6F2FB','other':'#F5F5F5'};
+
   const groups={meal_plan:[],school_lunch:[],baking:[],cleaning:[],misc:[]};
-  shoppingItems.forEach(i=>{const g=groups[i.category]||groups.misc;g.push(i);});
+  items.forEach(i=>{const g=groups[i.category]||groups.misc;g.push(i);});
   const groupOrder=['meal_plan','school_lunch','baking','cleaning','misc'];
   const groupColors={meal_plan:'var(--amber)',school_lunch:'var(--blue)',baking:'var(--accent)',cleaning:'var(--emerald)',misc:'var(--muted)'};
+
   let html='';
   groupOrder.forEach(g=>{
     if(!groups[g]||groups[g].length===0) return;
     html+=`<div class="list-section-header" style="color:${groupColors[g]}">${CATEGORY_LABELS[g]||g}</div>
     <div style="background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">`;
-    html+=groups[g].map(item=>`
+    html+=groups[g].map(item=>{
+      const sc=storeColors[item.store_key]||null;
+      const sb=storeBgs[item.store_key]||null;
+      const storeLabel=item.store_key?STORES[item.store_key]?.label||item.store_key:null;
+      return `
       <div class="list-item" onclick="toggleListItem('${item.id}','${!item.is_checked}')">
         <div class="list-check ${item.is_checked?'checked':''}">${item.is_checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>':''}</div>
-        <div class="list-item-name ${item.is_checked?'checked':''}">${item.name}</div>
-        ${item.amount?`<div class="list-item-amount">${item.amount}</div>`:''}
-      </div>`).join('');
+        <div class="list-item-name ${item.is_checked?'checked':''}" style="flex:1">${item.name}</div>
+        ${item.amount?`<div class="list-item-amount" style="margin-right:6px">${item.amount}</div>`:''}
+        ${storeLabel&&!currentListStoreFilter?`<div style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:${sb};color:${sc};flex-shrink:0">${storeLabel.split(' ')[0]}</div>`:''}
+      </div>`;}).join('');
     html+='</div>';
   });
   document.getElementById('shopping-list-content').innerHTML=html;
@@ -1064,11 +1129,13 @@ async function saveListItem(){
   weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
   weekStart.setHours(0,0,0,0);
   if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const storeKey=document.getElementById('list-item-store').value||null;
   const {error}=await db.from('shopping_list_items').insert({
     user_id:currentUser.id,
     name,
     amount:document.getElementById('list-item-amount').value.trim()||null,
     category:document.getElementById('list-item-category').value,
+    store_key:storeKey,
     week_start:basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0],
   });
   if(error){showToast('Error adding item');return;}
