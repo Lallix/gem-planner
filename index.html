@@ -409,6 +409,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="card-label">Account settings</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="btn btn-outline btn-full" onclick="openEditName()">✏️ Change my name</button>
+        <button class="btn btn-outline btn-full" onclick="openChangePassword()">🔑 Change password</button>
         <button class="btn btn-outline btn-full" onclick="openBudgetModal()">⚙️ Set monthly budget</button>
         <button class="btn btn-danger btn-full" onclick="signOut()">Sign out</button>
       </div>
@@ -491,6 +492,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-create-user')">Cancel</button>
       <button class="btn btn-emerald flex-1" onclick="createUser()">Create user</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-change-password" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">🔑 Change password</div>
+    <input class="modal-input" type="password" id="new-password" placeholder="New password (min 6 characters)"/>
+    <input class="modal-input" type="password" id="confirm-password" placeholder="Confirm new password"/>
+    <div id="password-error" class="auth-error"></div>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-change-password')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="savePassword()">Save password</button>
     </div>
   </div>
 </div>
@@ -944,45 +958,58 @@ async function createUser(){
   if(!name||!email||!password){errEl.textContent='All fields are required';return;}
   if(password.length<6){errEl.textContent='Password must be at least 6 characters';return;}
 
-  // Sign up the new user
-  const {data,error}=await db.auth.signUp({
-    email, password,
-    options:{data:{full_name:name}}
-  });
+  // Get current session token to authenticate the edge function call
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){errEl.textContent='Session expired — please sign in again';return;}
 
-  if(error){
-    // "User already registered" is a common one
-    if(error.message.includes('already registered')){
-      errEl.textContent='An account with this email already exists.';
-    } else {
-      errEl.textContent=error.message;
+  try {
+    const res=await fetch(`${SURL}/functions/v1/create-user`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${session.access_token}`,
+        'apikey': SKEY
+      },
+      body:JSON.stringify({name,email,password})
+    });
+
+    const result=await res.json();
+
+    if(!res.ok||result.error){
+      errEl.textContent=result.error||'Failed to create user';
+      return;
     }
-    return;
-  }
 
-  // If email confirmation is ON in Supabase, the user object still exists
-  // but needs to confirm. Insert profile manually to ensure name is set.
-  if(data?.user){
-    await db.from('profiles').upsert({
-      id: data.user.id,
-      email: email,
-      full_name: name,
-      is_admin: false
-    }, { onConflict: 'id' });
-  }
+    closeModal('modal-create-user');
+    ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
+    showToast(`✓ Account created for ${name}`);
+    setTimeout(loadUserList,1500);
 
-  closeModal('modal-create-user');
-  ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
-
-  // Check if email confirmation is required
-  if(data?.user?.identities?.length===0){
-    showToast(`⚠️ ${name} already exists — check Supabase`);
-  } else if(!data?.session){
-    showToast(`✓ Account created — ${name} must confirm their email`);
-  } else {
-    showToast(`Account created for ${name} ✓`);
+  } catch(err){
+    errEl.textContent='Network error — please try again';
+    console.error('Create user error:',err);
   }
-  setTimeout(loadUserList,1500);
+}
+
+// ══ PASSWORD CHANGE ══
+function openChangePassword(){
+  document.getElementById('new-password').value='';
+  document.getElementById('confirm-password').value='';
+  document.getElementById('password-error').textContent='';
+  openModal('modal-change-password');
+}
+
+async function savePassword(){
+  const newPass=document.getElementById('new-password').value;
+  const confirm=document.getElementById('confirm-password').value;
+  const errEl=document.getElementById('password-error');
+  errEl.textContent='';
+  if(!newPass||newPass.length<6){errEl.textContent='Password must be at least 6 characters';return;}
+  if(newPass!==confirm){errEl.textContent='Passwords do not match';return;}
+  const {error}=await db.auth.updateUser({password:newPass});
+  if(error){errEl.textContent=error.message;return;}
+  closeModal('modal-change-password');
+  showToast('✓ Password updated successfully');
 }
 
 // ══ PROFILE — EDIT NAME ══
