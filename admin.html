@@ -241,10 +241,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:1;min-width:180px">
-            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Upload for user</div>
-            <select id="grocery-upload-user" class="modal-input" style="margin:0">
-              <option value="">Select user...</option>
-            </select>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">Shared with all users</div>
+            <div style="font-size:12px;color:var(--muted);padding:8px 0">Items will be visible to everyone on GEM Planner</div>
           </div>
           <div>
             <input type="file" id="grocery-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleGroceryUpload(this)"/>
@@ -717,8 +715,8 @@ document.addEventListener('keydown',e=>{
 // ══ GROCERY UPLOAD ══
 async function handleGroceryUpload(input){
   if(!input.files||!input.files[0]) return;
-  const userId=document.getElementById('grocery-upload-user').value;
-  if(!userId){showToast('Please select a user first');input.value='';return;}
+  const userId=currentAdmin?.id;
+  if(!userId){showToast('Please sign in first');input.value='';return;}
   const statusEl=document.getElementById('grocery-upload-status');
   statusEl.textContent='Reading file...';
   statusEl.style.color='var(--muted)';
@@ -747,9 +745,11 @@ async function handleGroceryUpload(input){
     statusEl.textContent='Uploading '+items.length+' items...';
 
     // MERGE: only insert items that don't already exist by name (case-insensitive)
-    const {data:existing}=await db.from('grocery_items').select('name').eq('user_id',userId);
+    const {data:existing}=await db.from('grocery_items').select('name').eq('user_id',userId).eq('is_shared',true);
     const existingNames=new Set((existing||[]).map(i=>i.name.toLowerCase().trim()));
-    const newItems=items.filter(i=>!existingNames.has(i.name.toLowerCase().trim()));
+    // Always upload as admin's own account with is_shared=true so all users see them
+    const items_with_shared=items.map(i=>({...i,user_id:currentAdmin.id,is_shared:true}));
+    const newItems=items_with_shared.filter(i=>!existingNames.has(i.name.toLowerCase().trim()));
 
     if(newItems.length===0){
       statusEl.textContent='\u2139\ufe0f All '+items.length+' items already exist — nothing new to add';

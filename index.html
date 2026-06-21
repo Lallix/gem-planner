@@ -2154,8 +2154,11 @@ let groceryCategory='all';
 let groceryEditMode=false;
 
 async function loadGroceryItems(){
-  const {data}=await db.from('grocery_items').select('*').eq('user_id',currentUser.id).order('category').order('name');
-  groceryItems=data||[];
+  // Load shared catalogue (uploaded by admin) + own personal items
+  const {data:shared}=await db.from('grocery_items').select('*').eq('is_shared',true).order('category').order('name');
+  const {data:own}=await db.from('grocery_items').select('*').eq('user_id',currentUser.id).eq('is_shared',false).order('category').order('name');
+  // Merge: shared first, then personal items
+  groceryItems=[...(shared||[]),...(own||[])];
   renderGroceryItems();
 }
 
@@ -2268,7 +2271,7 @@ async function addGroceryItem(){
   const unit=document.getElementById('new-grocery-unit').value.trim()||null;
   const price=parseFloat(document.getElementById('new-grocery-price').value)||null;
   if(!name){showToast('Please enter an item name');return;}
-  const {error}=await db.from('grocery_items').insert({user_id:currentUser.id,name,category:cat,unit,normal_price:price});
+  const {error}=await db.from('grocery_items').insert({user_id:currentUser.id,name,category:cat,unit,normal_price:price,is_shared:false});
   if(error){showToast('Error: '+error.message);return;}
   document.getElementById('new-grocery-name').value='';
   document.getElementById('new-grocery-unit').value='';
