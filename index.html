@@ -889,11 +889,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- Grocery master list modal -->
 <div id="modal-grocery-list" class="modal-overlay hidden">
   <div class="modal-sheet" style="max-height:92vh">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="modal-title" style="margin:0">🛍️ Grocery Items</div>
-      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-grocery-list')">✕</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-emerald btn-sm" onclick="toggleGroceryEditMode()" id="grocery-edit-toggle">✏️ Edit</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-grocery-list')">✕</button>
+      </div>
     </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tap any item to add it to your shopping list</div>
+    <!-- Mode hint -->
+    <div id="grocery-mode-hint" style="font-size:12px;color:var(--muted);margin-bottom:8px">Tap any item to add it to your shopping list</div>
     <!-- Search -->
     <input class="modal-input" type="text" id="grocery-search" placeholder="Search items..." oninput="filterGroceryItems(this.value)" style="margin-bottom:8px"/>
     <!-- Category filter tabs -->
@@ -905,9 +909,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="filter-pill" id="gcat-Dry" onclick="filterGroceryCategory('Dry Goods')" style="background:#FEF9E7;color:#D4AC0D;font-size:11px;padding:5px 12px">🌾 Dry</button>
       <button class="filter-pill" id="gcat-Cleaning" onclick="filterGroceryCategory('Cleaning')" style="background:var(--emerald-pale);color:var(--emerald);font-size:11px;padding:5px 12px">🧹 Clean</button>
     </div>
-    <div id="grocery-items-list" style="max-height:50vh;overflow-y:auto"></div>
-    <!-- Basket selector for grocery items -->
-    <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:8px">
+    <div id="grocery-items-list" style="max-height:42vh;overflow-y:auto"></div>
+
+    <!-- Add new item form (edit mode only) -->
+    <div id="grocery-add-form" class="hidden" style="border-top:1px solid var(--line);padding-top:10px;margin-top:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add new item</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input class="modal-input" type="text" id="new-grocery-name" placeholder="Item name" style="flex:2;min-width:120px;margin:0"/>
+        <select class="modal-input" id="new-grocery-cat" style="flex:1;min-width:100px;margin:0;font-size:12px;padding:8px 8px">
+          <option value="Dairy">🥛 Dairy</option>
+          <option value="Meat & Fish">🥩 Meat</option>
+          <option value="Fruit & Veg">🥦 Fruit & Veg</option>
+          <option value="Dry Goods">🌾 Dry Goods</option>
+          <option value="Cleaning">🧹 Cleaning</option>
+          <option value="Bakery">🥐 Bakery</option>
+          <option value="Frozen">❄️ Frozen</option>
+          <option value="Snacks">🍿 Snacks</option>
+          <option value="Beverages">🥤 Beverages</option>
+          <option value="Personal Care">🧴 Personal Care</option>
+          <option value="Household">🏠 Household</option>
+          <option value="Baby & Kids">👶 Baby & Kids</option>
+          <option value="Other">📦 Other</option>
+        </select>
+        <input class="modal-input" type="text" id="new-grocery-unit" placeholder="Unit (e.g. 2L)" style="flex:1;min-width:80px;margin:0"/>
+        <input class="modal-input" type="number" id="new-grocery-price" placeholder="Normal R" step="0.01" style="flex:1;min-width:80px;margin:0"/>
+        <button class="btn btn-emerald" style="padding:8px 14px;font-size:12px" onclick="addGroceryItem()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Basket selector (shop mode only) -->
+    <div id="grocery-basket-bar" style="border-top:1px solid var(--line);padding-top:12px;margin-top:8px">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:120px">
           <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
@@ -930,6 +961,37 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit grocery item modal -->
+<div id="modal-edit-grocery" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title">✏️ Edit item</div>
+    <input class="modal-input" type="hidden" id="edit-grocery-id"/>
+    <input class="modal-input" type="text" id="edit-grocery-name" placeholder="Item name"/>
+    <select class="modal-input" id="edit-grocery-cat">
+      <option value="Dairy">🥛 Dairy</option>
+      <option value="Meat & Fish">🥩 Meat & Fish</option>
+      <option value="Fruit & Veg">🥦 Fruit & Veg</option>
+      <option value="Dry Goods">🌾 Dry Goods</option>
+      <option value="Cleaning">🧹 Cleaning</option>
+      <option value="Bakery">🥐 Bakery</option>
+      <option value="Frozen">❄️ Frozen</option>
+      <option value="Snacks">🍿 Snacks</option>
+      <option value="Beverages">🥤 Beverages</option>
+      <option value="Personal Care">🧴 Personal Care</option>
+      <option value="Household">🏠 Household</option>
+      <option value="Baby & Kids">👶 Baby & Kids</option>
+      <option value="Other">📦 Other</option>
+    </select>
+    <input class="modal-input" type="text" id="edit-grocery-unit" placeholder="Unit (e.g. 2L, 500g)"/>
+    <input class="modal-input" type="number" id="edit-grocery-price" placeholder="Normal price (R)" step="0.01"/>
+    <div class="modal-row">
+      <button class="btn btn-danger btn-sm" onclick="deleteGroceryItem()">🗑 Delete</button>
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-edit-grocery')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="saveGroceryItem()">Save</button>
     </div>
   </div>
 </div>
@@ -1824,6 +1886,7 @@ function switchListBasket(basket){
 let groceryItems=[];
 let groceryBasket='this_week';
 let groceryCategory='all';
+let groceryEditMode=false;
 
 async function loadGroceryItems(){
   const {data}=await db.from('grocery_items').select('*').eq('user_id',currentUser.id).order('category').order('name');
@@ -1836,9 +1899,32 @@ function openGroceryList(){
   openModal('modal-grocery-list');
 }
 
-function filterGroceryItems(search){
-  renderGroceryItems(search);
+function toggleGroceryEditMode(){
+  groceryEditMode=!groceryEditMode;
+  const btn=document.getElementById('grocery-edit-toggle');
+  const hint=document.getElementById('grocery-mode-hint');
+  const addForm=document.getElementById('grocery-add-form');
+  const basketBar=document.getElementById('grocery-basket-bar');
+  if(groceryEditMode){
+    btn.textContent='\u2713 Done';
+    btn.style.background='var(--primary)';
+    hint.textContent='Tap any item to edit or delete it';
+    addForm.classList.remove('hidden');
+    basketBar.classList.add('hidden');
+  } else {
+    btn.textContent='\u270f\ufe0f Edit';
+    btn.style.background='';
+    hint.textContent='Tap any item to add it to your shopping list';
+    addForm.classList.add('hidden');
+    basketBar.classList.remove('hidden');
+    ['new-grocery-name','new-grocery-unit','new-grocery-price'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+  }
+  renderGroceryItems();
 }
+
+function filterGroceryItems(search){ renderGroceryItems(search); }
 
 function filterGroceryCategory(cat){
   groceryCategory=cat;
@@ -1859,42 +1945,100 @@ function renderGroceryItems(search=''){
   let items=groceryItems;
   if(groceryCategory!=='all') items=items.filter(i=>i.category===groceryCategory);
   if(search) items=items.filter(i=>i.name.toLowerCase().includes(search.toLowerCase()));
-
   const catColors={'Dairy':'#2980B9','Meat & Fish':'#C0392B','Fruit & Veg':'#27AE60','Dry Goods':'#D4AC0D','Cleaning':'#1B8A6B','Bakery':'#E67E22','Frozen':'#8E44AD','Snacks':'#E67E22','Beverages':'#2980B9','Personal Care':'#E91E8C','Household':'#555','Baby & Kids':'#FF8FAB','Other':'#8FA8A6'};
   const catBgs={'Dairy':'#E8F4FD','Meat & Fish':'#FDECEA','Fruit & Veg':'#EAFAF1','Dry Goods':'#FEF9E7','Cleaning':'#E8F5F0','Bakery':'#FEF0E6','Frozen':'#F4ECF7','Snacks':'#FEF0E6','Beverages':'#E8F4FD','Personal Care':'#FFF0F3','Household':'#F5F5F5','Baby & Kids':'#FFF0F3','Other':'#F5F5F5'};
-
   if(items.length===0){
-    document.getElementById('grocery-items-list').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">'+(groceryItems.length===0?'No items yet — upload your grocery list from the admin panel':'No items match your filter')+'</div>';
+    document.getElementById('grocery-items-list').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">'+(groceryItems.length===0?'No items yet — tap \u270f\ufe0f Edit to add items or upload from Admin':'No items match your filter')+'</div>';
     return;
   }
-
-  // Group by category
   const grouped={};
-  items.forEach(item=>{
-    if(!grouped[item.category]) grouped[item.category]=[];
-    grouped[item.category].push(item);
-  });
-
+  items.forEach(item=>{if(!grouped[item.category])grouped[item.category]=[];grouped[item.category].push(item);});
   let html='';
   Object.entries(grouped).forEach(([cat,catItems])=>{
     const col=catColors[cat]||'#8FA8A6';
     const bg=catBgs[cat]||'#F5F5F5';
     html+=`<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${col};padding:8px 0 4px">${cat}</div>`;
-    html+=catItems.map(item=>`
-      <div onclick="addGroceryItemToList('${item.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);margin-bottom:6px;cursor:pointer">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
-          <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
-            ${item.unit?`<div style="font-size:10px;color:var(--muted)">${item.unit}</div>`:''}
-            ${item.normal_price?`<div style="font-size:10px;color:var(--muted)">Normal: R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
-            ${item.last_special_price?`<div style="font-size:10px;color:var(--amber);font-weight:600">Last special: R${parseFloat(item.last_special_price).toFixed(2)}</div>`:''}
-            ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?`<div style="font-size:10px;color:var(--emerald);font-weight:600">ON SPECIAL NOW 🏷️</div>`:''}
+    if(groceryEditMode){
+      html+=catItems.map(item=>`
+        <div onclick="openEditGroceryItem('${item.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);margin-bottom:6px;cursor:pointer">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              ${item.unit?`<span style="font-size:10px;color:var(--muted)">${item.unit}</span>`:''}
+              ${item.normal_price?`<span style="font-size:10px;color:var(--muted)">R${parseFloat(item.normal_price).toFixed(2)}</span>`:''}
+              ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?`<span style="font-size:10px;color:var(--emerald);font-weight:700">ON SPECIAL \ud83c\udff7\ufe0f</span>`:''}
+            </div>
           </div>
-        </div>
-        <div style="width:28px;height:28px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">+</div>
-      </div>`).join('');
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>`).join('');
+    } else {
+      html+=catItems.map(item=>`
+        <div onclick="addGroceryItemToList('${item.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);margin-bottom:6px;cursor:pointer">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              ${item.unit?`<span style="font-size:10px;color:var(--muted)">${item.unit}</span>`:''}
+              ${item.normal_price?`<span style="font-size:10px;color:var(--muted)">R${parseFloat(item.normal_price).toFixed(2)}</span>`:''}
+              ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?`<span style="font-size:10px;color:var(--emerald);font-weight:700">ON SPECIAL \ud83c\udff7\ufe0f</span>`:''}
+            </div>
+          </div>
+          <div style="width:28px;height:28px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">+</div>
+        </div>`).join('');
+    }
   });
   document.getElementById('grocery-items-list').innerHTML=html;
+}
+
+async function addGroceryItem(){
+  const name=document.getElementById('new-grocery-name').value.trim();
+  const cat=document.getElementById('new-grocery-cat').value;
+  const unit=document.getElementById('new-grocery-unit').value.trim()||null;
+  const price=parseFloat(document.getElementById('new-grocery-price').value)||null;
+  if(!name){showToast('Please enter an item name');return;}
+  const {error}=await db.from('grocery_items').insert({user_id:currentUser.id,name,category:cat,unit,normal_price:price});
+  if(error){showToast('Error: '+error.message);return;}
+  document.getElementById('new-grocery-name').value='';
+  document.getElementById('new-grocery-unit').value='';
+  document.getElementById('new-grocery-price').value='';
+  showToast('\u2713 '+name+' added');
+  loadGroceryItems();
+}
+
+function openEditGroceryItem(id){
+  const item=groceryItems.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('edit-grocery-id').value=id;
+  document.getElementById('edit-grocery-name').value=item.name||'';
+  document.getElementById('edit-grocery-cat').value=item.category||'Other';
+  document.getElementById('edit-grocery-unit').value=item.unit||'';
+  document.getElementById('edit-grocery-price').value=item.normal_price||'';
+  openModal('modal-edit-grocery');
+}
+
+async function saveGroceryItem(){
+  const id=document.getElementById('edit-grocery-id').value;
+  const name=document.getElementById('edit-grocery-name').value.trim();
+  if(!name){showToast('Please enter a name');return;}
+  const {error}=await db.from('grocery_items').update({
+    name,
+    category:document.getElementById('edit-grocery-cat').value,
+    unit:document.getElementById('edit-grocery-unit').value.trim()||null,
+    normal_price:parseFloat(document.getElementById('edit-grocery-price').value)||null,
+  }).eq('id',id).eq('user_id',currentUser.id);
+  if(error){showToast('Error: '+error.message);return;}
+  closeModal('modal-edit-grocery');
+  showToast('\u2713 Item updated');
+  loadGroceryItems();
+}
+
+async function deleteGroceryItem(){
+  const id=document.getElementById('edit-grocery-id').value;
+  const name=document.getElementById('edit-grocery-name').value;
+  if(!confirm('Delete "'+name+'"?')) return;
+  await db.from('grocery_items').delete().eq('id',id).eq('user_id',currentUser.id);
+  closeModal('modal-edit-grocery');
+  showToast('\u2713 Item deleted');
+  loadGroceryItems();
 }
 
 async function addGroceryItemToList(itemId){
@@ -1903,16 +2047,16 @@ async function addGroceryItemToList(itemId){
   const now=new Date();
   let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
   if(groceryBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const groceryStore=document.getElementById('grocery-item-store')?.value||null;
   const {error}=await db.from('shopping_list_items').insert({
-    user_id:currentUser.id,
-    name:item.name,
-    amount:item.unit||null,
-    category:'misc',
+    user_id:currentUser.id,name:item.name,amount:item.unit||null,
+    category:'misc',store_key:groceryStore||null,
     week_start:groceryBasket==='monthly'?'monthly':weekStart.toISOString().split('T')[0],
   });
   if(error){showToast('Error adding item');return;}
-  showToast('\u2713 '+item.name+' added to '+(groceryBasket==='monthly'?'monthly basket':groceryBasket==='next_week'?'next week':'this week'));
+  showToast('\u2713 '+item.name+' added');
 }
+
 
 
 

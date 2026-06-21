@@ -746,26 +746,35 @@ async function handleGroceryUpload(input){
 
     statusEl.textContent='Uploading '+items.length+' items...';
 
-    // Delete existing for this user and re-insert
-    await db.from('grocery_items').delete().eq('user_id',userId);
+    // MERGE: only insert items that don't already exist by name (case-insensitive)
+    const {data:existing}=await db.from('grocery_items').select('name').eq('user_id',userId);
+    const existingNames=new Set((existing||[]).map(i=>i.name.toLowerCase().trim()));
+    const newItems=items.filter(i=>!existingNames.has(i.name.toLowerCase().trim()));
+
+    if(newItems.length===0){
+      statusEl.textContent='\u2139\ufe0f All '+items.length+' items already exist — nothing new to add';
+      statusEl.style.color='var(--blue)';
+      input.value='';
+      return;
+    }
+
     const chunkSize=50;
     let uploaded=0;
-    for(let i=0;i<items.length;i+=chunkSize){
-      const chunk=items.slice(i,i+chunkSize);
+    for(let i=0;i<newItems.length;i+=chunkSize){
+      const chunk=newItems.slice(i,i+chunkSize);
       const {error}=await db.from('grocery_items').insert(chunk);
       if(error){statusEl.textContent='Error at row '+(i+1)+': '+error.message;statusEl.style.color='var(--accent)';return;}
       uploaded+=chunk.length;
-      statusEl.textContent='Uploaded '+uploaded+' of '+items.length+'...';
+      statusEl.textContent='Added '+uploaded+' of '+newItems.length+' new items...';
     }
 
-    // Show summary
     const cats={};
-    items.forEach(i=>{cats[i.category]=(cats[i.category]||0)+1;});
+    newItems.forEach(i=>{cats[i.category]=(cats[i.category]||0)+1;});
     const summary=Object.entries(cats).map(([c,n])=>n+' '+c).join(', ');
-    statusEl.textContent='✓ '+items.length+' items uploaded successfully';
+    statusEl.textContent='✓ '+newItems.length+' new items added ('+existingNames.size+' existing kept)';
     statusEl.style.color='var(--emerald)';
     document.getElementById('grocery-stats').innerHTML='<div style="font-size:11px;color:var(--muted);background:var(--primary-pale);border-radius:8px;padding:8px 12px">'+summary+'</div>';
-    showToast('✓ '+items.length+' grocery items uploaded');
+    showToast('✓ '+newItems.length+' items merged');
 
   }catch(e){
     statusEl.textContent='Error: '+e.message;
