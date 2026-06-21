@@ -1708,11 +1708,14 @@ async function loadMealPlan(){
         <div class="plan-day-date">${dateStr}</div>
       </div>
       ${dayEntry?.recipes
-        ?`<div class="plan-slot plan-slot-filled">
-            <span style="font-size:16px">${dayEntry.recipes.category==='baking'?'🥐':'🍽️'}</span>
-            <span style="font-size:13px;font-weight:600">${dayEntry.recipes.title}</span>
+        ?`<div class="plan-slot plan-slot-filled" style="justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+              <span style="font-size:16px">${dayEntry.recipes.category==='baking'?'🥐':'🍽️'}</span>
+              <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dayEntry.recipes.title}</span>
+            </div>
+            <button onclick="removeMealEntry('${dayEntry.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0" title="Remove">✕</button>
           </div>`
-        :`<div class="plan-slot plan-slot-empty" onclick="showToast('Tap a recipe to add it to your plan')">
+        :`<div class="plan-slot plan-slot-empty" onclick="showToast('Open a recipe and tap Add to meal plan')">
             <span style="font-size:16px">+</span><span>Add dinner</span>
           </div>`
       }
@@ -2648,6 +2651,14 @@ async function checkPantry(){
     document.getElementById('pantry-add-btn').classList.remove('hidden');
   }
   btn.textContent='Refresh'; btn.disabled=false;
+}
+
+// ══ REMOVE MEAL PLAN ENTRY ══
+async function removeMealEntry(entryId){
+  const {error}=await db.from('meal_plan_entries').delete().eq('id',entryId).eq('user_id',currentUser.id);
+  if(error){showToast('Error removing meal');return;}
+  showToast('\u2713 Meal removed from plan');
+  loadMealPlan();
 }
 
 async function addMissingToList(){
