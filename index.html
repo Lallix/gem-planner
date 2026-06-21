@@ -620,6 +620,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button id="filter-dinner" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="filterRecipes('dinner')">🍽️ Dinner</button>
       <button id="filter-baking" class="filter-pill" style="background:var(--accent-pale);color:var(--accent)" onclick="filterRecipes('baking')">🥐 Baking</button>
       <button id="filter-shared" class="filter-pill" style="background:var(--purple-pale);color:var(--purple)" onclick="filterRecipes('shared')">👨‍👩‍👧 Shared</button>
+      <button id="filter-archived" class="filter-pill" style="background:var(--bg);color:var(--muted);border:1px solid var(--line)" onclick="toggleArchived()">📁 Archived</button>
     </div>
     <div id="recipe-list"><div class="spinner"></div></div>
     <button class="fab fab-accent" onclick="openAddRecipe()">+</button>
@@ -769,37 +770,59 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- Quick add list items modal — multi-item like grocery browser -->
 <div id="modal-add-list-item" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">🛒 Add to list</div>
-    <input class="modal-input" type="text" id="list-item-name" placeholder="Item name"/>
-    <input class="modal-input" type="text" id="list-item-amount" placeholder="Amount (e.g. 2, 500g)"/>
-    <select class="modal-input" id="list-item-category">
+  <div class="modal-sheet" style="max-height:92vh">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="modal-title" style="margin:0">🛒 Quick add items</div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-list-item')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Type items and tap + to add. Set basket and store below.</div>
+
+    <!-- Item input row -->
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input class="modal-input" type="text" id="list-item-name" placeholder="Item name..." style="flex:1;margin:0" onkeydown="if(event.key==='Enter')quickAddItem()"/>
+      <input class="modal-input" type="text" id="list-item-amount" placeholder="Qty/unit" style="width:80px;margin:0"/>
+      <button class="btn btn-accent" style="padding:8px 14px;font-size:18px;line-height:1" onclick="quickAddItem()">+</button>
+    </div>
+
+    <!-- Category -->
+    <select class="modal-input" id="list-item-category" style="margin-bottom:8px">
       <option value="misc">📦 Misc</option>
       <option value="meal_plan">🍽️ Meal plan</option>
       <option value="school_lunch">🎒 School lunch</option>
       <option value="baking">🥐 Baking</option>
       <option value="cleaning">🧹 Cleaning</option>
     </select>
-    <div class="modal-section">Store</div>
-    <select class="modal-input" id="list-item-store">
-      <option value="">Any store</option>
-      <option value="woolworths">Woolworths</option>
-      <option value="checkers">Checkers / Sixty60</option>
-      <option value="pnp">Pick n Pay</option>
-      <option value="spar">Spar</option>
-      <option value="walmart">Walmart</option>
-      <option value="other">Other</option>
-    </select>
-    <div class="modal-section">Add to</div>
-    <select class="modal-input" id="list-item-basket">
-      <option value="this_week">📅 This week</option>
-      <option value="next_week">📅 Next week</option>
-      <option value="monthly">🗓️ Monthly basket</option>
-    </select>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item')">Cancel</button>
-      <button class="btn btn-accent flex-1" onclick="saveListItem()">Add to list</button>
+
+    <!-- Items staged (not yet saved) -->
+    <div id="quick-add-staged" style="max-height:28vh;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:4px">
+      <div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0">Add items above — they'll appear here before saving</div>
+    </div>
+
+    <!-- Basket + store -->
+    <div style="border-top:1px solid var(--line);padding-top:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="filter-pill filter-active" id="qa-basket-this" onclick="setQABasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
+        <button class="filter-pill" id="qa-basket-next" onclick="setQABasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
+        <button class="filter-pill" id="qa-basket-monthly" onclick="setQABasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
+      <select class="modal-input" id="list-item-store" style="margin:0">
+        <option value="">Any store</option>
+        <option value="woolworths">Woolworths</option>
+        <option value="checkers">Checkers / Sixty60</option>
+        <option value="pnp">Pick n Pay</option>
+        <option value="spar">Spar</option>
+        <option value="walmart">Walmart</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="modal-row" style="margin-top:10px">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item');quickAddStaged=[]">Cancel</button>
+      <button class="btn btn-accent flex-1" id="qa-save-btn" onclick="saveAllQuickItems()">Save all (0)</button>
     </div>
   </div>
 </div>
@@ -856,6 +879,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </select>
       <div id="edit-recipe-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
       <div class="modal-row">
+        <button class="btn btn-outline btn-sm" onclick="archiveRecipe()">📁 Archive</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRecipe()">🗑 Delete</button>
         <button class="btn btn-primary flex-1" onclick="saveEditRecipe()">Save changes</button>
       </div>
@@ -1280,8 +1304,13 @@ async function loadAllReceipts(){
 }
 
 // ══ RECIPES ══
+let showArchived=false;
+
 async function loadRecipes(){
-  const {data:own}=await db.from('recipes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  // Exclude archived by default
+  let ownQ=db.from('recipes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  if(!showArchived) ownQ=ownQ.neq('visibility','archived');
+  const {data:own}=await ownQ;
   const {data:shared}=await db.from('recipes').select('*').eq('visibility','everyone').neq('user_id',currentUser.id).order('created_at',{ascending:false});
   allRecipes=[...(own||[]),...(shared||[])];
   renderRecipes();
@@ -1435,31 +1464,79 @@ async function deleteListItem(id){
   showToast('\u2713 Item removed');
 }
 
-async function saveListItem(){
-  const name=document.getElementById('list-item-name').value.trim();
-  if(!name){showToast('Please enter an item name');return;}
-  const now=new Date();
-  const basket=document.getElementById('list-item-basket').value;
-  let weekStart=new Date(now);
-  weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
-  weekStart.setHours(0,0,0,0);
-  if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
-  const storeKey=document.getElementById('list-item-store').value||null;
-  const {error}=await db.from('shopping_list_items').insert({
-    user_id:currentUser.id,
-    name,
-    amount:document.getElementById('list-item-amount').value.trim()||null,
-    category:document.getElementById('list-item-category').value,
-    store_key:storeKey,
-    week_start:basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0],
-  });
-  if(error){showToast('Error adding item');return;}
-  closeModal('modal-add-list-item');
+// ══ QUICK ADD LIST ITEMS (multi-item) ══
+let quickAddStaged=[];
+let qaBasket='this_week';
+
+function openAddListItem(){
+  quickAddStaged=[];
+  renderStagedItems();
   document.getElementById('list-item-name').value='';
   document.getElementById('list-item-amount').value='';
-  showToast('Added to list ✓');
+  document.getElementById('qa-save-btn').textContent='Save all (0)';
+  openModal('modal-add-list-item');
+  setTimeout(()=>document.getElementById('list-item-name').focus(),100);
+}
+
+function setQABasket(basket){
+  qaBasket=basket;
+  document.getElementById('qa-basket-this').classList.toggle('filter-active',basket==='this_week');
+  document.getElementById('qa-basket-next').classList.toggle('filter-active',basket==='next_week');
+  document.getElementById('qa-basket-monthly').classList.toggle('filter-active',basket==='monthly');
+}
+
+function quickAddItem(){
+  const name=document.getElementById('list-item-name').value.trim();
+  if(!name) return;
+  const amount=document.getElementById('list-item-amount').value.trim();
+  const cat=document.getElementById('list-item-category').value;
+  quickAddStaged.push({id:Date.now()+'_'+Math.random().toString(36).slice(-4),name,amount,category:cat});
+  document.getElementById('list-item-name').value='';
+  document.getElementById('list-item-amount').value='';
+  document.getElementById('list-item-name').focus();
+  renderStagedItems();
+}
+
+function removeStagedItem(id){
+  quickAddStaged=quickAddStaged.filter(i=>i.id!==id);
+  renderStagedItems();
+}
+
+function renderStagedItems(){
+  const el=document.getElementById('quick-add-staged');
+  document.getElementById('qa-save-btn').textContent='Save all ('+quickAddStaged.length+')';
+  if(!el) return;
+  if(quickAddStaged.length===0){
+    el.innerHTML='<div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0">Add items above — they will appear here before saving</div>';
+    return;
+  }
+  el.innerHTML=quickAddStaged.map(item=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:8px;border:0.5px solid var(--line)">
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
+      ${item.amount?`<div style="font-size:11px;color:var(--muted)">${item.amount}</div>`:''}
+      <div style="font-size:10px;color:var(--muted);background:var(--card);padding:2px 6px;border-radius:8px;border:0.5px solid var(--line)">${item.category}</div>
+      <button onclick="removeStagedItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px">&#x2715;</button>
+    </div>`).join('');
+}
+
+async function saveAllQuickItems(){
+  if(quickAddStaged.length===0){showToast('No items to save — add some above');return;}
+  const now=new Date();
+  let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(qaBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const storeKey=document.getElementById('list-item-store').value||null;
+  const ws=qaBasket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+  const rows=quickAddStaged.map(i=>({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws}));
+  const {error}=await db.from('shopping_list_items').insert(rows);
+  if(error){showToast('Error saving items: '+error.message);return;}
+  closeModal('modal-add-list-item');
+  quickAddStaged=[];
+  showToast('✓ '+rows.length+' item'+(rows.length!==1?'s':'')+' added');
   loadShoppingList();
 }
+
+async function saveListItem(){ await saveAllQuickItems(); }
+
 
 function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
 
@@ -1686,7 +1763,6 @@ function showScreen(name){
 function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
 function openAddRecipe(){ openModal('modal-add-recipe'); }
-function openAddListItem(){ openModal('modal-add-list-item'); }
 function openCreateUser(){ document.getElementById('create-user-error').textContent=''; openModal('modal-create-user'); }
 
 // Close modal on overlay click
@@ -1818,6 +1894,27 @@ async function deleteRecipe(){
   loadRecipes();
 }
 
+async function archiveRecipe(){
+  if(!currentViewRecipe) return;
+  const isArchived=currentViewRecipe.visibility==='archived';
+  const newVisibility=isArchived?'private':'archived';
+  const {error}=await db.from('recipes').update({visibility:newVisibility}).eq('id',currentViewRecipe.id);
+  if(error){showToast('Error: '+error.message);return;}
+  closeModal('modal-view-recipe');
+  showToast(isArchived?'\u2713 Recipe restored':'📁 Recipe archived');
+  loadRecipes();
+}
+
+function toggleArchived(){
+  showArchived=!showArchived;
+  const btn=document.getElementById('filter-archived');
+  if(btn){
+    btn.style.background=showArchived?'var(--primary-pale)':'var(--bg)';
+    btn.style.color=showArchived?'var(--primary)':'var(--muted)';
+  }
+  loadRecipes();
+}
+
 // ══ MEAL PLAN ASSIGNMENT ══
 let planPickerWeek=0;
 let planPickerRecipe=null;
@@ -1855,34 +1952,46 @@ function renderPlanDayPicker(){
 
 async function assignRecipeToPlan(dayOfWeek){
   if(!planPickerRecipe||!currentUser) return;
+  const errEl=document.getElementById('plan-picker-error');
+  errEl.textContent='Saving...';
   const now=new Date();
   const monday=new Date(now); monday.setDate(now.getDate()-((now.getDay()+6)%7)); monday.setHours(0,0,0,0);
   monday.setDate(monday.getDate()+(planPickerWeek*7));
   const ws=monday.toISOString().split('T')[0];
 
-  // Get or create meal plan for this week
-  let {data:plan}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).single();
-  if(!plan){
-    const {data:newPlan}=await db.from('meal_plans').insert({user_id:currentUser.id,week_start:ws}).select('id').single();
-    plan=newPlan;
+  try{
+    // Get or create meal plan
+    let planId=null;
+    const {data:existing}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).maybeSingle();
+    if(existing){
+      planId=existing.id;
+    } else {
+      const {data:newPlan,error:planErr}=await db.from('meal_plans').insert({user_id:currentUser.id,week_start:ws}).select('id').single();
+      if(planErr){errEl.textContent='Error creating plan: '+planErr.message;return;}
+      planId=newPlan.id;
+    }
+
+    // Delete existing entry for this day then insert fresh — avoids constraint issues
+    await db.from('meal_plan_entries').delete().eq('plan_id',planId).eq('day_of_week',dayOfWeek);
+    const {error:entryErr}=await db.from('meal_plan_entries').insert({
+      plan_id:planId,
+      user_id:currentUser.id,
+      day_of_week:dayOfWeek,
+      meal_type:planPickerRecipe.category==='baking'?'baking':'dinner',
+      recipe_id:planPickerRecipe.id,
+    });
+
+    if(entryErr){errEl.textContent='Error saving: '+entryErr.message;return;}
+    errEl.textContent='';
+    closeModal('modal-plan-picker');
+    closeModal('modal-view-recipe');
+    const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    showToast('\u2713 '+planPickerRecipe.title+' added to '+days[dayOfWeek]);
+    if(currentPlanWeekOffset===planPickerWeek) loadMealPlan();
+  } catch(e){
+    errEl.textContent='Error: '+e.message;
+    console.error('assignRecipeToPlan:',e);
   }
-  if(!plan){document.getElementById('plan-picker-error').textContent='Error creating plan';return;}
-
-  // Upsert the entry for this day
-  const {error}=await db.from('meal_plan_entries').upsert({
-    plan_id:plan.id,
-    user_id:currentUser.id,
-    day_of_week:dayOfWeek,
-    meal_type:'dinner',
-    recipe_id:planPickerRecipe.id,
-  },{onConflict:'plan_id,day_of_week'});
-
-  if(error){document.getElementById('plan-picker-error').textContent='Error: '+error.message;return;}
-
-  closeModal('modal-plan-picker');
-  closeModal('modal-view-recipe');
-  showToast('\u2713 Added to '+(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][dayOfWeek])+' meal plan');
-  if(currentPlanWeekOffset===planPickerWeek) loadMealPlan();
 }
 
 // ══ SHOPPING LIST BASKET ══
