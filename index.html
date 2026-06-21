@@ -10,7 +10,206 @@
 <title>GEM Planner</title>
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// ══ SCAN ITEM LIST WITH SPECIAL PRICE ══
+let scanItems=[];
+
+function addScanItem(name='',price='',isSpecial=false){
+  const id='item_'+Date.now()+'_'+Math.random().toString(36).slice(-4);
+  scanItems.push({id,name,price,isSpecial,normalPrice:''});
+  renderScanItems();
+  // Focus the new item name input
+  setTimeout(()=>{
+    const el=document.getElementById('sname_'+id);
+    if(el) el.focus();
+  },50);
+}
+
+function removeScanItem(id){
+  scanItems=scanItems.filter(i=>i.id!==id);
+  renderScanItems();
+}
+
+function toggleSpecial(id){
+  const item=scanItems.find(i=>i.id===id);
+  if(!item) return;
+  item.isSpecial=!item.isSpecial;
+  renderScanItems();
+}
+
+function updateScanItem(id,field,value){
+  const item=scanItems.find(i=>i.id===id);
+  if(item) item[field]=value;
+}
+
+function renderScanItems(){
+  const el=document.getElementById('scan-item-list');
+  if(!el) return;
+  if(scanItems.length===0){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;text-align:center">No items added yet — tap "+ Add" or scan a receipt</div>';
+    return;
+  }
+  el.innerHTML=scanItems.map(item=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:${item.isSpecial?'var(--amber-pale)':'var(--bg)'};border:0.5px solid ${item.isSpecial?'var(--amber)':'var(--line)'}">
+      <div style="flex:1;min-width:0">
+        <input id="sname_${item.id}" value="${item.name}" placeholder="Item name"
+          oninput="updateScanItem('${item.id}','name',this.value)"
+          style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);color:var(--text);outline:none;font-weight:500"/>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <input type="number" value="${item.price}" placeholder="Price R"
+            oninput="updateScanItem('${item.id}','price',this.value)"
+            style="width:80px;border:none;border-bottom:0.5px solid var(--line);background:transparent;font-size:11px;font-family:var(--font);color:var(--text);outline:none;padding:2px 0"/>
+          ${item.isSpecial?`<input type="number" value="${item.normalPrice}" placeholder="Normal R"
+            oninput="updateScanItem('${item.id}','normalPrice',this.value)"
+            style="width:80px;border:none;border-bottom:0.5px solid var(--amber);background:transparent;font-size:11px;font-family:var(--font);color:var(--amber);outline:none;padding:2px 0"/>`:''}
+        </div>
+      </div>
+      <button onclick="toggleSpecial('${item.id}')" title="Mark as special price"
+        style="background:${item.isSpecial?'var(--amber)':'var(--bg)'};border:0.5px solid ${item.isSpecial?'var(--amber)':'var(--line)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:14px;flex-shrink:0">
+        🏷️
+      </button>
+      <button onclick="removeScanItem('${item.id}')"
+        style="background:transparent;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+// Parse OCR text into scan items list
+function parseItemsFromOCR(text){
+  scanItems=[];
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  lines.forEach(line=>{
+    // Match lines with a price: "Item name R12.99" or "Item name 12.99"
+    const priceMatch=line.match(/^(.+?)\s+[Rr]?\s*(\d+[.,]\d{2})\s*$/);
+    if(priceMatch){
+      const name=priceMatch[1].trim();
+      const price=parseFloat(priceMatch[2].replace(',','.'));
+      // Skip lines that look like totals
+      if(!/total|subtotal|vat|tax|change|tender|balance|amount/i.test(name)&&price>0&&price<5000){
+        const id='item_'+Date.now()+'_'+Math.random().toString(36).slice(-4);
+        scanItems.push({id,name,price:price.toFixed(2),isSpecial:false,normalPrice:''});
+      }
+    }
+  });
+  renderScanItems();
+}
+
+// ── Override parseReceiptText to also populate item list ──
+const _origParseReceiptText=parseReceiptText;
+parseReceiptText=function(text){
+  _origParseReceiptText(text);
+  parseItemsFromOCR(text);
+};
+
+// ── Override saveScanReceipt to save items with special flags ──
+const _origSaveScan=saveScanReceipt;
+saveScanReceipt=async function(){
+  const storeKey=document.getElementById('scan-store').value;
+  const date=document.getElementById('scan-date').value;
+  const total=parseFloat(document.getElementById('scan-total').value);
+  const errEl=document.getElementById('scan-error');
+  errEl.textContent='';
+  if(!storeKey||!date||!total){errEl.textContent='Please fill in store, date and total';return;}
+
+  // Save receipt
+  const {data:receipt,error:rxErr}=await db.from('receipts').insert({
+    user_id:currentUser.id,
+    store_key:storeKey,
+    store_name:STORES[storeKey]?.label||storeKey,
+    total,
+    item_count:scanItems.length||null,
+    method:'scan',
+    receipt_date:date,
+  }).select('id').single();
+
+  if(rxErr){errEl.textContent='Error saving receipt: '+rxErr.message;return;}
+
+  // Save individual items with special price flags
+  if(scanItems.length>0&&receipt){
+    const validItems=scanItems.filter(i=>i.name.trim());
+    if(validItems.length>0){
+      const itemRows=validItems.map(i=>({
+        receipt_id:receipt.id,
+        user_id:currentUser.id,
+        name:i.name.trim(),
+        price:parseFloat(i.price)||null,
+        is_special:i.isSpecial,
+        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
+      }));
+      await db.from('receipt_items').insert(itemRows);
+
+      // Update price history for trend tracking
+      const historyRows=validItems.filter(i=>i.price).map(i=>({
+        user_id:currentUser.id,
+        item_name:i.name.trim(),
+        store_key:storeKey,
+        price:parseFloat(i.price),
+        is_special:i.isSpecial,
+        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
+        recorded_at:date,
+      }));
+      if(historyRows.length) await db.from('price_history').insert(historyRows);
+
+      // Update grocery master list last price
+      for(const item of validItems){
+        const {data:grocery}=await db.from('grocery_items')
+          .select('id,normal_price')
+          .eq('user_id',currentUser.id)
+          .ilike('name',item.name.trim())
+          .maybeSingle();
+        if(grocery){
+          const updates={last_price:parseFloat(item.price)||null};
+          if(item.isSpecial) updates.last_special_price=parseFloat(item.price)||null;
+          await db.from('grocery_items').update(updates).eq('id',grocery.id);
+        }
+      }
+    }
+  }
+
+  scanItems=[];
+  renderScanItems();
+  closeModal('modal-scan-review');
+  showToast('\u2713 Receipt saved'+(scanItems.length>0?' with '+scanItems.length+' items':''));
+  await loadDashboard();
+  loadAllReceipts();
+};
+
+// Reset scan items when modal opens
+const _origShowScanModal=showScanModal;
+showScanModal=function(title){
+  scanItems=[];
+  _origShowScanModal(title);
+  renderScanItems();
+};
+
+// ══ PRICE TRENDS SCREEN ══
+async function loadPriceTrends(itemName){
+  if(!itemName) return;
+  const {data:history}=await db.from('price_history')
+    .select('*')
+    .eq('user_id',currentUser.id)
+    .ilike('item_name',itemName)
+    .order('recorded_at');
+  if(!history||history.length<2){showToast('Not enough data for '+itemName+' yet');return;}
+
+  const normal=history.filter(h=>!h.is_special);
+  const specials=history.filter(h=>h.is_special);
+
+  // Build simple chart data summary
+  const latest=history[history.length-1];
+  const earliest=history[0];
+  const change=latest.price-earliest.price;
+  const pct=Math.round((change/earliest.price)*100);
+  const savings=specials.map(s=>s.normal_price?s.normal_price-s.price:0).filter(s=>s>0);
+  const avgSaving=savings.length?savings.reduce((a,b)=>a+b,0)/savings.length:0;
+
+  let msg=`${itemName}: R${earliest.price.toFixed(2)} → R${latest.price.toFixed(2)} (${pct>0?'+':''}${pct}%)`;
+  if(specials.length) msg+=` · ${specials.length} specials found`;
+  if(avgSaving>0) msg+=` · avg saving R${avgSaving.toFixed(2)}`;
+  showToast(msg);
+}
+
+
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -617,6 +816,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div id="view-recipe-meta" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
       <div class="modal-section">Ingredients</div>
       <div id="view-recipe-ingredients" style="font-size:13px;line-height:1.8;margin-bottom:12px;background:var(--bg);border-radius:10px;padding:10px 12px"></div>
+      <!-- Pantry check -->
+      <div id="pantry-check-section" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="modal-section" style="margin:0">What do I have?</div>
+          <button class="btn btn-primary btn-sm" onclick="checkPantry()" id="check-pantry-btn">Check pantry</button>
+        </div>
+        <div id="pantry-results" style="font-size:12px;color:var(--muted)">Tap "Check pantry" to see what you likely already have based on your purchase history.</div>
+        <div id="pantry-add-btn" class="hidden" style="margin-top:8px">
+          <button class="btn btn-accent btn-full" onclick="addMissingToList()">🛒 Add missing items to shopping list</button>
+        </div>
+      </div>
       <div class="modal-section">Method</div>
       <div id="view-recipe-instructions" style="font-size:13px;line-height:1.7;white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:10px 12px"></div>
     </div>
@@ -723,7 +933,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- Photo/Email scan review modal -->
 <div id="modal-scan-review" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:90vh">
+  <div class="modal-sheet" style="max-height:92vh">
     <div class="modal-title" id="scan-review-title">📸 Review scanned receipt</div>
     <div id="scan-status" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
     <!-- Parsed fields -->
@@ -741,10 +951,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <input class="modal-input" type="date" id="scan-date"/>
     <div class="modal-section">Total amount (R)</div>
     <input class="modal-input" type="number" id="scan-total" placeholder="e.g. 342.50" step="0.01"/>
-    <div class="modal-section">Number of items</div>
-    <input class="modal-input" type="number" id="scan-items" placeholder="e.g. 12"/>
-    <div class="modal-section">Items detected</div>
-    <textarea class="modal-input" id="scan-items-text" rows="4" placeholder="Items will appear here after scanning..." style="resize:none;font-size:12px"></textarea>
+
+    <!-- Item list with special price flagging -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div class="modal-section" style="margin:0">Items — tap 🏷️ to mark as special</div>
+      <button class="btn btn-outline btn-sm" onclick="addScanItem()">+ Add</button>
+    </div>
+    <div id="scan-item-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:200px;overflow-y:auto"></div>
+
     <div id="scan-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-scan-review')">Cancel</button>
@@ -1410,6 +1624,13 @@ async function viewRecipe(id){
   // Show edit button only for own recipes
   document.getElementById('edit-recipe-btn').style.display=r.user_id===currentUser?.id?'':'none';
 
+  // Reset pantry section
+  document.getElementById('pantry-results').textContent='Tap "Check pantry" to see what you likely already have based on your purchase history.';
+  document.getElementById('pantry-add-btn').classList.add('hidden');
+  document.getElementById('check-pantry-btn').textContent='Check pantry';
+  document.getElementById('check-pantry-btn').disabled=false;
+  pantryMissingItems=[];
+
   document.getElementById('recipe-view-mode').classList.remove('hidden');
   document.getElementById('recipe-edit-mode').classList.add('hidden');
   openModal('modal-view-recipe');
@@ -1617,9 +1838,14 @@ function renderGroceryItems(search=''){
     html+=`<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${col};padding:8px 0 4px">${cat}</div>`;
     html+=catItems.map(item=>`
       <div onclick="addGroceryItemToList('${item.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--line);margin-bottom:6px;cursor:pointer">
-        <div style="flex:1">
+        <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
-          ${item.unit?`<div style="font-size:11px;color:var(--muted)">${item.unit}</div>`:''}
+          <div style="display:flex;gap:8px;margin-top:2px;flex-wrap:wrap">
+            ${item.unit?`<div style="font-size:10px;color:var(--muted)">${item.unit}</div>`:''}
+            ${item.normal_price?`<div style="font-size:10px;color:var(--muted)">Normal: R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
+            ${item.last_special_price?`<div style="font-size:10px;color:var(--amber);font-weight:600">Last special: R${parseFloat(item.last_special_price).toFixed(2)}</div>`:''}
+            ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?`<div style="font-size:10px;color:var(--emerald);font-weight:600">ON SPECIAL NOW 🏷️</div>`:''}
+          </div>
         </div>
         <div style="width:28px;height:28px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0">+</div>
       </div>`).join('');
@@ -1663,12 +1889,19 @@ async function handlePhotoScan(input){
   showScanModal('📸 Review scanned receipt');
   document.getElementById('scan-status').textContent='Scanning receipt... please wait';
   try {
+    document.getElementById('scan-status').textContent='Reading image...';
     const b64=await fileToBase64(file);
+    document.getElementById('scan-status').textContent='Sending to Google Vision...';
     const text=await callVisionAPI(b64.split(',')[1]);
-    if(text){ parseReceiptText(text); document.getElementById('scan-status').textContent='✓ Scanned — review and correct if needed'; }
-    else { document.getElementById('scan-status').textContent='Could not read receipt — fill in manually'; }
+    if(text){
+      parseReceiptText(text);
+      document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
+    } else {
+      document.getElementById('scan-status').textContent='⚠️ No text detected — please fill in manually. Try a clearer photo with good lighting.';
+    }
   } catch(e) {
-    document.getElementById('scan-status').textContent='Scan failed: '+e.message;
+    console.error('Photo scan error:',e);
+    document.getElementById('scan-status').textContent='❌ Scan failed: '+e.message+'. Please fill in manually or check your Google Vision API is enabled.';
   }
 }
 
@@ -1709,14 +1942,45 @@ function showScanModal(title){
 
 // ══ GOOGLE VISION API ══
 async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
+  // Compress image to reduce payload — Vision API works best under 4MB
+  const compressed=await compressImage(base64Image);
   const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+VISION_KEY,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({requests:[{image:{content:base64Image},features:[{type:feature,maxResults:1}]}]})
+    body:JSON.stringify({requests:[{image:{content:compressed},features:[{type:feature,maxResults:1},{type:'TEXT_DETECTION',maxResults:1}]}]})
   });
-  if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'Vision API error');}
   const data=await res.json();
-  return data.responses?.[0]?.fullTextAnnotation?.text||data.responses?.[0]?.textAnnotations?.[0]?.description||null;
+  if(!res.ok){
+    const msg=data.error?.message||'Vision API error '+res.status;
+    console.error('Vision API error:',data);
+    throw new Error(msg);
+  }
+  const result=data.responses?.[0];
+  if(result?.error){throw new Error(result.error.message||'Vision processing error');}
+  return result?.fullTextAnnotation?.text||result?.textAnnotations?.[0]?.description||null;
+}
+
+// Compress image before sending to Vision API
+function compressImage(base64){
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const max=1200; // max dimension
+      let w=img.width, h=img.height;
+      if(w>max||h>max){
+        if(w>h){h=Math.round(h*max/w);w=max;}
+        else{w=Math.round(w*max/h);h=max;}
+      }
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+      resolve(compressed);
+    };
+    img.onerror=()=>resolve(base64); // fallback to original
+    img.src='data:image/jpeg;base64,'+base64;
+  });
 }
 
 // ══ PARSE OCR TEXT ══
@@ -1784,6 +2048,149 @@ function setFilterActive(f){
   const el=document.getElementById('filter-'+f);
   if(el) el.classList.add('filter-active');
 }
+
+// ══ PANTRY — SMART PREDICTION ENGINE ══
+// Predicts what you likely have based on purchase history
+// No manual tracking needed — works from your receipt items
+
+let pantryMissingItems=[];
+
+// Default shelf life in days per keyword
+const SHELF_LIFE={
+  milk:7, cream:5, yoghurt:10, cheese:21, butter:30,
+  egg:21, eggs:21, bread:5, flour:180, sugar:365, salt:365,
+  rice:365, pasta:365, noodles:365, oats:180,
+  chicken:2, beef:2, mince:2, pork:2, fish:2, sausage:3,
+  bacon:5, ham:7,
+  apple:14, banana:5, orange:14, lemon:14, tomato:7,
+  onion:30, garlic:30, potato:21, carrot:14, spinach:5,
+  lettuce:5, cucumber:7, pepper:7,
+  oil:365, vinegar:365, sauce:90, ketchup:90, mustard:90,
+  mayonnaise:60, jam:180, honey:365,
+  coffee:180, tea:365, juice:7, cooldrink:90,
+  soap:365, shampoo:365, toothpaste:365,
+  default:14
+};
+
+function getShelfLife(itemName){
+  const lower=itemName.toLowerCase();
+  for(const [key,days] of Object.entries(SHELF_LIFE)){
+    if(lower.includes(key)) return days;
+  }
+  return SHELF_LIFE.default;
+}
+
+function getPantryStatus(lastBought, shelfLife){
+  if(!lastBought) return 'unknown';
+  const daysSince=Math.floor((Date.now()-new Date(lastBought).getTime())/(1000*60*60*24));
+  const ratio=daysSince/shelfLife;
+  if(ratio<0.5) return 'have';       // bought recently, likely still good
+  if(ratio<0.85) return 'low';       // getting old, might be running out
+  return 'need';                      // probably finished
+}
+
+async function checkPantry(){
+  if(!currentViewRecipe) return;
+  const btn=document.getElementById('check-pantry-btn');
+  const resultsEl=document.getElementById('pantry-results');
+  btn.textContent='Checking...';
+  btn.disabled=true;
+
+  // Load recipe ingredients
+  const {data:ings}=await db.from('recipe_ingredients')
+    .select('name,amount,unit')
+    .eq('recipe_id',currentViewRecipe.id)
+    .order('sort_order');
+
+  if(!ings||ings.length===0){
+    resultsEl.innerHTML='<div style="color:var(--muted)">No ingredients listed for this recipe yet.</div>';
+    btn.textContent='Check pantry'; btn.disabled=false;
+    return;
+  }
+
+  // Load last 90 days of receipt items to build purchase history
+  const since=new Date(); since.setDate(since.getDate()-90);
+  const {data:purchaseHistory}=await db.from('receipt_items')
+    .select('name,created_at')
+    .eq('user_id',currentUser.id)
+    .gte('created_at',since.toISOString());
+
+  // Also check receipt totals for store-level recency (fallback if no items scanned)
+  const {data:recentReceipts}=await db.from('receipts')
+    .select('store_name,receipt_date')
+    .eq('user_id',currentUser.id)
+    .gte('receipt_date',since.toISOString().split('T')[0])
+    .order('receipt_date',{ascending:false});
+
+  const history=purchaseHistory||[];
+
+  // For each ingredient, find last purchase date
+  const statusColors={have:'var(--emerald)',low:'var(--amber)',need:'var(--accent)',unknown:'var(--muted)'};
+  const statusIcons={have:'✅',low:'⚠️',need:'❌',unknown:'❓'};
+  const statusLabels={have:'Likely have',low:'Running low',need:'Probably need',unknown:'Not sure'};
+
+  pantryMissingItems=[];
+  let html='<div style="display:flex;flex-direction:column;gap:6px">';
+
+  for(const ing of ings){
+    const ingLower=ing.name.toLowerCase();
+    // Find most recent purchase matching this ingredient
+    const matches=history.filter(h=>h.name.toLowerCase().includes(ingLower)||ingLower.includes(h.name.toLowerCase().split(' ')[0]));
+    const lastBought=matches.length>0?matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0].created_at:null;
+    const shelfLife=getShelfLife(ing.name);
+    const status=getPantryStatus(lastBought,shelfLife);
+    const col=statusColors[status];
+    const icon=statusIcons[status];
+    const label=statusLabels[status];
+    const daysAgo=lastBought?Math.floor((Date.now()-new Date(lastBought).getTime())/(1000*60*60*24)):null;
+
+    if(status==='need'||status==='unknown') pantryMissingItems.push(ing);
+
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg);border:0.5px solid var(--line)">
+      <span style="font-size:16px">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${ing.name}${ing.amount?' <span style="font-weight:400;color:var(--muted)">'+ing.amount+'</span>':''}</div>
+        <div style="font-size:10px;color:${col};font-weight:600">${label}${daysAgo!==null?' · last bought '+daysAgo+'d ago':''}</div>
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+
+  // Summary
+  const haveCount=ings.length-pantryMissingItems.length;
+  html=`<div style="font-size:12px;color:var(--muted);margin-bottom:8px">You likely have <strong style="color:var(--emerald)">${haveCount}</strong> of ${ings.length} ingredients. <strong style="color:var(--accent)">${pantryMissingItems.length}</strong> to buy.</div>`+html;
+
+  resultsEl.innerHTML=html;
+  if(pantryMissingItems.length>0){
+    document.getElementById('pantry-add-btn').classList.remove('hidden');
+  }
+  btn.textContent='Refresh'; btn.disabled=false;
+}
+
+async function addMissingToList(){
+  if(!pantryMissingItems.length) return;
+  const now=new Date();
+  let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  const ws=weekStart.toISOString().split('T')[0];
+
+  const items=pantryMissingItems.map(i=>({
+    user_id:currentUser.id,
+    name:i.name,
+    amount:i.amount||(i.unit?i.unit:null),
+    category:'meal_plan',
+    week_start:ws,
+  }));
+
+  const {error}=await db.from('shopping_list_items').insert(items);
+  if(error){showToast('Error adding items: '+error.message);return;}
+
+  closeModal('modal-view-recipe');
+  showToast('\u2713 '+pantryMissingItems.length+' items added to this week\'s list');
+  showScreen('list');
+  loadShoppingList();
+}
+
+
 
 </script>
 </body>
