@@ -921,19 +921,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- Meal plan day picker -->
 <div id="modal-plan-picker" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">📅 Add to meal plan</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:12px" id="plan-picker-recipe-name"></div>
-    <div class="modal-section">Which week</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button id="picker-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="setPlanPickerWeek(0)">This week</button>
-      <button id="picker-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="setPlanPickerWeek(1)">Next week</button>
+  <div class="modal-sheet" style="max-height:92vh">
+    <!-- Step 1: Recipe selection -->
+    <div id="plan-step-recipe">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="modal-title" style="margin:0">🍽️ Choose a recipe</div>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-plan-picker')">✕</button>
+      </div>
+      <input class="modal-input" type="text" id="plan-recipe-search" placeholder="Search recipes..." oninput="renderPlanRecipePicker()" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="filter-pill filter-active" id="pr-filter-all"    onclick="setPRFilter('all')"    style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px">All</button>
+        <button class="filter-pill"              id="pr-filter-dinner"  onclick="setPRFilter('dinner')" style="background:var(--amber-pale);color:var(--amber);font-size:11px;padding:5px 10px">🍽️ Dinner</button>
+        <button class="filter-pill"              id="pr-filter-baking"  onclick="setPRFilter('baking')" style="background:var(--accent-pale);color:var(--accent);font-size:11px;padding:5px 10px">🥐 Baking</button>
+      </div>
+      <div id="plan-recipe-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
     </div>
-    <div class="modal-section">Which day</div>
-    <div id="plan-day-picker" style="display:flex;flex-direction:column;gap:6px"></div>
-    <div id="plan-picker-error" style="font-size:12px;color:var(--accent);margin-top:8px"></div>
-    <div style="margin-top:12px">
-      <button class="btn btn-outline btn-full" onclick="closeModal('modal-plan-picker')">Cancel</button>
+
+    <!-- Step 2: Day selection (shown after recipe picked) -->
+    <div id="plan-step-day" class="hidden">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button onclick="showPlanStepRecipe()" style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:2px">‹</button>
+        <div>
+          <div class="modal-title" style="margin:0">📅 Pick a day</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px" id="plan-picker-recipe-name"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button id="picker-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="setPlanPickerWeek(0)">This week</button>
+        <button id="picker-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="setPlanPickerWeek(1)">Next week</button>
+      </div>
+      <div id="plan-day-picker" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div id="plan-picker-error" style="font-size:12px;color:var(--accent);margin-top:8px"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-outline btn-full" onclick="closeModal('modal-plan-picker')">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1730,7 +1751,7 @@ async function loadMealPlan(){
             </div>
             <button onclick="removeMealEntry('${dayEntry.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0" title="Remove">✕</button>
           </div>`
-        :`<div class="plan-slot plan-slot-empty" onclick="showToast('Open a recipe and tap Add to meal plan')">
+        :`<div class="plan-slot plan-slot-empty" onclick="openPlanPickerForDay(${i},${currentPlanWeekOffset})">
             <span style="font-size:16px">+</span><span>Add dinner</span>
           </div>`
       }
@@ -1890,7 +1911,7 @@ function showScreen(name){
   if(name==='scan') loadAllReceipts();
   if(name==='recipes') loadRecipes();
   if(name==='list') loadShoppingList();
-  if(name==='plan') loadMealPlan();
+  if(name==='plan'){ if(!allRecipes||allRecipes.length===0) loadRecipes(); loadMealPlan(); }
   if(name==='profile'&&isAdmin) loadUserList();
 }
 
@@ -2053,17 +2074,111 @@ function toggleArchived(){
   loadRecipes();
 }
 
-// ══ MEAL PLAN ASSIGNMENT ══
-let planPickerWeek=0;
-let planPickerRecipe=null;
+// ══ MEAL PLAN — RECIPE PICKER ══
+let prFilter='all';
+let pendingDayOfWeek=null;
+let pendingWeekOffset=0;
+
+function openPlanPickerForDay(dayOfWeek, weekOffset){
+  // Open plan picker starting at recipe selection for a specific day
+  pendingDayOfWeek=dayOfWeek;
+  pendingWeekOffset=weekOffset;
+  planPickerWeek=weekOffset;
+  prFilter='all';
+  document.getElementById('plan-recipe-search').value='';
+  document.getElementById('pr-filter-all').classList.add('filter-active');
+  document.getElementById('pr-filter-dinner').classList.remove('filter-active');
+  document.getElementById('pr-filter-baking').classList.remove('filter-active');
+  showPlanStepRecipe();
+  renderPlanRecipePicker();
+  openModal('modal-plan-picker');
+}
+
+function showPlanStepRecipe(){
+  document.getElementById('plan-step-recipe').classList.remove('hidden');
+  document.getElementById('plan-step-day').classList.add('hidden');
+}
+
+function showPlanStepDay(){
+  document.getElementById('plan-step-recipe').classList.add('hidden');
+  document.getElementById('plan-step-day').classList.remove('hidden');
+}
+
+function setPRFilter(f){
+  prFilter=f;
+  ['all','dinner','baking'].forEach(x=>{
+    document.getElementById('pr-filter-'+x).classList.toggle('filter-active',x===f);
+  });
+  renderPlanRecipePicker();
+}
+
+function renderPlanRecipePicker(){
+  const search=(document.getElementById('plan-recipe-search')?.value||'').toLowerCase();
+  let list=allRecipes.filter(r=>r.visibility!=='archived');
+  if(prFilter==='dinner') list=list.filter(r=>r.category==='dinner'||r.category==='lunch'||r.category==='other');
+  else if(prFilter==='baking') list=list.filter(r=>r.category==='baking');
+  if(search) list=list.filter(r=>r.title.toLowerCase().includes(search));
+
+  const colors={dinner:'#F5A623',baking:'#FF8FAB',lunch:'#6CC2C0',other:'#9B7FD4'};
+  const bgs={dinner:'#FEF3DC',baking:'#FFF0F3',lunch:'#CFE8E4',other:'#EDE8F9'};
+
+  if(list.length===0){
+    document.getElementById('plan-recipe-list').innerHTML=
+      '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No recipes found — add some in the Recipes tab first</div>';
+    return;
+  }
+
+  document.getElementById('plan-recipe-list').innerHTML=list.map(r=>{
+    const col=colors[r.category]||'#9B7FD4';
+    const bg=bgs[r.category]||'#EDE8F9';
+    return `<div onclick="selectRecipeForPlan('${r.id}')"
+      style="display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--card);border-radius:12px;border:1px solid var(--line);cursor:pointer">
+      <div style="width:36px;height:36px;border-radius:8px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+        ${r.category==='baking'?'🥐':'🍽️'}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">${r.title}</div>
+        <div style="font-size:10px;font-weight:700;color:${col};margin-top:2px">${r.category||'other'}</div>
+      </div>
+      <span style="color:var(--muted);font-size:18px">›</span>
+    </div>`;
+  }).join('');
+}
+
+function selectRecipeForPlan(recipeId){
+  const r=allRecipes.find(x=>x.id===recipeId);
+  if(!r) return;
+  planPickerRecipe=r;
+  planPickerWeek=pendingWeekOffset;
+  document.getElementById('plan-picker-recipe-name').textContent=r.title;
+  document.getElementById('plan-picker-error').textContent='';
+  setPlanPickerWeek(pendingWeekOffset);
+
+  // If we came from a specific day tap, assign immediately
+  if(pendingDayOfWeek!==null){
+    showPlanStepDay();
+    // Pre-highlight the pending day
+    renderPlanDayPicker();
+  } else {
+    showPlanStepDay();
+    renderPlanDayPicker();
+  }
+}
+
+
 
 function addRecipeToPlan(){
   if(!currentViewRecipe) return;
   planPickerRecipe=currentViewRecipe;
   planPickerWeek=0;
+  pendingDayOfWeek=null;
   document.getElementById('plan-picker-recipe-name').textContent=currentViewRecipe.title;
   document.getElementById('plan-picker-error').textContent='';
+  setPlanPickerWeek(0);
   renderPlanDayPicker();
+  // Go straight to day picker since recipe is already known
+  document.getElementById('plan-step-recipe').classList.add('hidden');
+  document.getElementById('plan-step-day').classList.remove('hidden');
   openModal('modal-plan-picker');
 }
 
