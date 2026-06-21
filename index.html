@@ -770,43 +770,55 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
-<!-- Quick add list items modal — multi-item like grocery browser -->
+<!-- Quick add list items modal — grocery browser style with multi-select -->
 <div id="modal-add-list-item" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:92vh">
+  <div class="modal-sheet" style="max-height:95vh">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="modal-title" style="margin:0">🛒 Quick add items</div>
-      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-list-item')">✕</button>
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Type items and tap + to add. Set basket and store below.</div>
-
-    <!-- Item input row -->
-    <div style="display:flex;gap:6px;margin-bottom:8px">
-      <input class="modal-input" type="text" id="list-item-name" placeholder="Item name..." style="flex:1;margin:0" onkeydown="if(event.key==='Enter')quickAddItem()"/>
-      <input class="modal-input" type="text" id="list-item-amount" placeholder="Qty/unit" style="width:80px;margin:0"/>
-      <button class="btn btn-accent" style="padding:8px 14px;font-size:18px;line-height:1" onclick="quickAddItem()">+</button>
+      <div class="modal-title" style="margin:0">🛒 Add to list</div>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-list-item');quickAddStaged=[];quickAddSelected=new Set()">✕</button>
     </div>
 
-    <!-- Category -->
-    <select class="modal-input" id="list-item-category" style="margin-bottom:8px">
-      <option value="misc">📦 Misc</option>
-      <option value="meal_plan">🍽️ Meal plan</option>
-      <option value="school_lunch">🎒 School lunch</option>
-      <option value="baking">🥐 Baking</option>
-      <option value="cleaning">🧹 Cleaning</option>
-    </select>
+    <!-- Search -->
+    <input class="modal-input" type="text" id="qa-search" placeholder="Search items or type new..." oninput="renderQAItems()" style="margin-bottom:8px"/>
 
-    <!-- Items staged (not yet saved) -->
-    <div id="quick-add-staged" style="max-height:28vh;overflow-y:auto;margin-bottom:8px;display:flex;flex-direction:column;gap:4px">
-      <div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0">Add items above — they'll appear here before saving</div>
+    <!-- Category filters -->
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch">
+      <button class="filter-pill filter-active" id="qa-cat-all"         onclick="setQACat('all')"          style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px;white-space:nowrap">All</button>
+      <button class="filter-pill"              id="qa-cat-Dairy"        onclick="setQACat('Dairy')"         style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 10px;white-space:nowrap">🥛 Dairy</button>
+      <button class="filter-pill"              id="qa-cat-Meat"         onclick="setQACat('Meat & Fish')"   style="background:#FDECEA;color:#C0392B;font-size:11px;padding:5px 10px;white-space:nowrap">🥩 Meat</button>
+      <button class="filter-pill"              id="qa-cat-Fruit"        onclick="setQACat('Fruit & Veg')"   style="background:#EAFAF1;color:#27AE60;font-size:11px;padding:5px 10px;white-space:nowrap">🥦 Veg</button>
+      <button class="filter-pill"              id="qa-cat-Dry"          onclick="setQACat('Dry Goods')"     style="background:#FEF9E7;color:#D4AC0D;font-size:11px;padding:5px 10px;white-space:nowrap">🌾 Dry</button>
+      <button class="filter-pill"              id="qa-cat-Bakery"       onclick="setQACat('Bakery')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 10px;white-space:nowrap">🥐 Bakery</button>
+      <button class="filter-pill"              id="qa-cat-Frozen"       onclick="setQACat('Frozen')"        style="background:#F4ECF7;color:#8E44AD;font-size:11px;padding:5px 10px;white-space:nowrap">❄️ Frozen</button>
+      <button class="filter-pill"              id="qa-cat-Snacks"       onclick="setQACat('Snacks')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 10px;white-space:nowrap">🍿 Snacks</button>
+      <button class="filter-pill"              id="qa-cat-Beverages"    onclick="setQACat('Beverages')"     style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 10px;white-space:nowrap">🥤 Drinks</button>
+      <button class="filter-pill"              id="qa-cat-Cleaning"     onclick="setQACat('Cleaning')"      style="background:var(--emerald-pale);color:var(--emerald);font-size:11px;padding:5px 10px;white-space:nowrap">🧹 Clean</button>
+      <button class="filter-pill"             id="qa-cat-PersonalCare" onclick="setQACat('Personal Care')"  style="background:#FFF0F3;color:#E91E8C;font-size:11px;padding:5px 10px;white-space:nowrap">🧴 Personal</button>
+      <button class="filter-pill"              id="qa-cat-Household"    onclick="setQACat('Household')"     style="background:#F5F5F5;color:#555;font-size:11px;padding:5px 10px;white-space:nowrap">🏠 House</button>
+      <button class="filter-pill"              id="qa-cat-BabyKids"    onclick="setQACat('Baby & Kids')"    style="background:#FFF0F3;color:#FF8FAB;font-size:11px;padding:5px 10px;white-space:nowrap">👶 Baby</button>
+      <button class="filter-pill"              id="qa-cat-Other"        onclick="setQACat('Other')"         style="background:#F5F5F5;color:#8FA8A6;font-size:11px;padding:5px 10px;white-space:nowrap">📦 Other</button>
     </div>
 
-    <!-- Basket + store -->
+    <!-- Scrollable item list -->
+    <div id="qa-items-list" style="max-height:35vh;overflow-y:auto;margin-bottom:8px"></div>
+
+    <!-- Manual add for items not in list -->
+    <div id="qa-manual-add" style="display:none;padding:8px 10px;background:var(--bg);border-radius:10px;border:1px dashed var(--line);margin-bottom:8px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Not in your list? Add manually:</div>
+      <div style="display:flex;gap:6px">
+        <input class="modal-input" type="text" id="qa-manual-name" placeholder="Item name" style="flex:1;margin:0"/>
+        <input class="modal-input" type="text" id="qa-manual-amount" placeholder="Qty" style="width:70px;margin:0"/>
+        <button class="btn btn-emerald btn-sm" onclick="qaManualAdd()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Basket + store bottom bar -->
     <div style="border-top:1px solid var(--line);padding-top:10px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button class="filter-pill filter-active" id="qa-basket-this" onclick="setQABasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
-        <button class="filter-pill" id="qa-basket-next" onclick="setQABasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill" id="qa-basket-monthly" onclick="setQABasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+        <button class="filter-pill filter-active" id="qa-basket-this"    onclick="setQABasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
+        <button class="filter-pill"               id="qa-basket-next"    onclick="setQABasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
+        <button class="filter-pill"               id="qa-basket-monthly" onclick="setQABasket('monthly')"   style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
       <select class="modal-input" id="list-item-store" style="margin:0">
@@ -821,8 +833,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
 
     <div class="modal-row" style="margin-top:10px">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item');quickAddStaged=[]">Cancel</button>
-      <button class="btn btn-accent flex-1" id="qa-save-btn" onclick="saveAllQuickItems()">Save all (0)</button>
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item');quickAddStaged=[];quickAddSelected=new Set()">Cancel</button>
+      <button class="btn btn-accent flex-1" id="qa-save-btn" onclick="saveAllQuickItems()">Add to list (0)</button>
     </div>
   </div>
 </div>
@@ -1464,18 +1476,25 @@ async function deleteListItem(id){
   showToast('\u2713 Item removed');
 }
 
-// ══ QUICK ADD LIST ITEMS (multi-item) ══
-let quickAddStaged=[];
+// ══ QUICK ADD LIST ITEMS — grocery browser style with multi-select ══
+let quickAddSelected=new Set(); // set of grocery item IDs selected
+let quickAddManual=[];          // manually typed items
 let qaBasket='this_week';
+let qaCategory='all';
 
 function openAddListItem(){
-  quickAddStaged=[];
-  renderStagedItems();
-  document.getElementById('list-item-name').value='';
-  document.getElementById('list-item-amount').value='';
-  document.getElementById('qa-save-btn').textContent='Save all (0)';
+  quickAddSelected=new Set();
+  quickAddManual=[];
+  qaCategory='all';
+  document.getElementById('qa-search').value='';
+  document.getElementById('qa-save-btn').textContent='Add to list (0)';
+  setQABasket('this_week');
+  // Reset cat filter
+  document.querySelectorAll('[id^="qa-cat-"]').forEach(b=>b.classList.remove('filter-active'));
+  const allBtn=document.getElementById('qa-cat-all');
+  if(allBtn) allBtn.classList.add('filter-active');
+  renderQAItems();
   openModal('modal-add-list-item');
-  setTimeout(()=>document.getElementById('list-item-name').focus(),100);
 }
 
 function setQABasket(basket){
@@ -1485,57 +1504,142 @@ function setQABasket(basket){
   document.getElementById('qa-basket-monthly').classList.toggle('filter-active',basket==='monthly');
 }
 
-function quickAddItem(){
-  const name=document.getElementById('list-item-name').value.trim();
-  if(!name) return;
-  const amount=document.getElementById('list-item-amount').value.trim();
-  const cat=document.getElementById('list-item-category').value;
-  quickAddStaged.push({id:Date.now()+'_'+Math.random().toString(36).slice(-4),name,amount,category:cat});
-  document.getElementById('list-item-name').value='';
-  document.getElementById('list-item-amount').value='';
-  document.getElementById('list-item-name').focus();
-  renderStagedItems();
+const QA_CAT_ID_MAP={
+  'all':'qa-cat-all','Dairy':'qa-cat-Dairy','Meat & Fish':'qa-cat-Meat',
+  'Fruit & Veg':'qa-cat-Fruit','Dry Goods':'qa-cat-Dry','Bakery':'qa-cat-Bakery',
+  'Frozen':'qa-cat-Frozen','Snacks':'qa-cat-Snacks','Beverages':'qa-cat-Beverages',
+  'Cleaning':'qa-cat-Cleaning','Personal Care':'qa-cat-PersonalCare',
+  'Household':'qa-cat-Household','Baby & Kids':'qa-cat-BabyKids','Other':'qa-cat-Other'
+};
+
+function setQACat(cat){
+  qaCategory=cat;
+  document.querySelectorAll('[id^="qa-cat-"]').forEach(b=>b.classList.remove('filter-active'));
+  const el=document.getElementById(QA_CAT_ID_MAP[cat]||'qa-cat-all');
+  if(el) el.classList.add('filter-active');
+  renderQAItems();
 }
 
-function removeStagedItem(id){
-  quickAddStaged=quickAddStaged.filter(i=>i.id!==id);
-  renderStagedItems();
+function updateQACount(){
+  const total=quickAddSelected.size+quickAddManual.length;
+  document.getElementById('qa-save-btn').textContent='Add to list ('+total+')';
 }
 
-function renderStagedItems(){
-  const el=document.getElementById('quick-add-staged');
-  document.getElementById('qa-save-btn').textContent='Save all ('+quickAddStaged.length+')';
-  if(!el) return;
-  if(quickAddStaged.length===0){
-    el.innerHTML='<div style="text-align:center;font-size:12px;color:var(--muted);padding:8px 0">Add items above — they will appear here before saving</div>';
+function toggleQAItem(id){
+  if(quickAddSelected.has(id)) quickAddSelected.delete(id);
+  else quickAddSelected.add(id);
+  updateQACount();
+  // Re-render just this item's tick state
+  const el=document.getElementById('qa-item-'+id);
+  if(el){
+    const selected=quickAddSelected.has(id);
+    el.style.background=selected?'var(--primary-pale)':'var(--card)';
+    el.style.borderColor=selected?'var(--primary)':'var(--line)';
+    const tick=el.querySelector('.qa-tick');
+    if(tick) tick.style.display=selected?'flex':'none';
+  }
+}
+
+function renderQAItems(){
+  const search=(document.getElementById('qa-search')?.value||'').toLowerCase();
+  let items=groceryItems||[];
+  if(qaCategory!=='all') items=items.filter(i=>i.category===qaCategory);
+  if(search) items=items.filter(i=>i.name.toLowerCase().includes(search));
+
+  const manualBtn=document.getElementById('qa-manual-add');
+
+  if(items.length===0&&!search){
+    document.getElementById('qa-items-list').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No grocery items yet — upload your list from Admin or use the manual add below</div>';
+    if(manualBtn) manualBtn.style.display='block';
     return;
   }
-  el.innerHTML=quickAddStaged.map(item=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border-radius:8px;border:0.5px solid var(--line)">
-      <div style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
-      ${item.amount?`<div style="font-size:11px;color:var(--muted)">${item.amount}</div>`:''}
-      <div style="font-size:10px;color:var(--muted);background:var(--card);padding:2px 6px;border-radius:8px;border:0.5px solid var(--line)">${item.category}</div>
-      <button onclick="removeStagedItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px">&#x2715;</button>
-    </div>`).join('');
+
+  // Show manual add when searching for something not in list
+  if(manualBtn) manualBtn.style.display=search?'block':'none';
+  if(search&&document.getElementById('qa-manual-name')){
+    document.getElementById('qa-manual-name').value=search.charAt(0).toUpperCase()+search.slice(1);
+  }
+
+  const catColors={'Dairy':'#2980B9','Meat & Fish':'#C0392B','Fruit & Veg':'#27AE60','Dry Goods':'#D4AC0D','Cleaning':'#1B8A6B','Bakery':'#E67E22','Frozen':'#8E44AD','Snacks':'#E67E22','Beverages':'#2980B9','Personal Care':'#E91E8C','Household':'#555','Baby & Kids':'#FF8FAB','Other':'#8FA8A6'};
+
+  // Group by category
+  const grouped={};
+  items.forEach(i=>{if(!grouped[i.category])grouped[i.category]=[];grouped[i.category].push(i);});
+
+  let html='';
+  Object.entries(grouped).forEach(([cat,catItems])=>{
+    const col=catColors[cat]||'#8FA8A6';
+    html+=`<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${col};padding:8px 0 4px">${cat}</div>`;
+    html+=catItems.map(item=>{
+      const sel=quickAddSelected.has(item.id);
+      return `<div id="qa-item-${item.id}" onclick="toggleQAItem('${item.id}')"
+        style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:${sel?'var(--primary-pale)':'var(--card)'};border:1px solid ${sel?'var(--primary)':'var(--line)'};margin-bottom:5px;cursor:pointer;transition:all .15s">
+        <div class="qa-tick" style="display:${sel?'flex':'none'};width:22px;height:22px;border-radius:50%;background:var(--primary);align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <div style="width:${sel?'0':'22px'};height:22px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:${sel?'none':'block'}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
+          ${item.unit?`<div style="font-size:10px;color:var(--muted)">${item.unit}</div>`:''}
+        </div>
+        ${item.normal_price?`<div style="font-size:11px;color:var(--muted)">R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
+        ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?'<div style="font-size:9px;font-weight:700;color:var(--emerald);background:var(--emerald-pale);padding:2px 6px;border-radius:8px">SPECIAL</div>':''}
+      </div>`;
+    }).join('');
+  });
+
+  document.getElementById('qa-items-list').innerHTML=html;
+}
+
+function qaManualAdd(){
+  const name=document.getElementById('qa-manual-name')?.value.trim();
+  if(!name) return;
+  const amount=document.getElementById('qa-manual-amount')?.value.trim();
+  quickAddManual.push({id:'manual_'+Date.now(),name,amount,category:'misc'});
+  document.getElementById('qa-manual-name').value='';
+  document.getElementById('qa-manual-amount').value='';
+  updateQACount();
+  showToast('✓ '+name+' staged');
 }
 
 async function saveAllQuickItems(){
-  if(quickAddStaged.length===0){showToast('No items to save — add some above');return;}
+  const total=quickAddSelected.size+quickAddManual.length;
+  if(total===0){showToast('Tap items to select them first');return;}
   const now=new Date();
   let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
   if(qaBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
   const storeKey=document.getElementById('list-item-store').value||null;
   const ws=qaBasket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
-  const rows=quickAddStaged.map(i=>({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws}));
+
+  const rows=[];
+  // From grocery list selections
+  quickAddSelected.forEach(id=>{
+    const item=groceryItems.find(i=>i.id===id);
+    if(item) rows.push({user_id:currentUser.id,name:item.name,amount:item.unit||null,category:'misc',store_key:storeKey,week_start:ws});
+  });
+  // From manual additions
+  quickAddManual.forEach(i=>{
+    rows.push({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws});
+  });
+
   const {error}=await db.from('shopping_list_items').insert(rows);
-  if(error){showToast('Error saving items: '+error.message);return;}
+  if(error){showToast('Error: '+error.message);return;}
   closeModal('modal-add-list-item');
-  quickAddStaged=[];
+  quickAddSelected=new Set();
+  quickAddManual=[];
   showToast('✓ '+rows.length+' item'+(rows.length!==1?'s':'')+' added');
   loadShoppingList();
 }
 
 async function saveListItem(){ await saveAllQuickItems(); }
+
+// Also load grocery items when opening this modal
+const _origOpenAddListItem=openAddListItem;
+function openAddListItem(){
+  if(groceryItems.length===0) loadGroceryItems().then(()=>{ _origOpenAddListItem(); });
+  else _origOpenAddListItem();
+}
+
 
 
 function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
