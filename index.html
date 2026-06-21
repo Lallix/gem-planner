@@ -93,15 +93,8 @@ function parseItemsFromOCR(text){
   renderScanItems();
 }
 
-// ── Override parseReceiptText to also populate item list ──
-const _origParseReceiptText=parseReceiptText;
-parseReceiptText=function(text){
-  _origParseReceiptText(text);
-  parseItemsFromOCR(text);
-};
-
-// ── Override saveScanReceipt to save items with special flags ──
-const _origSaveScan=saveScanReceipt;
+// saveScanReceipt override defined after all functions load — see bottom of script
+const _origSaveScan_placeholder=null;
 saveScanReceipt=async function(){
   const storeKey=document.getElementById('scan-store').value;
   const date=document.getElementById('scan-date').value;
@@ -591,14 +584,24 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button id="list-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="switchListBasket('next_week')">Next week</button>
       <button id="list-tab-monthly" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="switchListBasket('monthly')">Monthly</button>
     </div>
-    <!-- Store filter -->
-    <div style="display:flex;gap:6px;padding:0 14px 12px;overflow-x:auto">
+    <!-- Store filter with logos -->
+    <div style="display:flex;gap:6px;padding:0 14px 12px;overflow-x:auto;align-items:center">
       <button id="store-filter-all" class="filter-pill filter-active" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('')">All stores</button>
-      <button id="store-filter-woolworths" class="filter-pill" style="background:#F0F0F0;color:#1A1A1A;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('woolworths')">W</button>
-      <button id="store-filter-checkers" class="filter-pill" style="background:#E0F7F6;color:#00B5AD;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('checkers')">C</button>
-      <button id="store-filter-pnp" class="filter-pill" style="background:#E6EEF9;color:#004F9F;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('pnp')">PnP</button>
-      <button id="store-filter-spar" class="filter-pill" style="background:#E6F4EC;color:#007A3D;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('spar')">S</button>
-      <button id="store-filter-walmart" class="filter-pill" style="background:#E6F2FB;color:#0071CE;font-size:11px;padding:5px 12px" onclick="setListStoreFilter('walmart')">WM</button>
+      <button id="store-filter-woolworths" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('woolworths')">
+        <img src="logos/woolworths.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Woolworths"/>
+      </button>
+      <button id="store-filter-checkers" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('checkers')">
+        <img src="logos/checkers.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Checkers"/>
+      </button>
+      <button id="store-filter-pnp" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('pnp')">
+        <img src="logos/pnp.jpg" style="height:22px;width:auto;object-fit:contain;display:block" alt="Pick n Pay"/>
+      </button>
+      <button id="store-filter-spar" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('spar')">
+        <img src="logos/spar.jpg" style="height:22px;width:auto;object-fit:contain;display:block" alt="Spar"/>
+      </button>
+      <button id="store-filter-walmart" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('walmart')">
+        <img src="logos/walmart.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Walmart"/>
+      </button>
       <button id="store-filter-other" class="filter-pill" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('other')">Other</button>
     </div>
     <div id="shopping-list-content"><div class="spinner"></div></div>
@@ -967,12 +970,27 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 </div>
 
+<!-- Delete receipt modal -->
+<div id="modal-delete-receipt" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-title" style="color:var(--accent)">🗑 Delete receipt?</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:6px">You are about to delete:</div>
+    <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px" id="del-receipt-label"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">This also removes all items from this receipt. This cannot be undone.</div>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-delete-receipt')">Cancel</button>
+      <button class="btn btn-accent flex-1" onclick="deleteReceipt()">Delete receipt</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
 // ══ SUPABASE ══
 const SURL = 'https://mjaschvxhdupoemaezjt.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
+const VISION_KEY = 'AIzaSyCDHQOKG3e87WQ0fveIKR-v2S_3_2IgUhI';
 const db = supabase.createClient(SURL, SKEY);
 
 // ══ STORE CONFIG ══
@@ -1182,14 +1200,18 @@ async function loadAllReceipts(){
     :all.map(r=>{
       const cfg=STORES[r.store_key]||STORES.other;
       const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
-      return `<div class="receipt-row" style="padding:12px 16px">${storeLogo(r.store_key,38)}
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700">${cfg.label}</div>
-          <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
+      return `<div class="receipt-row" style="padding:12px 16px;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+          ${storeLogo(r.store_key,38)}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${cfg.label}</div>
+            <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
+          </div>
+          <div style="font-size:14px;font-weight:700;margin-right:8px">${fmtR(r.total||0)}</div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:14px;font-weight:700">${fmtR(r.total||0)}</div>
-        </div>
+        <button onclick="confirmDeleteReceipt('${r.id}','${cfg.label}','${d}',${r.total||0})"
+          style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:4px 6px;flex-shrink:0"
+          title="Delete receipt">🗑</button>
       </div>`;}).join('');
 }
 
@@ -1593,6 +1615,28 @@ document.addEventListener('click',e=>{
   if(e.target.classList.contains('modal-overlay')) e.target.classList.add('hidden');
 });
 
+// ══ DELETE RECEIPT ══
+let pendingDeleteReceiptId=null;
+
+function confirmDeleteReceipt(id,store,date,total){
+  pendingDeleteReceiptId=id;
+  document.getElementById('del-receipt-label').textContent=`${store} · ${date} · R${Number(total).toFixed(2)}`;
+  openModal('modal-delete-receipt');
+}
+
+async function deleteReceipt(){
+  if(!pendingDeleteReceiptId) return;
+  // Delete items first (cascade may not be set), then receipt
+  await db.from('receipt_items').delete().eq('receipt_id',pendingDeleteReceiptId);
+  const {error}=await db.from('receipts').delete().eq('id',pendingDeleteReceiptId).eq('user_id',currentUser.id);
+  if(error){showToast('Error deleting receipt');return;}
+  closeModal('modal-delete-receipt');
+  pendingDeleteReceiptId=null;
+  showToast('\u2713 Receipt deleted');
+  await loadDashboard();
+  loadAllReceipts();
+}
+
 // ══ TOAST ══
 function showToast(msg){
   const t=document.getElementById('toast');
@@ -1985,13 +2029,16 @@ function compressImage(base64){
 
 // ══ PARSE OCR TEXT ══
 function parseReceiptText(text){
-  document.getElementById('scan-items-text').value=text;
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
   const lower=text.toLowerCase();
+
+  // Detect store
   const storeMap={woolworths:'woolworths',woolies:'woolworths',checkers:'checkers',sixty60:'checkers','pick n pay':'pnp','pick & pay':'pnp',pnp:'pnp',spar:'spar',walmart:'walmart'};
   for(const [kw,key] of Object.entries(storeMap)){
     if(lower.includes(kw)){document.getElementById('scan-store').value=key;break;}
   }
+
+  // Detect date
   const datePatterns=[/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/,/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/];
   for(const pat of datePatterns){
     const m=text.match(pat);
@@ -2002,13 +2049,16 @@ function parseReceiptText(text){
       }catch(e){}
     }
   }
+
+  // Detect total
   const totalMatch=text.match(/(?:total|amount due|balance due|grand total|totaal)[:\s]*r?\s*([\d\s,]+\.?\d*)/i)||text.match(/r\s*([\d,]+\.\d{2})\s*$/im);
   if(totalMatch){
     const num=parseFloat(totalMatch[1].replace(/[\s,]/g,''));
     if(!isNaN(num)&&num>0&&num<100000) document.getElementById('scan-total').value=num.toFixed(2);
   }
-  const itemLines=lines.filter(l=>/r?\s*\d+[.,]\d{2}/i.test(l)&&!/total|subtotal|vat|tax|change|tender/i.test(l));
-  if(itemLines.length>0) document.getElementById('scan-items').value=itemLines.length;
+
+  // Populate item list with special price support
+  parseItemsFromOCR(text);
 }
 
 // ══ SAVE SCANNED RECEIPT ══
@@ -2016,18 +2066,52 @@ async function saveScanReceipt(){
   const storeKey=document.getElementById('scan-store').value;
   const date=document.getElementById('scan-date').value;
   const total=parseFloat(document.getElementById('scan-total').value);
-  const items=parseInt(document.getElementById('scan-items').value)||null;
   const errEl=document.getElementById('scan-error');
   errEl.textContent='';
   if(!storeKey||!date||!total){errEl.textContent='Please fill in store, date and total';return;}
-  const {error}=await db.from('receipts').insert({
-    user_id:currentUser.id,store_key:storeKey,
+
+  const {data:receipt,error:rxErr}=await db.from('receipts').insert({
+    user_id:currentUser.id,
+    store_key:storeKey,
     store_name:STORES[storeKey]?.label||storeKey,
-    total,item_count:items,method:'scan',receipt_date:date,
-  });
-  if(error){errEl.textContent='Error: '+error.message;return;}
+    total,
+    item_count:scanItems.length||null,
+    method:'scan',
+    receipt_date:date,
+  }).select('id').single();
+
+  if(rxErr){errEl.textContent='Error saving: '+rxErr.message;return;}
+
+  // Save individual items with special price flags
+  if(receipt&&scanItems.length>0){
+    const valid=scanItems.filter(i=>i.name.trim());
+    if(valid.length){
+      await db.from('receipt_items').insert(valid.map(i=>({
+        receipt_id:receipt.id,
+        user_id:currentUser.id,
+        name:i.name.trim(),
+        price:parseFloat(i.price)||null,
+        is_special:i.isSpecial||false,
+        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
+      })));
+      // Price history for trend tracking
+      const hist=valid.filter(i=>i.price);
+      if(hist.length) await db.from('price_history').insert(hist.map(i=>({
+        user_id:currentUser.id,
+        item_name:i.name.trim(),
+        store_key:storeKey,
+        price:parseFloat(i.price),
+        is_special:i.isSpecial||false,
+        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
+        recorded_at:date,
+      })));
+    }
+  }
+
+  scanItems=[];
+  renderScanItems();
   closeModal('modal-scan-review');
-  showToast('✓ Receipt saved');
+  showToast('\u2713 Receipt saved');
   await loadDashboard();
   loadAllReceipts();
 }
