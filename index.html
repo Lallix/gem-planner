@@ -805,9 +805,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <!-- Manual add for items not in list -->
     <div id="qa-manual-add" style="display:none;padding:8px 10px;background:var(--bg);border-radius:10px;border:1px dashed var(--line);margin-bottom:8px">
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Not in your list? Add manually:</div>
-      <div style="display:flex;gap:6px">
-        <input class="modal-input" type="text" id="qa-manual-name" placeholder="Item name" style="flex:1;margin:0"/>
-        <input class="modal-input" type="text" id="qa-manual-amount" placeholder="Qty" style="width:70px;margin:0"/>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input class="modal-input" type="text" id="qa-manual-name" placeholder="Item name" style="flex:2;min-width:100px;margin:0"/>
+        <input class="modal-input" type="text" id="qa-manual-amount" placeholder="Qty" style="width:60px;margin:0"/>
+        <select class="modal-input" id="qa-manual-cat" style="flex:1;min-width:90px;margin:0;font-size:11px;padding:6px 6px">
+          <option value="misc">📦 Misc</option>
+          <option value="Dairy">🥛 Dairy</option>
+          <option value="Meat & Fish">🥩 Meat</option>
+          <option value="Fruit & Veg">🥦 Veg</option>
+          <option value="Dry Goods">🌾 Dry</option>
+          <option value="Bakery">🥐 Bakery</option>
+          <option value="Frozen">❄️ Frozen</option>
+          <option value="Snacks">🍿 Snacks</option>
+          <option value="Beverages">🥤 Drinks</option>
+          <option value="Cleaning">🧹 Cleaning</option>
+          <option value="Personal Care">🧴 Personal</option>
+          <option value="Household">🏠 House</option>
+        </select>
         <button class="btn btn-emerald btn-sm" onclick="qaManualAdd()">+ Add</button>
       </div>
     </div>
@@ -1603,7 +1617,8 @@ function qaManualAdd(){
   const name=document.getElementById('qa-manual-name')?.value.trim();
   if(!name) return;
   const amount=document.getElementById('qa-manual-amount')?.value.trim();
-  quickAddManual.push({id:'manual_'+Date.now(),name,amount,category:'misc'});
+  const manualCat=document.getElementById('qa-manual-cat')?.value||'misc';
+  quickAddManual.push({id:'manual_'+Date.now(),name,amount,category:manualCat});
   document.getElementById('qa-manual-name').value='';
   document.getElementById('qa-manual-amount').value='';
   updateQACount();
@@ -1623,7 +1638,7 @@ async function saveAllQuickItems(){
   // From grocery list selections
   quickAddSelected.forEach(id=>{
     const item=groceryItems.find(i=>i.id===id);
-    if(item) rows.push({user_id:currentUser.id,name:item.name,amount:item.unit||null,category:'misc',store_key:storeKey,week_start:ws});
+    if(item) rows.push({user_id:currentUser.id,name:item.name,amount:item.unit||null,category:item.category||'misc',store_key:storeKey,week_start:ws});
   });
   // From manual additions
   quickAddManual.forEach(i=>{
@@ -2308,7 +2323,7 @@ async function addGroceryItemToList(itemId){
   const groceryStore=document.getElementById('grocery-item-store')?.value||null;
   const {error}=await db.from('shopping_list_items').insert({
     user_id:currentUser.id,name:item.name,amount:item.unit||null,
-    category:'misc',store_key:groceryStore||null,
+    category:item.category||'misc',store_key:groceryStore||null,
     week_start:groceryBasket==='monthly'?'monthly':weekStart.toISOString().split('T')[0],
   });
   if(error){showToast('Error adding item');return;}
