@@ -843,9 +843,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div id="modal-view-recipe" class="modal-overlay hidden">
   <div class="modal-sheet" style="max-height:92vh">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="modal-title" style="margin:0" id="view-recipe-title">Recipe</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" id="edit-recipe-btn" onclick="toggleEditRecipe()">✏️ Edit</button>
+      <div class="modal-title" style="margin:0;flex:1" id="view-recipe-title">Recipe</div>
+      <div style="display:flex;gap:6px">
+        <button id="edit-recipe-btn" class="btn btn-primary btn-sm" onclick="toggleEditRecipe()" style="display:none">✏️ Edit</button>
+        <button id="archive-recipe-btn" class="btn btn-outline btn-sm" onclick="archiveRecipe()" style="display:none" title="Archive recipe">📁</button>
+        <button id="delete-recipe-btn" class="btn btn-danger btn-sm" onclick="deleteRecipe()" style="display:none" title="Delete recipe">🗑</button>
         <button class="btn btn-outline btn-sm" onclick="closeModal('modal-view-recipe')">✕</button>
       </div>
     </div>
@@ -1486,14 +1488,20 @@ function openAddListItem(){
   quickAddSelected=new Set();
   quickAddManual=[];
   qaCategory='all';
-  document.getElementById('qa-search').value='';
-  document.getElementById('qa-save-btn').textContent='Add to list (0)';
+  const searchEl=document.getElementById('qa-search');
+  if(searchEl) searchEl.value='';
+  const saveBtn=document.getElementById('qa-save-btn');
+  if(saveBtn) saveBtn.textContent='Add to list (0)';
   setQABasket('this_week');
-  // Reset cat filter
   document.querySelectorAll('[id^="qa-cat-"]').forEach(b=>b.classList.remove('filter-active'));
   const allBtn=document.getElementById('qa-cat-all');
   if(allBtn) allBtn.classList.add('filter-active');
-  renderQAItems();
+  // Load grocery items if not loaded yet, then render
+  if(!groceryItems||groceryItems.length===0){
+    loadGroceryItems().then(()=>renderQAItems());
+  } else {
+    renderQAItems();
+  }
   openModal('modal-add-list-item');
 }
 
@@ -1633,12 +1641,7 @@ async function saveAllQuickItems(){
 
 async function saveListItem(){ await saveAllQuickItems(); }
 
-// Also load grocery items when opening this modal
-const _origOpenAddListItem=openAddListItem;
-function openAddListItem(){
-  if(groceryItems.length===0) loadGroceryItems().then(()=>{ _origOpenAddListItem(); });
-  else _origOpenAddListItem();
-}
+// openAddListItem already defined above — grocery items loaded on demand inside it
 
 
 
@@ -1670,13 +1673,24 @@ async function loadMealPlan(){
   const endStr=weekEnd.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
   document.getElementById('plan-week-label').textContent=`${startStr} — ${endStr}`;
 
-  // Load any existing meal plan entries for this week from Supabase
+  // Load meal plan for this week — join via meal_plans table
   const ws=weekStart.toISOString().split('T')[0];
-  const {data:entries}=await db.from('meal_plan_entries')
-    .select('*,recipes(title,category)')
+
+  // First get the meal plan ID for this week
+  const {data:planArr}=await db.from('meal_plans')
+    .select('id')
     .eq('user_id',currentUser.id)
-    .gte('meal_plan_id', ws)
-    .order('day_of_week');
+    .eq('week_start',ws)
+    .limit(1);
+
+  let entries=[];
+  if(planArr&&planArr.length>0){
+    const {data:entryData}=await db.from('meal_plan_entries')
+      .select('*,recipes(title,category)')
+      .eq('plan_id',planArr[0].id)
+      .order('day_of_week');
+    entries=entryData||[];
+  }
 
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const today=new Date(); today.setHours(0,0,0,0);
@@ -1707,12 +1721,11 @@ async function loadMealPlan(){
 
 // ══ ADMIN — USERS ══
 async function loadUserList(){
-  // RLS allows reading own row + service role only
-  // We fetch all profiles using admin's own session — works because
-  // Supabase returns rows where RLS passes, so admin sees what they can see
-  const {data:users, error}=await db.from('profiles').select('id,full_name,email,is_admin,created_at').order('created_at');
+  const el=document.getElementById('user-list');
+  if(!el) return; // not on admin page
+  const {data:users,error}=await db.from('profiles').select('id,full_name,email,is_admin,created_at').order('created_at');
   if(error){ console.error('User list error:',error); }
-  document.getElementById('user-list').innerHTML=(users||[]).length===0
+  el.innerHTML=(users||[]).length===0
     ?'<div class="empty-state" style="padding:12px 0">No users yet</div>'
     :(users||[]).map(u=>`
       <div class="admin-user-row">
@@ -1925,7 +1938,10 @@ async function viewRecipe(id){
   document.getElementById('view-recipe-instructions').textContent=r.instructions||'No instructions added yet.';
 
   // Show edit button only for own recipes
-  document.getElementById('edit-recipe-btn').style.display=r.user_id===currentUser?.id?'':'none';
+  const isOwn=r.user_id===currentUser?.id;
+  document.getElementById('edit-recipe-btn').style.display=isOwn?'':'none';
+  document.getElementById('archive-recipe-btn').style.display=isOwn?'':'none';
+  document.getElementById('delete-recipe-btn').style.display=isOwn?'':'none';
 
   // Reset pantry section
   document.getElementById('pantry-results').textContent='Tap "Check pantry" to see what you likely already have based on your purchase history.';
@@ -2066,7 +2082,8 @@ async function assignRecipeToPlan(dayOfWeek){
   try{
     // Get or create meal plan
     let planId=null;
-    const {data:existing}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).maybeSingle();
+    const {data:existingArr}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).limit(1);
+    const existing=existingArr&&existingArr.length>0?existingArr[0]:null;
     if(existing){
       planId=existing.id;
     } else {
