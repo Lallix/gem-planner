@@ -3,548 +3,365 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<meta name="theme-color" content="#6CC2C0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="GEM Planner"/>
+<meta name="theme-color" content="#2E9E6B"/>
 <title>GEM Planner</title>
 <link rel="manifest" href="manifest.json"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-// ══ SCAN ITEM LIST WITH SPECIAL PRICE ══
-let scanItems=[];
-
-function addScanItem(name='',price='',isSpecial=false){
-  const id='item_'+Date.now()+'_'+Math.random().toString(36).slice(-4);
-  scanItems.push({id,name,price,isSpecial,normalPrice:''});
-  renderScanItems();
-  // Focus the new item name input
-  setTimeout(()=>{
-    const el=document.getElementById('sname_'+id);
-    if(el) el.focus();
-  },50);
-}
-
-function removeScanItem(id){
-  scanItems=scanItems.filter(i=>i.id!==id);
-  renderScanItems();
-}
-
-function toggleSpecial(id){
-  const item=scanItems.find(i=>i.id===id);
-  if(!item) return;
-  item.isSpecial=!item.isSpecial;
-  renderScanItems();
-}
-
-function updateScanItem(id,field,value){
-  const item=scanItems.find(i=>i.id===id);
-  if(item) item[field]=value;
-}
-
-function renderScanItems(){
-  const el=document.getElementById('scan-item-list');
-  if(!el) return;
-  if(scanItems.length===0){
-    el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;text-align:center">No items added yet — tap "+ Add" or scan a receipt</div>';
-    return;
-  }
-  el.innerHTML=scanItems.map(item=>`
-    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:${item.isSpecial?'var(--amber-pale)':'var(--bg)'};border:0.5px solid ${item.isSpecial?'var(--amber)':'var(--line)'}">
-      <div style="flex:1;min-width:0">
-        <input id="sname_${item.id}" value="${item.name}" placeholder="Item name"
-          oninput="updateScanItem('${item.id}','name',this.value)"
-          style="width:100%;border:none;background:transparent;font-size:12px;font-family:var(--font);color:var(--text);outline:none;font-weight:500"/>
-        <div style="display:flex;gap:6px;margin-top:4px">
-          <input type="number" value="${item.price}" placeholder="Price R"
-            oninput="updateScanItem('${item.id}','price',this.value)"
-            style="width:80px;border:none;border-bottom:0.5px solid var(--line);background:transparent;font-size:11px;font-family:var(--font);color:var(--text);outline:none;padding:2px 0"/>
-          ${item.isSpecial?`<input type="number" value="${item.normalPrice}" placeholder="Normal R"
-            oninput="updateScanItem('${item.id}','normalPrice',this.value)"
-            style="width:80px;border:none;border-bottom:0.5px solid var(--amber);background:transparent;font-size:11px;font-family:var(--font);color:var(--amber);outline:none;padding:2px 0"/>`:''}
-        </div>
-      </div>
-      <button onclick="toggleSpecial('${item.id}')" title="Mark as special price"
-        style="background:${item.isSpecial?'var(--amber)':'var(--bg)'};border:0.5px solid ${item.isSpecial?'var(--amber)':'var(--line)'};border-radius:8px;padding:5px 8px;cursor:pointer;font-size:14px;flex-shrink:0">
-        🏷️
-      </button>
-      <button onclick="removeScanItem('${item.id}')"
-        style="background:transparent;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px;flex-shrink:0">✕</button>
-    </div>`).join('');
-}
-
-// Parse OCR text into scan items list
-function parseItemsFromOCR(text){
-  scanItems=[];
-  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  lines.forEach(line=>{
-    // Match lines with a price: "Item name R12.99" or "Item name 12.99"
-    const priceMatch=line.match(/^(.+?)\s+[Rr]?\s*(\d+[.,]\d{2})\s*$/);
-    if(priceMatch){
-      const name=priceMatch[1].trim();
-      const price=parseFloat(priceMatch[2].replace(',','.'));
-      // Skip lines that look like totals
-      if(!/total|subtotal|vat|tax|change|tender|balance|amount/i.test(name)&&price>0&&price<5000){
-        const id='item_'+Date.now()+'_'+Math.random().toString(36).slice(-4);
-        scanItems.push({id,name,price:price.toFixed(2),isSpecial:false,normalPrice:''});
-      }
-    }
-  });
-  renderScanItems();
-}
-
-// saveScanReceipt override defined after all functions load — see bottom of script
-const _origSaveScan_placeholder=null;
-saveScanReceipt=async function(){
-  const storeKey=document.getElementById('scan-store').value;
-  const date=document.getElementById('scan-date').value;
-  const total=parseFloat(document.getElementById('scan-total').value);
-  const errEl=document.getElementById('scan-error');
-  errEl.textContent='';
-  if(!storeKey||!date||!total){errEl.textContent='Please fill in store, date and total';return;}
-
-  // Save receipt
-  const {data:receipt,error:rxErr}=await db.from('receipts').insert({
-    user_id:currentUser.id,
-    store_key:storeKey,
-    store_name:STORES[storeKey]?.label||storeKey,
-    total,
-    item_count:scanItems.length||null,
-    method:'scan',
-    receipt_date:date,
-  }).select('id').single();
-
-  if(rxErr){errEl.textContent='Error saving receipt: '+rxErr.message;return;}
-
-  // Save individual items with special price flags
-  if(scanItems.length>0&&receipt){
-    const validItems=scanItems.filter(i=>i.name.trim());
-    if(validItems.length>0){
-      const itemRows=validItems.map(i=>({
-        receipt_id:receipt.id,
-        user_id:currentUser.id,
-        name:i.name.trim(),
-        price:parseFloat(i.price)||null,
-        is_special:i.isSpecial,
-        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
-      }));
-      await db.from('receipt_items').insert(itemRows);
-
-      // Update price history for trend tracking
-      const historyRows=validItems.filter(i=>i.price).map(i=>({
-        user_id:currentUser.id,
-        item_name:i.name.trim(),
-        store_key:storeKey,
-        price:parseFloat(i.price),
-        is_special:i.isSpecial,
-        normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
-        recorded_at:date,
-      }));
-      if(historyRows.length) await db.from('price_history').insert(historyRows);
-
-      // Update grocery master list last price
-      for(const item of validItems){
-        const {data:grocery}=await db.from('grocery_items')
-          .select('id,normal_price')
-          .eq('user_id',currentUser.id)
-          .ilike('name',item.name.trim())
-          .maybeSingle();
-        if(grocery){
-          const updates={last_price:parseFloat(item.price)||null};
-          if(item.isSpecial) updates.last_special_price=parseFloat(item.price)||null;
-          await db.from('grocery_items').update(updates).eq('id',grocery.id);
-        }
-      }
-    }
-  }
-
-  scanItems=[];
-  renderScanItems();
-  closeModal('modal-scan-review');
-  showToast('\u2713 Receipt saved'+(scanItems.length>0?' with '+scanItems.length+' items':''));
-  await loadDashboard();
-  loadAllReceipts();
-};
-
-// Reset scan items when modal opens
-const _origShowScanModal=showScanModal;
-showScanModal=function(title){
-  scanItems=[];
-  _origShowScanModal(title);
-  renderScanItems();
-};
-
-// ══ PRICE TRENDS SCREEN ══
-async function loadPriceTrends(itemName){
-  if(!itemName) return;
-  const {data:history}=await db.from('price_history')
-    .select('*')
-    .eq('user_id',currentUser.id)
-    .ilike('item_name',itemName)
-    .order('recorded_at');
-  if(!history||history.length<2){showToast('Not enough data for '+itemName+' yet');return;}
-
-  const normal=history.filter(h=>!h.is_special);
-  const specials=history.filter(h=>h.is_special);
-
-  // Build simple chart data summary
-  const latest=history[history.length-1];
-  const earliest=history[0];
-  const change=latest.price-earliest.price;
-  const pct=Math.round((change/earliest.price)*100);
-  const savings=specials.map(s=>s.normal_price?s.normal_price-s.price:0).filter(s=>s>0);
-  const avgSaving=savings.length?savings.reduce((a,b)=>a+b,0)/savings.length:0;
-
-  let msg=`${itemName}: R${earliest.price.toFixed(2)} → R${latest.price.toFixed(2)} (${pct>0?'+':''}${pct}%)`;
-  if(specials.length) msg+=` · ${specials.length} specials found`;
-  if(avgSaving>0) msg+=` · avg saving R${avgSaving.toFixed(2)}`;
-  showToast(msg);
-}
-
-
-</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --primary:#6CC2C0;--primary-mid:#86CAC3;--primary-soft:#ACD9D9;--primary-pale:#CFE8E4;
-  --accent:#FF8FAB;--accent-mid:#FFB6C8;--accent-soft:#FFD6E0;--accent-pale:#FFF0F3;
-  --blue:#4A90D9;--blue-mid:#B8D8F0;--blue-pale:#D6EEFF;
-  --purple:#9B7FD4;--purple-pale:#EDE8F9;
-  --amber:#F5A623;--amber-pale:#FEF3DC;
+  --mint:#A8E6CF;--mint-mid:#5BC99A;--mint-dark:#2E9E6B;--mint-pale:#E8F8F0;--mint-deeper:#1F7A52;
+  --pink:#FFB7D5;--pink-dark:#D4547E;--pink-pale:#FFF0F6;
+  --blue:#A7D8FF;--blue-dark:#3A8FD4;--blue-pale:#EAF5FF;
+  --peach:#FFD6B5;--peach-dark:#C4743A;--peach-pale:#FFF4EC;
+  --lav:#DCC6FF;--lav-dark:#7A52C4;--lav-pale:#F3EEFF;
+  --amber:#FFD166;--amber-dark:#B8860B;--amber-pale:#FFF8E1;
   --emerald:#1B8A6B;--emerald-pale:#E8F5F0;
-  --bg:#F6FBFB;--card:#FFFFFF;--text:#2C3E3D;--muted:#8FA8A6;--line:#E4F0EF;
+  --bg:#F5F7FA;--card:#FFFFFF;--text:#1A1A2E;--muted:#8B95A1;--line:#EAEEF2;--charcoal:#2D3748;
+  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;
   --font:'DM Sans','Segoe UI',sans-serif;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-#app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg)}
-.screen{display:none;padding-bottom:90px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+#app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative}
+.screen{display:none;padding-bottom:100px;min-height:100vh}
 .screen.active{display:block}
+.hidden{display:none!important}
 
-/* ── Top bar ── */
-#topbar{background:var(--card);padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(108,194,192,0.08)}
-.gem-logo{display:flex;align-items:center;gap:8px}
-.gem-logo svg{width:28px;height:28px}
-.gem-logo-text{font-size:15px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-#topbar-time{font-size:13px;font-weight:600;color:var(--muted)}
-#topbar-user{font-size:13px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:4px}
+/* AUTH */
+#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:linear-gradient(160deg,#E8F8F0 0%,#EAF5FF 50%,#FFF0F6 100%)}
+.auth-title{font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center}
+.auth-card{background:var(--card);border-radius:var(--r-xl);padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.08);border:1px solid var(--line)}
+.auth-input{width:100%;padding:14px 16px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:15px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:12px;outline:none;transition:border-color .2s}
+.auth-input:focus{border-color:var(--mint-dark)}
+.auth-error{font-size:12px;color:var(--pink-dark);margin-bottom:10px;min-height:18px;text-align:center}
+.auth-switch{font-size:13px;color:var(--muted);text-align:center;margin-top:16px}
+.auth-switch span{color:var(--mint-dark);font-weight:600;cursor:pointer}
 
-/* ── Bottom nav ── */
-#bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--card);border-top:1px solid var(--line);display:flex;padding:8px 0 20px;z-index:100;box-shadow:0 -4px 20px rgba(108,194,192,0.10)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;font-weight:500;color:var(--muted);cursor:pointer;padding:4px 0;transition:color .2s}
-.nav-item.active{color:var(--primary);font-weight:700}
-.nav-emoji{font-size:22px;line-height:1}
-.nav-dot{width:18px;height:3px;border-radius:2px;background:var(--primary);margin-top:2px}
+/* TOP BAR */
+#topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+.topbar-logo{display:flex;align-items:center;gap:8px}
+.topbar-logo-text{font-size:16px;font-weight:700;letter-spacing:-0.3px;color:var(--mint-dark)}
+#topbar-time{font-size:12px;font-weight:500;color:var(--muted)}
+#topbar-user{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;cursor:pointer;box-shadow:0 2px 8px rgba(46,158,107,0.3)}
 
-/* ── Cards ── */
-.card{background:var(--card);border-radius:16px;padding:14px 16px;margin:0 14px 12px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(108,194,192,0.06)}
-.card-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
-.card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+/* HERO */
+.hero-section{position:relative;height:240px;overflow:hidden;background:var(--mint-pale)}
+.hero-img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.02) 35%,rgba(245,247,250,0.88) 75%,rgba(245,247,250,1) 100%)}
+.hero-greeting{position:absolute;bottom:16px;left:20px;right:20px}
+.hero-hi{font-size:14px;color:var(--muted);margin-bottom:2px}
+.hero-name{font-size:27px;font-weight:700;color:var(--charcoal);letter-spacing:-0.5px;line-height:1.1}
+.hero-sub{font-size:13px;color:var(--muted);margin-top:4px}
 
-/* ── Hero ── */
-.hero-card{margin:14px 14px 12px;background:linear-gradient(135deg,#4aada9,var(--primary),var(--primary-mid));border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between}
-.hero-left{flex:1;color:white}
-.hero-eyebrow{font-size:10px;opacity:.8;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:4px}
-.hero-amount{font-size:24px;font-weight:800;letter-spacing:-0.5px}
-.hero-budget{font-size:12px;opacity:.85;margin-top:2px}
-.hero-bar-wrap{height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-top:10px}
-.hero-bar{height:100%;background:white;border-radius:3px;transition:width .6s ease}
-.hero-sub{font-size:11px;opacity:.85;margin-top:5px}
-.ring-wrap{position:relative;margin-left:16px;flex-shrink:0}
-.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:800;color:white;text-align:center}
+/* SEARCH */
+.search-outer{padding:14px 20px 0}
+.search-bar{background:var(--card);border-radius:var(--r-lg);border:1.5px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.05);cursor:pointer}
+.search-placeholder{font-size:14px;color:var(--muted);flex:1}
+.scan-pill{background:var(--mint-pale);border-radius:var(--r-sm);padding:5px 10px;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--mint-dark);cursor:pointer}
 
-/* ── Stats ── */
-.stats-row{display:flex;gap:8px;padding:0 14px;margin-bottom:12px}
-.stat-pill{flex:1;border-radius:14px;padding:10px 8px;border:1px solid transparent}
-.stat-pill-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
-.stat-pill-value{font-size:15px;font-weight:800;color:var(--text)}
-.stat-pill-sub{font-size:9px;color:var(--muted);margin-top:2px}
+/* CATEGORIES */
+.cat-scroll{display:flex;gap:10px;padding:16px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-tile{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:pointer}
+.cat-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;border:1.5px solid rgba(0,0,0,.04);transition:transform .15s}
+.cat-tile:active .cat-icon{transform:scale(.93)}
+.cat-label{font-size:11px;font-weight:500;color:var(--charcoal);white-space:nowrap}
 
-/* ── Store rows ── */
-.store-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
-.store-row:last-child{border-bottom:none}
-.store-logo-wrap{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:white}
-.store-logo-wrap img{width:100%;height:100%;object-fit:contain;padding:3px}
-.store-logo-badge{width:36px;height:36px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:white}
-.store-bar-bg{flex:1;height:6px;background:var(--line);border-radius:4px;overflow:hidden}
-.store-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+/* BUDGET STRIP */
+.budget-strip{margin:4px 20px 16px;background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));border-radius:var(--r-lg);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(46,158,107,0.25);cursor:pointer}
+.bs-label{font-size:11px;color:rgba(255,255,255,.75);margin-bottom:2px}
+.bs-amount{font-size:20px;font-weight:700;color:white;letter-spacing:-0.3px}
+.bs-budget{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.bs-pct{font-size:26px;font-weight:700;color:white}
 
-/* ── Receipt rows ── */
-.receipt-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.receipt-row:last-child{border-bottom:none}
+/* SECTION HEADERS */
+.sec-head{display:flex;justify-content:space-between;align-items:center;padding:0 20px 10px}
+.sec-title{font-size:16px;font-weight:700;color:var(--text)}
+.sec-link{font-size:13px;color:var(--mint-dark);font-weight:600;cursor:pointer}
 
-/* ── Chart ── */
-.chart-bars{display:flex;align-items:flex-end;gap:8px;height:72px;margin-top:8px}
-.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
-.chart-bar{width:100%;border-radius:6px 6px 0 0;transition:height .3s ease}
+/* HOME LIST CARDS */
+.list-card{background:var(--card);border-radius:var(--r-lg);border:1px solid var(--line);margin:0 20px 10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer;transition:transform .15s}
+.list-card:active{transform:scale(.98)}
+.lc-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.lc-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.lc-name{font-size:14px;font-weight:600;color:var(--text)}
+.lc-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.lc-prog-bar{height:5px;background:var(--line);border-radius:10px;overflow:hidden}
+.lc-prog-fill{height:100%;border-radius:10px;transition:width .4s}
+.lc-prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
 
-/* ── Screen headers ── */
-.screen-header{padding:16px 14px 8px;display:flex;justify-content:space-between;align-items:center}
-.screen-title{font-size:20px;font-weight:800;color:var(--text)}
-.screen-sub{font-size:12px;color:var(--muted);margin-top:2px}
+/* SCREEN HEADERS */
+.screen-header{padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:flex-end}
+.screen-title{font-size:22px;font-weight:700;color:var(--text)}
+.screen-sub{font-size:13px;color:var(--muted);margin-top:2px}
 
-/* ── Recipe cards ── */
-.recipe-card{background:var(--card);border-radius:14px;padding:14px;margin:0 14px 10px;border:1px solid var(--line);cursor:pointer;transition:transform .15s}
+/* SCAN */
+.scan-method-row{display:flex;gap:10px;padding:0 20px 16px}
+.scan-method{flex:1;border-radius:var(--r-lg);padding:16px 10px;text-align:center;cursor:pointer;border:2px solid var(--line);background:var(--card);transition:all .15s}
+.scan-method:active{transform:scale(.96)}
+.scan-method-icon{font-size:28px;margin-bottom:6px}
+.scan-method-name{font-size:12px;font-weight:600;color:var(--text)}
+.scan-method-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* RECEIPT ROWS */
+.receipt-row{background:var(--card);border-radius:var(--r-md);margin:0 0 8px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid var(--line)}
+
+/* PLAN */
+.week-tab{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid var(--line);color:var(--muted);background:var(--card);transition:all .2s}
+.week-tab.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
+.plan-day-card{background:var(--card);border-radius:var(--r-lg);margin:0 20px 10px;border:1.5px solid var(--line);overflow:hidden}
+.plan-day-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
+.plan-day-name{font-size:14px;font-weight:600;color:var(--text)}
+.plan-day-date{font-size:12px;color:var(--muted)}
+.today-badge{font-size:10px;font-weight:700;background:var(--mint-dark);color:white;padding:2px 8px;border-radius:20px;margin-left:8px}
+.plan-slot{margin:0 12px 12px;border-radius:var(--r-md);padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.plan-slot-empty{border:2px dashed var(--line);color:var(--muted);font-size:13px}
+.plan-slot-filled{background:var(--mint-pale);border:1.5px solid rgba(46,158,107,0.25)}
+
+/* LIST SCREEN */
+.list-hero{background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));margin:14px 20px;border-radius:var(--r-xl);padding:18px 20px;box-shadow:0 6px 20px rgba(46,158,107,0.3)}
+.lh-total-label{font-size:11px;color:rgba(255,255,255,.75);margin-bottom:2px}
+.lh-amount{font-size:28px;font-weight:700;color:white;letter-spacing:-0.5px}
+.lh-prog-row{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.8);margin-top:10px}
+.lh-prog-bar{height:5px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-top:6px}
+.lh-prog-fill{height:100%;background:white;border-radius:3px}
+.basket-tabs{display:flex;gap:8px;padding:0 20px 10px}
+.basket-tab{flex:1;padding:8px 0;border-radius:var(--r-md);font-size:12px;font-weight:600;text-align:center;cursor:pointer;border:2px solid var(--line);color:var(--muted);background:var(--card);transition:all .2s}
+.basket-tab.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
+.store-filter-row{display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;align-items:center}
+.store-filter-row::-webkit-scrollbar{display:none}
+.store-filter-btn{border-radius:var(--r-md);border:2px solid var(--line);background:var(--card);cursor:pointer;padding:5px 7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s}
+.store-filter-btn.active{border-color:var(--mint-dark)}
+.store-filter-btn img{height:24px;width:auto;object-fit:contain}
+.store-filter-all{padding:6px 14px;font-size:12px;font-weight:600;border-radius:var(--r-md);border:2px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:all .2s}
+.store-filter-all.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
+.cat-group{margin:0 20px 6px}
+.cat-group-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 0 6px;cursor:pointer}
+.cat-group-name{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-group-count{font-size:12px;color:var(--muted)}
+.item-card{background:var(--card);border-radius:var(--r-md);border:1px solid var(--line);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.item-card.checked{opacity:.5}
+.item-thumb{width:44px;height:44px;border-radius:var(--r-sm);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px}
+.item-thumb img{width:100%;height:100%;object-fit:cover}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-name.checked{text-decoration:line-through;color:var(--muted)}
+.item-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.item-price{font-size:13px;font-weight:700;color:var(--text)}
+.qty-stepper{display:flex;align-items:center;border-radius:var(--r-md);overflow:hidden;border:1.5px solid var(--line)}
+.qty-btn{width:28px;height:28px;border:none;background:var(--bg);color:var(--charcoal);font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.qty-btn:active{background:var(--mint-pale)}
+.qty-num{width:30px;text-align:center;font-size:13px;font-weight:700;color:var(--text);background:var(--card)}
+.check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.check-circle.done{background:var(--mint);border-color:var(--mint-dark)}
+.delete-btn{background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;opacity:.5}
+.delete-btn:active{opacity:1;color:var(--pink-dark)}
+.list-section-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 4px;display:flex;align-items:center;gap:6px}
+
+/* RECIPES */
+.recipe-filters{display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;scrollbar-width:none}
+.recipe-filters::-webkit-scrollbar{display:none}
+.recipe-card{background:var(--card);border-radius:var(--r-lg);margin:0 20px 12px;border:1px solid var(--line);overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .15s}
 .recipe-card:active{transform:scale(.98)}
-.recipe-tag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block;margin-bottom:6px}
+.recipe-thumb{width:100%;height:140px;background:var(--mint-pale);display:flex;align-items:center;justify-content:center;font-size:52px;overflow:hidden}
+.recipe-thumb img{width:100%;height:100%;object-fit:cover}
+.recipe-body{padding:12px 14px}
+.recipe-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:6px}
 .recipe-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
-.recipe-meta{font-size:11px;color:var(--muted)}
-.recipe-share-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;float:right}
+.recipe-meta-row{font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center}
 
-/* ── Shopping list ── */
-.list-section-header{padding:12px 14px 6px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-.list-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--card);border-bottom:1px solid var(--line);cursor:pointer}
-.list-item:last-child{border-bottom:none}
-.list-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
-.list-check.checked{background:var(--primary);border-color:var(--primary)}
-.list-item-name{flex:1;font-size:14px;color:var(--text);transition:all .2s}
-.list-item-name.checked{color:var(--muted);text-decoration:line-through}
-.list-item-amount{font-size:12px;color:var(--muted)}
+/* PROFILE */
+.profile-hero{margin:14px 20px 16px;background:linear-gradient(135deg,var(--mint-deeper),var(--mint-dark));border-radius:var(--r-xl);padding:22px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 6px 20px rgba(46,158,107,0.3)}
+.profile-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;flex-shrink:0;border:2px solid rgba(255,255,255,.4)}
+.profile-name{font-size:20px;font-weight:700;color:white}
+.profile-email{font-size:12px;color:rgba(255,255,255,.75);margin-top:3px}
+.profile-role{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);color:white}
 
-/* ── Plan grid ── */
-.plan-day{background:var(--card);border-radius:12px;padding:12px;margin:0 14px 8px;border:1px solid var(--line)}
-.plan-day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.plan-day-name{font-size:13px;font-weight:700;color:var(--text)}
-.plan-day-date{font-size:11px;color:var(--muted)}
-.plan-slot{border-radius:8px;padding:8px 10px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:4px}
-.plan-slot:last-child{margin-bottom:0}
-.plan-slot-empty{background:var(--bg);border:1.5px dashed var(--line);color:var(--muted)}
-.plan-slot-filled{background:var(--primary-pale);border:1px solid var(--primary-soft);color:var(--text)}
-
-/* ── Profile ── */
-.profile-hero{margin:14px 14px 12px;background:linear-gradient(135deg,var(--emerald),#2ECC8F);border-radius:20px;padding:20px;display:flex;align-items:center;gap:16px}
-.profile-avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;flex-shrink:0}
-.profile-name{font-size:18px;font-weight:800;color:white}
-.profile-email{font-size:12px;color:rgba(255,255,255,.8);margin-top:2px}
-.profile-role-badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.25);color:white}
-
-/* ── Admin ── */
-.admin-user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.admin-user-row:last-child{border-bottom:none}
-.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--primary-pale);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--primary);flex-shrink:0}
-
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:var(--font);transition:opacity .2s}
-.btn:active{opacity:.8}
-.btn-primary{background:var(--primary);color:white}
-.btn-accent{background:var(--accent);color:white}
-.btn-emerald{background:var(--emerald);color:white}
-.btn-purple{background:var(--purple);color:white}
-.btn-amber{background:var(--amber);color:white}
-.btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary)}
-.btn-outline-accent{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
-.btn-danger{background:transparent;color:#e53e3e;border:1.5px solid #e53e3e}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--r-md);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:opacity .2s,transform .15s}
+.btn:active{opacity:.85;transform:scale(.97)}
+.btn-primary{background:var(--mint-dark);color:white;box-shadow:0 2px 8px rgba(46,158,107,.25)}
+.btn-accent{background:var(--pink);color:white;box-shadow:0 2px 8px rgba(212,84,126,.2)}
+.btn-emerald{background:var(--mint-deeper);color:white}
+.btn-outline{background:transparent;color:var(--mint-dark);border:2px solid var(--mint-dark)}
+.btn-danger{background:transparent;color:var(--pink-dark);border:2px solid var(--pink-dark)}
 .btn-full{width:100%}
-.btn-sm{padding:6px 14px;font-size:12px}
-
-/* ── FAB ── */
-.fab{position:fixed;bottom:82px;right:16px;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:90;transition:transform .2s}
+.btn-sm{padding:7px 14px;font-size:12px}
+.flex-1{flex:1}
+.fab{position:fixed;bottom:90px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);border:none;display:flex;align-items:center;justify-content:center;font-size:26px;color:white;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(255,183,213,.6);transition:transform .15s}
 .fab:active{transform:scale(.93)}
-.fab-primary{background:var(--primary);color:white}
-.fab-accent{background:var(--accent);color:white}
-.fab-purple{background:var(--purple);color:white}
 
-/* ── Auth ── */
-#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--bg)}
-.auth-card{background:var(--card);border-radius:20px;padding:24px;width:100%;max-width:360px;border:1px solid var(--line);box-shadow:0 4px 20px rgba(108,194,192,0.10)}
-.auth-input{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:12px;outline:none;transition:border .2s}
-.auth-input:focus{border-color:var(--primary)}
-.auth-error{font-size:12px;color:var(--accent);margin-bottom:12px;text-align:center;min-height:18px}
-.auth-switch{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
-.auth-switch span{color:var(--primary);font-weight:700;cursor:pointer}
+/* FILTER PILLS */
+.filter-pill{font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;cursor:pointer;border:2px solid var(--line);font-family:var(--font);white-space:nowrap;background:var(--card);color:var(--muted);transition:all .2s}
+.filter-pill.filter-active{border-color:transparent;color:white!important}
 
-/* ── Modals ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
-.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
-.modal-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:10px;outline:none;transition:border .2s}
-.modal-input:focus{border-color:var(--primary)}
-.modal-row{display:flex;gap:10px;margin-top:6px}
+/* BOTTOM NAV */
+#bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:10px 0 24px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,.06)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;transition:color .2s}
+.nav-icon{font-size:22px;color:var(--muted);line-height:1}
+.nav-label{font-size:10px;font-weight:500;color:var(--muted)}
+.nav-item.active .nav-icon{filter:none}
+.nav-item.active .nav-label{color:var(--mint-dark);font-weight:700}
+.nav-dot{width:18px;height:3px;border-radius:2px;background:var(--mint-dark);margin-top:2px}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,10,20,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:var(--card);border-radius:28px 28px 0 0;padding:12px 24px 32px;width:100%;max-width:430px;max-height:92vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 20px}
+.modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px}
+.modal-input{width:100%;padding:13px 14px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:10px;outline:none;transition:border-color .2s}
+.modal-input:focus{border-color:var(--mint-dark)}
+.modal-row{display:flex;gap:10px;margin-top:8px}
 .modal-section{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
 
-/* ── Misc ── */
-.pill{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block}
-.alert-banner{margin:0 14px 12px;border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:12px}
-.divider{height:1px;background:var(--line);margin:0 14px 12px}
-.empty-state{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
-.empty-state-icon{font-size:40px;margin-bottom:10px}
-.filter-pill{font-size:13px;font-weight:700;padding:7px 16px;border-radius:20px;cursor:pointer;border:none;font-family:var(--font);white-space:nowrap;opacity:0.6;transition:opacity .2s}
-.filter-pill.filter-active{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.10)}
-.hidden{display:none!important}
-.spinner{width:24px;height:24px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:16px auto}
+/* CARD SECTION */
+.card-section{background:var(--card);border-radius:var(--r-lg);margin:0 20px 14px;padding:16px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.card-section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* MISC */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state-icon{font-size:52px;margin-bottom:12px}
+.spinner{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--mint-dark);border-radius:50%;animation:spin .8s linear infinite;margin:24px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
-#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
+#toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--charcoal);color:white;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.admin-user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.admin-user-row:last-child{border-bottom:none}
+.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--mint-pale);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--mint-dark);flex-shrink:0}
+.pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block}
 </style>
 </head>
 <body>
-
-<!-- ══ AUTH ══ -->
+<!-- AUTH SCREEN -->
 <div id="auth-screen">
-  <div style="margin-bottom:16px">
-    <svg width="72" height="72" viewBox="0 0 64 64">
-      <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
-      <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
-      <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
-      <polygon points="56,20 56,44 32,28" fill="#52D9A0"/>
-      <polygon points="8,44 32,60 32,28" fill="#1B8A6B"/>
-      <polygon points="56,44 32,60 32,28" fill="#2ECC8F"/>
-      <polygon points="32,4 56,20 8,20" fill="#5DEEBC" opacity="0.6"/>
-    </svg>
-  </div>
-  <div style="font-size:28px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px">GEM Planner</div>
-  <div style="font-size:13px;color:var(--muted);margin-bottom:32px">Groceries · Expenses · Meal plans</div>
+  <svg style="margin-bottom:16px;filter:drop-shadow(0 4px 12px rgba(46,158,107,0.25))" width="64" height="64" viewBox="0 0 64 64">
+    <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
+    <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
+    <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
+    <polygon points="56,20 56,44 32,28" fill="#52D9A0"/>
+    <polygon points="8,44 32,60 32,28" fill="#1B8A6B"/>
+    <polygon points="56,44 32,60 32,28" fill="#2ECC8F"/>
+    <polygon points="32,4 56,20 8,20" fill="#5DEEBC" opacity="0.5"/>
+  </svg>
+  <div class="auth-title">GEM Planner</div>
+  <div class="auth-sub">Groceries &middot; Expenses &middot; Meal plans</div>
   <div class="auth-card">
-    <div id="auth-error" class="auth-error"></div>
     <div id="signin-form">
       <input class="auth-input" type="email" id="signin-email" placeholder="Email address" autocomplete="email"/>
       <input class="auth-input" type="password" id="signin-password" placeholder="Password" autocomplete="current-password"/>
+      <div class="auth-error" id="auth-error"></div>
       <button class="btn btn-primary btn-full" onclick="signIn()">Sign in</button>
-      <div class="auth-switch">New to GEM? <span onclick="showSignup()">Request access</span></div>
+      <div class="auth-switch">New to GEM? <span onclick="showSignup()">Create account</span></div>
     </div>
     <div id="signup-form" class="hidden">
-      <div style="background:var(--amber-pale);border-radius:8px;padding:10px 12px;font-size:12px;color:#8a6200;margin-bottom:14px;line-height:1.5">
-        ⚠️ Accounts are created by the GEM admin. Contact your admin to get access, or enter your details below to request an account.
-      </div>
       <input class="auth-input" type="text" id="signup-name" placeholder="Your name"/>
-      <input class="auth-input" type="email" id="signup-email" placeholder="Email address"/>
-      <input class="auth-input" type="password" id="signup-password" placeholder="Choose a password"/>
-      <button class="btn btn-primary btn-full" onclick="signUp()">Request access</button>
+      <input class="auth-input" type="email" id="signup-email" placeholder="Email address" autocomplete="email"/>
+      <input class="auth-input" type="password" id="signup-password" placeholder="Password (min 6 chars)" autocomplete="new-password"/>
+      <div class="auth-error" id="auth-error-signup"></div>
+      <button class="btn btn-primary btn-full" onclick="signUp()">Create account</button>
       <div class="auth-switch">Already have an account? <span onclick="showSignin()">Sign in</span></div>
     </div>
   </div>
 </div>
 
-<!-- ══ MAIN APP ══ -->
+<!-- MAIN APP -->
 <div id="app" class="hidden">
   <div id="topbar">
-    <div id="topbar-time">--:--</div>
-    <div class="gem-logo">
-      <svg viewBox="0 0 64 64">
+    <div class="topbar-logo">
+      <svg width="26" height="26" viewBox="0 0 64 64">
         <polygon points="32,4 56,20 32,28" fill="#2ECC8F"/>
         <polygon points="32,4 8,20 32,28" fill="#1B8A6B"/>
         <polygon points="8,20 8,44 32,28" fill="#27AE78"/>
         <polygon points="56,20 56,44 32,28" fill="#52D9A0"/>
         <polygon points="8,44 32,60 32,28" fill="#1B8A6B"/>
         <polygon points="56,44 32,60 32,28" fill="#2ECC8F"/>
-        <polygon points="32,4 56,20 8,20" fill="#5DEEBC" opacity="0.6"/>
       </svg>
-      <span class="gem-logo-text">GEM Planner</span>
+      <div class="topbar-logo-text">GEM Planner</div>
     </div>
-    <div id="topbar-user" onclick="showScreen('profile')">
-      <span id="topbar-initial" style="width:28px;height:28px;border-radius:50%;background:var(--primary-pale);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--primary)">?</span>
-    </div>
+    <span id="topbar-time"></span>
+    <div id="topbar-user" onclick="showScreen('profile')">G</div>
   </div>
 
   <!-- HOME -->
-  <div id="screen-home" class="screen active">
-    <div class="hero-card">
-      <div class="hero-left">
-        <div class="hero-eyebrow" id="hero-month">June 2026</div>
-        <div class="hero-amount" id="hero-spent">R 0.00</div>
-        <div class="hero-budget" id="hero-budget-label">of R 0 budget</div>
-        <div class="hero-bar-wrap"><div class="hero-bar" id="hero-bar" style="width:0%"></div></div>
-        <div class="hero-sub" id="hero-sub">Set your budget to get started</div>
-      </div>
-      <div class="ring-wrap">
-        <svg id="ring-svg" width="72" height="72" style="transform:rotate(-90deg)">
-          <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="7"/>
-          <circle id="ring-progress" cx="36" cy="36" r="32" fill="none" stroke="white" stroke-width="7" stroke-dasharray="0 201" stroke-linecap="round"/>
-        </svg>
-        <div class="ring-center" id="ring-pct">0%</div>
+  <div id="screen-home" class="screen">
+    <div class="hero-section">
+      <img class="hero-img" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80&auto=format&fit=crop" alt="Fresh groceries" onerror="this.style.display='none'"/>
+      <div class="hero-overlay"></div>
+      <div class="hero-greeting">
+        <div class="hero-hi" id="home-greeting-time">Good morning</div>
+        <div class="hero-name" id="home-greeting-name">Welcome</div>
+        <div class="hero-sub">What's on the list today?</div>
       </div>
     </div>
-
-    <div class="stats-row">
-      <div class="stat-pill" style="background:var(--primary-pale);border-color:rgba(108,194,192,0.2)">
-        <div class="stat-pill-label" style="color:var(--primary)">This week</div>
-        <div class="stat-pill-value" id="stat-week">R 0</div>
-        <div class="stat-pill-sub" id="stat-week-sub">0 receipts</div>
-      </div>
-      <div class="stat-pill" style="background:var(--blue-pale);border-color:rgba(184,216,240,0.4)">
-        <div class="stat-pill-label" style="color:var(--blue)">Avg/week</div>
-        <div class="stat-pill-value" id="stat-avg">R 0</div>
-        <div class="stat-pill-sub">this month</div>
-      </div>
-      <div class="stat-pill" style="background:var(--accent-pale);border-color:rgba(255,143,171,0.2)">
-        <div class="stat-pill-label" style="color:var(--accent)">Predicted</div>
-        <div class="stat-pill-value" id="stat-predicted">R 0</div>
-        <div class="stat-pill-sub">month-end</div>
+    <div class="search-outer">
+      <div class="search-bar" onclick="showScreen('list')">
+        <span style="font-size:18px;color:var(--muted)">&#128269;</span>
+        <span class="search-placeholder">Search products, recipes...</span>
+        <div class="scan-pill" onclick="event.stopPropagation();showScreen('scan')">&#128247; Scan</div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-row">
-        <div class="card-label" style="margin-bottom:0">By store this month</div>
-        <div style="font-size:10px;color:var(--muted)">auto-detected 💡</div>
-      </div>
-      <div style="font-size:11px;color:var(--emerald);background:var(--emerald-pale);border-radius:8px;padding:7px 10px;margin:6px 0 4px">
-        💡 Stores appear automatically when you scan a receipt
-      </div>
-      <div id="store-list"><div class="empty-state" style="padding:16px 0">No receipts yet</div></div>
+    <div class="cat-scroll">
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--mint-pale)">&#129382;</div><div class="cat-label">Veggies</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--peach-pale)">&#127822;</div><div class="cat-label">Fruit</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--blue-pale)">&#129371;</div><div class="cat-label">Dairy</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--pink-pale)">&#129385;</div><div class="cat-label">Meat</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--peach-pale)">&#129360;</div><div class="cat-label">Bakery</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--lav-pale)">&#10052;&#65039;</div><div class="cat-label">Frozen</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--blue-pale)">&#129380;</div><div class="cat-label">Drinks</div></div>
+      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--mint-pale)">&#129529;</div><div class="cat-label">Cleaning</div></div>
     </div>
-
-    <div class="card">
-      <div class="card-row">
-        <div class="card-label" style="margin-bottom:0">Weekly spend</div>
-        <div class="pill" style="background:var(--primary-pale);color:var(--primary)" id="chart-month-label">June</div>
+    <div class="budget-strip" onclick="openBudgetModal()">
+      <div>
+        <div class="bs-label" id="home-budget-month">Budget</div>
+        <div class="bs-amount" id="home-budget-spent">R 0.00</div>
+        <div class="bs-budget" id="home-budget-of">of R 0.00</div>
       </div>
-      <div class="chart-bars" id="weekly-chart">
-        <div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your chart</div>
+      <div style="text-align:right">
+        <div class="bs-pct" id="home-budget-pct">0%</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px" id="home-budget-left"></div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-row">
-        <div class="card-label" style="margin-bottom:0">Recent receipts</div>
-        <div style="font-size:12px;font-weight:700;color:var(--primary);cursor:pointer" onclick="showScreen('scan')">See all →</div>
-      </div>
-      <div id="recent-receipts"><div class="empty-state" style="padding:16px 0">No receipts yet</div></div>
+    <div class="sec-head">
+      <div class="sec-title">My Lists</div>
+      <div class="sec-link" onclick="showScreen('list')">View all</div>
     </div>
-
-    <div class="alert-banner" id="price-alert" style="display:none;background:linear-gradient(135deg,var(--accent-pale),rgba(255,214,224,.5));border:1px solid var(--accent-soft)">
-      <div style="font-size:24px">📈</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:var(--accent)">Prices up this month</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px" id="price-alert-text"></div>
-      </div>
-      <div style="font-size:12px;font-weight:700;color:var(--accent);cursor:pointer">View →</div>
-    </div>
-
-    <div style="padding:0 14px 12px">
-      <button class="btn btn-outline btn-full" onclick="openBudgetModal()">⚙️ Set monthly budget</button>
-    </div>
+    <div id="home-lists"><div class="spinner"></div></div>
   </div>
 
   <!-- SCAN -->
   <div id="screen-scan" class="screen">
     <div class="screen-header">
-      <div>
-        <div class="screen-title">Receipts</div>
-        <div class="screen-sub">All your shopping records</div>
+      <div><div class="screen-title">Receipts</div><div class="screen-sub">Scan, upload or enter manually</div></div>
+    </div>
+    <div class="scan-method-row">
+      <div class="scan-method" onclick="openPhotoScan()">
+        <div class="scan-method-icon">&#128248;</div>
+        <div class="scan-method-name">Photo</div>
+        <div class="scan-method-sub">Camera scan</div>
+      </div>
+      <div class="scan-method" onclick="openEmailImport()">
+        <div class="scan-method-icon">&#128196;</div>
+        <div class="scan-method-name">Upload</div>
+        <div class="scan-method-sub">PDF or image</div>
+      </div>
+      <div class="scan-method" onclick="openManualReceipt()">
+        <div class="scan-method-icon">&#9999;&#65039;</div>
+        <div class="scan-method-name">Manual</div>
+        <div class="scan-method-sub">Type it in</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;padding:0 14px 12px">
-      <div style="flex:1;background:var(--primary-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--primary-soft);active:opacity:.8" onclick="openPhotoScan()">
-        <div style="font-size:28px;margin-bottom:6px">📸</div>
-        <div style="font-size:12px;font-weight:700;color:var(--primary)">Photo scan</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Take a photo</div>
-      </div>
-      <div style="flex:1;background:var(--blue-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--blue-mid)" onclick="openEmailImport()">
-        <div style="font-size:28px;margin-bottom:6px">📄</div>
-        <div style="font-size:12px;font-weight:700;color:var(--blue)">Upload receipt</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">PDF or image</div>
-      </div>
-      <div style="flex:1;background:var(--accent-pale);border-radius:12px;padding:12px;text-align:center;cursor:pointer;border:1.5px solid var(--accent-mid)" onclick="openManualReceipt()">
-        <div style="font-size:28px;margin-bottom:6px">✏️</div>
-        <div style="font-size:12px;font-weight:700;color:var(--accent)">Manual</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Type it in</div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:0 20px 12px">
+      <div class="card-section-title" style="margin-bottom:10px">Recent receipts</div>
       <div id="all-receipts"><div class="spinner"></div></div>
     </div>
-    <!-- Hidden file inputs -->
     <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoScan(this)"/>
     <input type="file" id="email-input" accept="image/*,.pdf" style="display:none" onchange="handleEmailImport(this)"/>
   </div>
@@ -552,16 +369,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <!-- PLAN -->
   <div id="screen-plan" class="screen">
     <div class="screen-header">
-      <div>
-        <div class="screen-title">Meal Planner</div>
-        <div class="screen-sub" id="plan-week-label">This week</div>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="generateShoppingList()">→ List</button>
+      <div><div class="screen-title">Meal Planner</div><div class="screen-sub" id="plan-week-label">This week</div></div>
+      <button class="btn btn-primary btn-sm" onclick="generateShoppingList()">&rarr; List</button>
     </div>
-    <!-- Week tabs -->
-    <div style="display:flex;gap:8px;padding:0 14px 12px">
-      <button id="plan-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="switchPlanWeek(0)">This week</button>
-      <button id="plan-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="switchPlanWeek(1)">Next week</button>
+    <div style="display:flex;gap:8px;padding:0 20px 14px">
+      <div id="plan-tab-this" class="week-tab active" onclick="switchPlanWeek(0)">This week</div>
+      <div id="plan-tab-next" class="week-tab" onclick="switchPlanWeek(1)">Next week</div>
     </div>
     <div id="plan-grid"><div class="spinner"></div></div>
   </div>
@@ -569,40 +382,25 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <!-- LIST -->
   <div id="screen-list" class="screen">
     <div class="screen-header">
-      <div>
-        <div class="screen-title">Shopping List</div>
-        <div class="screen-sub" id="list-week-label">This week</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-grocery-list')">🛍️</button>
+      <div><div class="screen-title">Shopping List</div><div class="screen-sub" id="list-week-label">This week</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-grocery-list')">&#128717;</button>
         <button class="btn btn-accent btn-sm" onclick="openAddListItem()">+ Add</button>
       </div>
     </div>
-    <!-- Basket tabs -->
-    <div style="display:flex;gap:8px;padding:0 14px 8px">
-      <button id="list-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="switchListBasket('this_week')">This week</button>
-      <button id="list-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="switchListBasket('next_week')">Next week</button>
-      <button id="list-tab-monthly" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="switchListBasket('monthly')">Monthly</button>
+    <div id="list-hero-card"></div>
+    <div class="basket-tabs">
+      <div id="list-tab-this" class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
+      <div id="list-tab-next" class="basket-tab" onclick="switchListBasket('next_week')">Next week</div>
+      <div id="list-tab-monthly" class="basket-tab" onclick="switchListBasket('monthly')">Monthly</div>
     </div>
-    <!-- Store filter with logos -->
-    <div style="display:flex;gap:6px;padding:0 14px 12px;overflow-x:auto;align-items:center">
-      <button id="store-filter-all" class="filter-pill filter-active" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('')">All stores</button>
-      <button id="store-filter-woolworths" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('woolworths')">
-        <img src="logos/woolworths.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Woolworths"/>
-      </button>
-      <button id="store-filter-checkers" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('checkers')">
-        <img src="logos/checkers.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Checkers"/>
-      </button>
-      <button id="store-filter-pnp" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('pnp')">
-        <img src="logos/pnp.jpg" style="height:22px;width:auto;object-fit:contain;display:block" alt="Pick n Pay"/>
-      </button>
-      <button id="store-filter-spar" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('spar')">
-        <img src="logos/spar.jpg" style="height:22px;width:auto;object-fit:contain;display:block" alt="Spar"/>
-      </button>
-      <button id="store-filter-walmart" class="filter-pill" style="background:white;padding:4px 6px;border:1px solid var(--line)" onclick="setListStoreFilter('walmart')">
-        <img src="logos/walmart.png" style="height:22px;width:auto;object-fit:contain;display:block" alt="Walmart"/>
-      </button>
-      <button id="store-filter-other" class="filter-pill" style="background:var(--bg);color:var(--muted);border:1px solid var(--line);font-size:11px;padding:5px 12px" onclick="setListStoreFilter('other')">Other</button>
+    <div class="store-filter-row">
+      <button id="store-filter-all" class="store-filter-all active" onclick="setListStoreFilter('')">All stores</button>
+      <button id="store-filter-woolworths" class="store-filter-btn" onclick="setListStoreFilter('woolworths')"><img src="logos/woolworths.png" alt="Woolworths"/></button>
+      <button id="store-filter-checkers" class="store-filter-btn" onclick="setListStoreFilter('checkers')"><img src="logos/checkers.png" alt="Checkers"/></button>
+      <button id="store-filter-pnp" class="store-filter-btn" onclick="setListStoreFilter('pnp')"><img src="logos/pnp.jpg" alt="Pick n Pay"/></button>
+      <button id="store-filter-spar" class="store-filter-btn" onclick="setListStoreFilter('spar')"><img src="logos/spar.jpg" alt="Spar"/></button>
+      <button id="store-filter-walmart" class="store-filter-btn" onclick="setListStoreFilter('walmart')"><img src="logos/walmart.png" alt="Walmart"/></button>
     </div>
     <div id="shopping-list-content"><div class="spinner"></div></div>
   </div>
@@ -610,465 +408,55 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <!-- RECIPES -->
   <div id="screen-recipes" class="screen">
     <div class="screen-header">
-      <div>
-        <div class="screen-title">Recipes</div>
-        <div class="screen-sub">Your kitchen collection</div>
-      </div>
+      <div><div class="screen-title">Recipes</div><div class="screen-sub">Your kitchen collection</div></div>
+      <button class="btn btn-primary btn-sm" onclick="openAddRecipe()">+ New</button>
     </div>
-    <div style="display:flex;gap:8px;padding:0 14px 12px;overflow-x:auto">
-      <button id="filter-all" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="filterRecipes('all')">All</button>
-      <button id="filter-dinner" class="filter-pill" style="background:var(--amber-pale);color:var(--amber)" onclick="filterRecipes('dinner')">🍽️ Dinner</button>
-      <button id="filter-baking" class="filter-pill" style="background:var(--accent-pale);color:var(--accent)" onclick="filterRecipes('baking')">🥐 Baking</button>
-      <button id="filter-shared" class="filter-pill" style="background:var(--purple-pale);color:var(--purple)" onclick="filterRecipes('shared')">👨‍👩‍👧 Shared</button>
-      <button id="filter-archived" class="filter-pill" style="background:var(--bg);color:var(--muted);border:1px solid var(--line)" onclick="toggleArchived()">📁 Archived</button>
+    <div class="recipe-filters">
+      <button id="filter-all" class="filter-pill filter-active" style="background:var(--mint-dark)" onclick="filterRecipes('all')">All</button>
+      <button id="filter-dinner" class="filter-pill" onclick="filterRecipes('dinner')">&#127829; Dinner</button>
+      <button id="filter-baking" class="filter-pill" onclick="filterRecipes('baking')">&#129360; Baking</button>
+      <button id="filter-shared" class="filter-pill" onclick="filterRecipes('shared')">&#128106; Shared</button>
+      <button id="filter-archived" class="filter-pill" onclick="toggleArchived()">&#128193; Archived</button>
     </div>
     <div id="recipe-list"><div class="spinner"></div></div>
-    <button class="fab fab-accent" onclick="openAddRecipe()">+</button>
+    <button class="fab" onclick="openAddRecipe()">+</button>
   </div>
 
   <!-- PROFILE -->
   <div id="screen-profile" class="screen">
+    <div class="screen-header"><div><div class="screen-title">Profile</div></div></div>
     <div class="profile-hero">
       <div class="profile-avatar" id="profile-avatar">G</div>
       <div>
         <div class="profile-name" id="profile-name">Loading...</div>
         <div class="profile-email" id="profile-email"></div>
-        <div class="profile-role-badge" id="profile-role">Member</div>
+        <div class="profile-role" id="profile-role">Member</div>
       </div>
     </div>
-
-    <div class="card">
-      <div class="card-label">Account settings</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-outline btn-full" onclick="openEditName()">✏️ Change my name</button>
-        <button class="btn btn-outline btn-full" onclick="openChangePassword()">🔑 Change password</button>
-        <button class="btn btn-outline btn-full" onclick="openBudgetModal()">⚙️ Set monthly budget</button>
-        <button class="btn btn-danger btn-full" onclick="signOut()">Sign out</button>
-      </div>
+    <div class="card-section">
+      <div class="card-section-title" style="margin-bottom:12px">Account</div>
+      <button class="btn btn-outline btn-full" style="margin-bottom:8px" onclick="openEditName()">&#9999;&#65039; Change name</button>
+      <button class="btn btn-outline btn-full" style="margin-bottom:8px" onclick="openChangePassword()">&#128273; Change password</button>
+      <button class="btn btn-outline btn-full" onclick="openBudgetModal()">&#128176; Set monthly budget</button>
     </div>
-
-    <div id="admin-panel" class="hidden">
-      <div class="card" style="text-align:center;padding:20px">
-        <div style="font-size:32px;margin-bottom:8px">⚙️</div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:6px">Admin Dashboard</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Manage users, view all data and settings from the admin dashboard on your PC</div>
-        <a href="admin.html" style="display:inline-block" class="btn btn-emerald">Open Admin Dashboard →</a>
-      </div>
+    <div class="card-section" id="admin-panel" style="display:none">
+      <div class="card-section-title" style="margin-bottom:12px">Admin</div>
+      <div id="user-list"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="openCreateUser()">+ Create user</button>
+    </div>
+    <div style="padding:0 20px 20px">
+      <button class="btn btn-danger btn-full" onclick="signOut()">Sign out</button>
     </div>
   </div>
 
-  <!-- Bottom nav -->
+  <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
-    <div class="nav-item active" data-screen="home" onclick="showScreen('home')"><div class="nav-emoji">🏠</div><div>Home</div><div class="nav-dot"></div></div>
-    <div class="nav-item" data-screen="scan" onclick="showScreen('scan')"><div class="nav-emoji">📷</div><div>Scan</div></div>
-    <div class="nav-item" data-screen="plan" onclick="showScreen('plan')"><div class="nav-emoji">📅</div><div>Plan</div></div>
-    <div class="nav-item" data-screen="list" onclick="showScreen('list')"><div class="nav-emoji">🛒</div><div>List</div></div>
-    <div class="nav-item" data-screen="recipes" onclick="showScreen('recipes')"><div class="nav-emoji">🍽️</div><div>Recipes</div></div>
+    <div class="nav-item active" onclick="showScreen('home')"><div class="nav-icon">&#127968;</div><div class="nav-label">Home</div><div class="nav-dot"></div></div>
+    <div class="nav-item" onclick="showScreen('scan')"><div class="nav-icon">&#128247;</div><div class="nav-label">Scan</div></div>
+    <div class="nav-item" onclick="showScreen('plan')"><div class="nav-icon">&#128197;</div><div class="nav-label">Plan</div></div>
+    <div class="nav-item" onclick="showScreen('list')"><div class="nav-icon">&#128722;</div><div class="nav-label">List</div></div>
+    <div class="nav-item" onclick="showScreen('recipes')"><div class="nav-icon">&#127869;&#65039;</div><div class="nav-label">Recipes</div></div>
   </nav>
-</div>
-
-<!-- ══ MODALS ══ -->
-<div id="modal-budget" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">💰 Set monthly budget</div>
-    <input class="modal-input" type="number" id="budget-input" placeholder="e.g. 6000" step="100"/>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-budget')">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="saveBudget()">Save budget</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-receipt" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">🧾 Add receipt</div>
-    <select class="modal-input" id="receipt-store">
-      <option value="">Select store...</option>
-      <option value="woolworths">Woolworths</option>
-      <option value="checkers">Checkers / Sixty60</option>
-      <option value="pnp">Pick n Pay</option>
-      <option value="spar">Spar</option>
-      <option value="walmart">Walmart</option>
-      <option value="other">Other</option>
-    </select>
-    <input class="modal-input" type="date" id="receipt-date"/>
-    <input class="modal-input" type="number" id="receipt-total" placeholder="Total amount (R)" step="0.01"/>
-    <input class="modal-input" type="number" id="receipt-items" placeholder="Number of items"/>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-receipt')">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="saveReceipt()">Save</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-edit-name" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">✏️ Change your name</div>
-    <input class="modal-input" type="text" id="edit-name-input" placeholder="Your name"/>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-edit-name')">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="saveName()">Save name</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-create-user" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">👤 Create new user</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">They'll use these credentials to sign in to GEM Planner</div>
-    <input class="modal-input" type="text" id="new-user-name" placeholder="Full name"/>
-    <input class="modal-input" type="email" id="new-user-email" placeholder="Email address"/>
-    <input class="modal-input" type="password" id="new-user-password" placeholder="Temporary password (min 6 chars)"/>
-    <div id="create-user-error" class="auth-error"></div>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-create-user')">Cancel</button>
-      <button class="btn btn-emerald flex-1" onclick="createUser()">Create user</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-change-password" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">🔑 Change password</div>
-    <input class="modal-input" type="password" id="new-password" placeholder="New password (min 6 characters)"/>
-    <input class="modal-input" type="password" id="confirm-password" placeholder="Confirm new password"/>
-    <div id="password-error" class="auth-error"></div>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-change-password')">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="savePassword()">Save password</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-add-recipe" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">🍽️ Add recipe</div>
-    <input class="modal-input" type="text" id="recipe-title" placeholder="Recipe name"/>
-    <select class="modal-input" id="recipe-category">
-      <option value="dinner">🍽️ Dinner</option>
-      <option value="baking">🥐 Baking</option>
-      <option value="lunch">🥗 Lunch</option>
-      <option value="other">Other</option>
-    </select>
-    <textarea class="modal-input" id="recipe-desc" placeholder="Short description" rows="2" style="resize:none"></textarea>
-    <textarea class="modal-input" id="recipe-ingredients" placeholder="Ingredients (one per line)" rows="4" style="resize:none"></textarea>
-    <textarea class="modal-input" id="recipe-instructions" placeholder="Method / instructions" rows="4" style="resize:none"></textarea>
-    <div style="display:flex;gap:8px">
-      <input class="modal-input" type="number" id="recipe-prep" placeholder="Prep (min)" style="flex:1;margin-bottom:0"/>
-      <input class="modal-input" type="number" id="recipe-cook" placeholder="Cook (min)" style="flex:1;margin-bottom:0"/>
-      <input class="modal-input" type="number" id="recipe-serves" placeholder="Serves" style="flex:1;margin-bottom:10px"/>
-    </div>
-    <div class="modal-section">Sharing</div>
-    <select class="modal-input" id="recipe-visibility">
-      <option value="private">🔒 Private — only me</option>
-      <option value="everyone">🌐 Everyone on GEM</option>
-    </select>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-recipe')">Cancel</button>
-      <button class="btn btn-accent flex-1" onclick="saveRecipe()">Save recipe</button>
-    </div>
-  </div>
-</div>
-
-<!-- Quick add list items modal — grocery browser style with multi-select -->
-<div id="modal-add-list-item" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:95vh">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="modal-title" style="margin:0">🛒 Add to list</div>
-      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-list-item');quickAddStaged=[];quickAddSelected=new Set()">✕</button>
-    </div>
-
-    <!-- Search -->
-    <input class="modal-input" type="text" id="qa-search" placeholder="Search items or type new..." oninput="renderQAItems()" style="margin-bottom:8px"/>
-
-    <!-- Category filters -->
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch">
-      <button class="filter-pill filter-active" id="qa-cat-all"         onclick="setQACat('all')"          style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px;white-space:nowrap">All</button>
-      <button class="filter-pill"              id="qa-cat-Dairy"        onclick="setQACat('Dairy')"         style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 10px;white-space:nowrap">🥛 Dairy</button>
-      <button class="filter-pill"              id="qa-cat-Meat"         onclick="setQACat('Meat & Fish')"   style="background:#FDECEA;color:#C0392B;font-size:11px;padding:5px 10px;white-space:nowrap">🥩 Meat</button>
-      <button class="filter-pill"              id="qa-cat-Fruit"        onclick="setQACat('Fruit & Veg')"   style="background:#EAFAF1;color:#27AE60;font-size:11px;padding:5px 10px;white-space:nowrap">🥦 Veg</button>
-      <button class="filter-pill"              id="qa-cat-Dry"          onclick="setQACat('Dry Goods')"     style="background:#FEF9E7;color:#D4AC0D;font-size:11px;padding:5px 10px;white-space:nowrap">🌾 Dry</button>
-      <button class="filter-pill"              id="qa-cat-Bakery"       onclick="setQACat('Bakery')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 10px;white-space:nowrap">🥐 Bakery</button>
-      <button class="filter-pill"              id="qa-cat-Frozen"       onclick="setQACat('Frozen')"        style="background:#F4ECF7;color:#8E44AD;font-size:11px;padding:5px 10px;white-space:nowrap">❄️ Frozen</button>
-      <button class="filter-pill"              id="qa-cat-Snacks"       onclick="setQACat('Snacks')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 10px;white-space:nowrap">🍿 Snacks</button>
-      <button class="filter-pill"              id="qa-cat-Beverages"    onclick="setQACat('Beverages')"     style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 10px;white-space:nowrap">🥤 Drinks</button>
-      <button class="filter-pill"              id="qa-cat-Cleaning"     onclick="setQACat('Cleaning')"      style="background:var(--emerald-pale);color:var(--emerald);font-size:11px;padding:5px 10px;white-space:nowrap">🧹 Clean</button>
-      <button class="filter-pill"             id="qa-cat-PersonalCare" onclick="setQACat('Personal Care')"  style="background:#FFF0F3;color:#E91E8C;font-size:11px;padding:5px 10px;white-space:nowrap">🧴 Personal</button>
-      <button class="filter-pill"              id="qa-cat-Household"    onclick="setQACat('Household')"     style="background:#F5F5F5;color:#555;font-size:11px;padding:5px 10px;white-space:nowrap">🏠 House</button>
-      <button class="filter-pill"              id="qa-cat-BabyKids"    onclick="setQACat('Baby & Kids')"    style="background:#FFF0F3;color:#FF8FAB;font-size:11px;padding:5px 10px;white-space:nowrap">👶 Baby</button>
-      <button class="filter-pill"              id="qa-cat-Other"        onclick="setQACat('Other')"         style="background:#F5F5F5;color:#8FA8A6;font-size:11px;padding:5px 10px;white-space:nowrap">📦 Other</button>
-    </div>
-
-    <!-- Scrollable item list -->
-    <div id="qa-items-list" style="max-height:35vh;overflow-y:auto;margin-bottom:8px"></div>
-
-    <!-- Manual add for items not in list -->
-    <div id="qa-manual-add" style="display:none;padding:8px 10px;background:var(--bg);border-radius:10px;border:1px dashed var(--line);margin-bottom:8px">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Not in your list? Add manually:</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <input class="modal-input" type="text" id="qa-manual-name" placeholder="Item name" style="flex:2;min-width:100px;margin:0"/>
-        <input class="modal-input" type="text" id="qa-manual-amount" placeholder="Qty" style="width:60px;margin:0"/>
-        <select class="modal-input" id="qa-manual-cat" style="flex:1;min-width:90px;margin:0;font-size:11px;padding:6px 6px">
-          <option value="misc">📦 Misc</option>
-          <option value="Dairy">🥛 Dairy</option>
-          <option value="Meat & Fish">🥩 Meat</option>
-          <option value="Fruit & Veg">🥦 Veg</option>
-          <option value="Dry Goods">🌾 Dry</option>
-          <option value="Bakery">🥐 Bakery</option>
-          <option value="Frozen">❄️ Frozen</option>
-          <option value="Snacks">🍿 Snacks</option>
-          <option value="Beverages">🥤 Drinks</option>
-          <option value="Cleaning">🧹 Cleaning</option>
-          <option value="Personal Care">🧴 Personal</option>
-          <option value="Household">🏠 House</option>
-        </select>
-        <button class="btn btn-emerald btn-sm" onclick="qaManualAdd()">+ Add</button>
-      </div>
-    </div>
-
-    <!-- Basket + store bottom bar -->
-    <div style="border-top:1px solid var(--line);padding-top:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button class="filter-pill filter-active" id="qa-basket-this"    onclick="setQABasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
-        <button class="filter-pill"               id="qa-basket-next"    onclick="setQABasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill"               id="qa-basket-monthly" onclick="setQABasket('monthly')"   style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
-      <select class="modal-input" id="list-item-store" style="margin:0">
-        <option value="">Any store</option>
-        <option value="woolworths">Woolworths</option>
-        <option value="checkers">Checkers / Sixty60</option>
-        <option value="pnp">Pick n Pay</option>
-        <option value="spar">Spar</option>
-        <option value="walmart">Walmart</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-
-    <div class="modal-row" style="margin-top:10px">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-list-item');quickAddStaged=[];quickAddSelected=new Set()">Cancel</button>
-      <button class="btn btn-accent flex-1" id="qa-save-btn" onclick="saveAllQuickItems()">Add to list (0)</button>
-    </div>
-  </div>
-</div>
-
-<!-- Recipe view/edit modal -->
-<div id="modal-view-recipe" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:92vh">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div class="modal-title" style="margin:0;flex:1" id="view-recipe-title">Recipe</div>
-      <div style="display:flex;gap:6px">
-        <button id="edit-recipe-btn" class="btn btn-primary btn-sm" onclick="toggleEditRecipe()" style="display:none">✏️ Edit</button>
-        <button id="archive-recipe-btn" class="btn btn-outline btn-sm" onclick="archiveRecipe()" style="display:none" title="Archive recipe">📁</button>
-        <button id="delete-recipe-btn" class="btn btn-danger btn-sm" onclick="deleteRecipe()" style="display:none" title="Delete recipe">🗑</button>
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-view-recipe')">✕</button>
-      </div>
-    </div>
-    <!-- View mode -->
-    <div id="recipe-view-mode">
-      <div id="view-recipe-meta" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
-      <div class="modal-section">Ingredients</div>
-      <div id="view-recipe-ingredients" style="font-size:13px;line-height:1.8;margin-bottom:12px;background:var(--bg);border-radius:10px;padding:10px 12px"></div>
-      <!-- Pantry check -->
-      <div id="pantry-check-section" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div class="modal-section" style="margin:0">What do I have?</div>
-          <button class="btn btn-primary btn-sm" onclick="checkPantry()" id="check-pantry-btn">Check pantry</button>
-        </div>
-        <div id="pantry-results" style="font-size:12px;color:var(--muted)">Tap "Check pantry" to see what you likely already have based on your purchase history.</div>
-        <div id="pantry-add-btn" class="hidden" style="margin-top:8px">
-          <button class="btn btn-accent btn-full" onclick="addMissingToList()">🛒 Add missing items to shopping list</button>
-        </div>
-      </div>
-      <div class="modal-section">Method</div>
-      <div id="view-recipe-instructions" style="font-size:13px;line-height:1.7;white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:10px 12px"></div>
-    </div>
-    <!-- Edit mode -->
-    <div id="recipe-edit-mode" class="hidden">
-      <input class="modal-input" type="text" id="edit-recipe-title-input" placeholder="Recipe name"/>
-      <select class="modal-input" id="edit-recipe-category">
-        <option value="dinner">🍽️ Dinner</option>
-        <option value="baking">🥐 Baking</option>
-        <option value="lunch">🥗 Lunch</option>
-        <option value="other">Other</option>
-      </select>
-      <textarea class="modal-input" id="edit-recipe-desc" placeholder="Short description" rows="2" style="resize:none"></textarea>
-      <textarea class="modal-input" id="edit-recipe-ingredients" placeholder="Ingredients (one per line)" rows="5" style="resize:none"></textarea>
-      <textarea class="modal-input" id="edit-recipe-instructions" placeholder="Method / instructions" rows="5" style="resize:none"></textarea>
-      <div style="display:flex;gap:8px">
-        <input class="modal-input" type="number" id="edit-recipe-prep" placeholder="Prep (min)" style="flex:1;margin-bottom:0"/>
-        <input class="modal-input" type="number" id="edit-recipe-cook" placeholder="Cook (min)" style="flex:1;margin-bottom:0"/>
-        <input class="modal-input" type="number" id="edit-recipe-serves" placeholder="Serves" style="flex:1;margin-bottom:10px"/>
-      </div>
-      <select class="modal-input" id="edit-recipe-visibility">
-        <option value="private">🔒 Private</option>
-        <option value="everyone">🌐 Everyone on GEM</option>
-      </select>
-      <div id="edit-recipe-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
-      <div class="modal-row">
-        <button class="btn btn-outline btn-sm" onclick="archiveRecipe()">📁 Archive</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteRecipe()">🗑 Delete</button>
-        <button class="btn btn-primary flex-1" onclick="saveEditRecipe()">Save changes</button>
-      </div>
-    </div>
-    <!-- Add to plan button -->
-    <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
-      <button class="btn btn-emerald btn-full" onclick="addRecipeToPlan()">📅 Add to meal plan</button>
-    </div>
-  </div>
-</div>
-
-<!-- Meal plan day picker -->
-<div id="modal-plan-picker" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:92vh">
-    <!-- Step 1: Recipe selection -->
-    <div id="plan-step-recipe">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="modal-title" style="margin:0">🍽️ Choose a recipe</div>
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-plan-picker')">✕</button>
-      </div>
-      <input class="modal-input" type="text" id="plan-recipe-search" placeholder="Search recipes..." oninput="renderPlanRecipePicker()" style="margin-bottom:8px"/>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <button class="filter-pill filter-active" id="pr-filter-all"    onclick="setPRFilter('all')"    style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px">All</button>
-        <button class="filter-pill"              id="pr-filter-dinner"  onclick="setPRFilter('dinner')" style="background:var(--amber-pale);color:var(--amber);font-size:11px;padding:5px 10px">🍽️ Dinner</button>
-        <button class="filter-pill"              id="pr-filter-baking"  onclick="setPRFilter('baking')" style="background:var(--accent-pale);color:var(--accent);font-size:11px;padding:5px 10px">🥐 Baking</button>
-      </div>
-      <div id="plan-recipe-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-
-    <!-- Step 2: Day selection (shown after recipe picked) -->
-    <div id="plan-step-day" class="hidden">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <button onclick="showPlanStepRecipe()" style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:2px">‹</button>
-        <div>
-          <div class="modal-title" style="margin:0">📅 Pick a day</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px" id="plan-picker-recipe-name"></div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button id="picker-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="setPlanPickerWeek(0)">This week</button>
-        <button id="picker-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="setPlanPickerWeek(1)">Next week</button>
-      </div>
-      <div id="plan-day-picker" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div id="plan-picker-error" style="font-size:12px;color:var(--accent);margin-top:8px"></div>
-      <div style="margin-top:12px">
-        <button class="btn btn-outline btn-full" onclick="closeModal('modal-plan-picker')">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Grocery master list modal -->
-<div id="modal-grocery-list" class="modal-overlay hidden">
-  <div class="modal-sheet" style="max-height:92vh">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div class="modal-title" style="margin:0">🛍️ Grocery Items</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-emerald btn-sm" onclick="toggleGroceryEditMode()" id="grocery-edit-toggle">✏️ Edit</button>
-        <button class="btn btn-outline btn-sm" onclick="closeModal('modal-grocery-list')">✕</button>
-      </div>
-    </div>
-    <!-- Mode hint -->
-    <div id="grocery-mode-hint" style="font-size:12px;color:var(--muted);margin-bottom:8px">Tap any item to add it to your shopping list</div>
-    <!-- Search -->
-    <input class="modal-input" type="text" id="grocery-search" placeholder="Search items..." oninput="filterGroceryItems(this.value)" style="margin-bottom:8px"/>
-    <!-- Category filter tabs — all categories -->
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch">
-      <button class="filter-pill filter-active" id="gcat-all"          onclick="filterGroceryCategory('all')"          style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 12px;white-space:nowrap">All</button>
-      <button class="filter-pill"              id="gcat-Dairy"         onclick="filterGroceryCategory('Dairy')"         style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 12px;white-space:nowrap">🥛 Dairy</button>
-      <button class="filter-pill"              id="gcat-Meat"          onclick="filterGroceryCategory('Meat & Fish')"   style="background:#FDECEA;color:#C0392B;font-size:11px;padding:5px 12px;white-space:nowrap">🥩 Meat</button>
-      <button class="filter-pill"              id="gcat-Fruit"         onclick="filterGroceryCategory('Fruit & Veg')"   style="background:#EAFAF1;color:#27AE60;font-size:11px;padding:5px 12px;white-space:nowrap">🥦 Veg</button>
-      <button class="filter-pill"              id="gcat-Dry"           onclick="filterGroceryCategory('Dry Goods')"     style="background:#FEF9E7;color:#D4AC0D;font-size:11px;padding:5px 12px;white-space:nowrap">🌾 Dry</button>
-      <button class="filter-pill"              id="gcat-Bakery"        onclick="filterGroceryCategory('Bakery')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 12px;white-space:nowrap">🥐 Bakery</button>
-      <button class="filter-pill"              id="gcat-Frozen"        onclick="filterGroceryCategory('Frozen')"        style="background:#F4ECF7;color:#8E44AD;font-size:11px;padding:5px 12px;white-space:nowrap">❄️ Frozen</button>
-      <button class="filter-pill"              id="gcat-Snacks"        onclick="filterGroceryCategory('Snacks')"        style="background:#FEF0E6;color:#E67E22;font-size:11px;padding:5px 12px;white-space:nowrap">🍿 Snacks</button>
-      <button class="filter-pill"              id="gcat-Beverages"     onclick="filterGroceryCategory('Beverages')"     style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 12px;white-space:nowrap">🥤 Drinks</button>
-      <button class="filter-pill"              id="gcat-Cleaning"      onclick="filterGroceryCategory('Cleaning')"      style="background:var(--emerald-pale);color:var(--emerald);font-size:11px;padding:5px 12px;white-space:nowrap">🧹 Clean</button>
-      <button class="filter-pill"              id="gcat-PersonalCare"  onclick="filterGroceryCategory('Personal Care')" style="background:#FFF0F3;color:#E91E8C;font-size:11px;padding:5px 12px;white-space:nowrap">🧴 Personal</button>
-      <button class="filter-pill"              id="gcat-Household"     onclick="filterGroceryCategory('Household')"     style="background:#F5F5F5;color:#555;font-size:11px;padding:5px 12px;white-space:nowrap">🏠 House</button>
-      <button class="filter-pill"              id="gcat-BabyKids"      onclick="filterGroceryCategory('Baby & Kids')"   style="background:#FFF0F3;color:#FF8FAB;font-size:11px;padding:5px 12px;white-space:nowrap">👶 Baby</button>
-      <button class="filter-pill"              id="gcat-Other"         onclick="filterGroceryCategory('Other')"         style="background:#F5F5F5;color:#8FA8A6;font-size:11px;padding:5px 12px;white-space:nowrap">📦 Other</button>
-    </div>
-    <div id="grocery-items-list" style="max-height:42vh;overflow-y:auto"></div>
-
-    <!-- Add new item form (edit mode only) -->
-    <div id="grocery-add-form" class="hidden" style="border-top:1px solid var(--line);padding-top:10px;margin-top:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add new item</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <input class="modal-input" type="text" id="new-grocery-name" placeholder="Item name" style="flex:2;min-width:120px;margin:0"/>
-        <select class="modal-input" id="new-grocery-cat" style="flex:1;min-width:100px;margin:0;font-size:12px;padding:8px 8px">
-          <option value="Dairy">🥛 Dairy</option>
-          <option value="Meat & Fish">🥩 Meat</option>
-          <option value="Fruit & Veg">🥦 Fruit & Veg</option>
-          <option value="Dry Goods">🌾 Dry Goods</option>
-          <option value="Cleaning">🧹 Cleaning</option>
-          <option value="Bakery">🥐 Bakery</option>
-          <option value="Frozen">❄️ Frozen</option>
-          <option value="Snacks">🍿 Snacks</option>
-          <option value="Beverages">🥤 Beverages</option>
-          <option value="Personal Care">🧴 Personal Care</option>
-          <option value="Household">🏠 Household</option>
-          <option value="Baby & Kids">👶 Baby & Kids</option>
-          <option value="Other">📦 Other</option>
-        </select>
-        <input class="modal-input" type="text" id="new-grocery-unit" placeholder="Unit (e.g. 2L)" style="flex:1;min-width:80px;margin:0"/>
-        <input class="modal-input" type="number" id="new-grocery-price" placeholder="Normal R" step="0.01" style="flex:1;min-width:80px;margin:0"/>
-        <button class="btn btn-emerald" style="padding:8px 14px;font-size:12px" onclick="addGroceryItem()">+ Add</button>
-      </div>
-    </div>
-
-    <!-- Basket selector (shop mode only) -->
-    <div id="grocery-basket-bar" style="border-top:1px solid var(--line);padding-top:12px;margin-top:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button class="filter-pill filter-active" id="basket-this" onclick="setGroceryBasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
-        <button class="filter-pill" id="basket-next" onclick="setGroceryBasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill" id="basket-monthly" onclick="setGroceryBasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
-      <select id="grocery-item-store" class="modal-input" style="margin:0;font-size:12px;padding:7px 10px">
-        <option value="">Any store</option>
-        <option value="woolworths">Woolworths</option>
-        <option value="checkers">Checkers</option>
-        <option value="pnp">Pick n Pay</option>
-        <option value="spar">Spar</option>
-        <option value="walmart">Walmart</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-  </div>
-</div>
-
-<!-- Edit grocery item modal -->
-<div id="modal-edit-grocery" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">✏️ Edit item</div>
-    <input class="modal-input" type="hidden" id="edit-grocery-id"/>
-    <input class="modal-input" type="text" id="edit-grocery-name" placeholder="Item name"/>
-    <select class="modal-input" id="edit-grocery-cat">
-      <option value="Dairy">🥛 Dairy</option>
-      <option value="Meat & Fish">🥩 Meat & Fish</option>
-      <option value="Fruit & Veg">🥦 Fruit & Veg</option>
-      <option value="Dry Goods">🌾 Dry Goods</option>
-      <option value="Cleaning">🧹 Cleaning</option>
-      <option value="Bakery">🥐 Bakery</option>
-      <option value="Frozen">❄️ Frozen</option>
-      <option value="Snacks">🍿 Snacks</option>
-      <option value="Beverages">🥤 Beverages</option>
-      <option value="Personal Care">🧴 Personal Care</option>
-      <option value="Household">🏠 Household</option>
-      <option value="Baby & Kids">👶 Baby & Kids</option>
-      <option value="Other">📦 Other</option>
-    </select>
-    <input class="modal-input" type="text" id="edit-grocery-unit" placeholder="Unit (e.g. 2L, 500g)"/>
-    <input class="modal-input" type="number" id="edit-grocery-price" placeholder="Normal price (R)" step="0.01"/>
-    <div class="modal-row">
-      <button class="btn btn-danger btn-sm" onclick="deleteGroceryItem()">🗑 Delete</button>
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-edit-grocery')">Cancel</button>
-      <button class="btn btn-primary flex-1" onclick="saveGroceryItem()">Save</button>
-    </div>
-  </div>
 </div>
 
 <!-- Photo/Email scan review modal -->
@@ -1117,6 +505,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-delete-receipt')">Cancel</button>
       <button class="btn btn-accent flex-1" onclick="deleteReceipt()">Delete receipt</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="modal-password" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">&#128273; Change password</div>
+    <input class="modal-input" type="password" id="new-password" placeholder="New password (min 6 chars)"/>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-password')">Cancel</button>
+      <button class="btn btn-primary flex-1" onclick="savePassword()">Update</button>
     </div>
   </div>
 </div>
@@ -1176,6 +577,12 @@ document.addEventListener('DOMContentLoaded', async()=>{
 });
 
 function updateClock(){
+  const now=new Date();
+  const hr=now.getHours();
+  const greet=hr<12?'Good morning &#9728;&#65039;':hr<17?'Good afternoon &#128075;':hr<21?'Good evening &#127748;':'Good night &#127769;';
+  const greetEl=document.getElementById('home-greeting-time');
+  if(greetEl) greetEl.innerHTML=greet;
+
   document.getElementById('topbar-time').textContent =
     new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 }
@@ -1946,6 +1353,111 @@ async function deleteReceipt(){
   showToast('\u2713 Receipt deleted');
   await loadDashboard();
   loadAllReceipts();
+}
+
+
+// ══ ITEM THUMBNAIL HELPER ══
+const ITEM_EMOJI_MAP = {
+  milk:'&#129371;',eggs:'&#129040;',cheese:'&#129472;',butter:'&#129371;',yoghurt:'&#129371;',cream:'&#129371;',
+  chicken:'&#129385;',beef:'&#129385;',mince:'&#129385;',pork:'&#129385;',fish:'&#127957;',bacon:'&#129385;',
+  tomato:'&#127813;',potato:'&#129479;',onion:'&#129382;',carrot:'&#129365;',broccoli:'&#129382;',
+  spinach:'&#129382;',lettuce:'&#129382;',apple:'&#127822;',banana:'&#127820;',orange:'&#127818;',
+  avocado:'&#129361;',cucumber:'&#129362;',pepper:'&#127798;',
+  bread:'&#127838;',roll:'&#127944;',wrap:'&#127885;',
+  rice:'&#127858;',pasta:'&#127857;',flour:'&#127807;',sugar:'&#129476;',
+  oil:'&#127807;',sauce:'&#127803;',coffee:'&#9749;',tea:'&#9749;',juice:'&#129381;',water:'&#128167;',
+  soap:'&#129532;',bleach:'&#129532;',detergent:'&#129532;',
+};
+function getItemThumb(name, category){
+  const lower=(name||'').toLowerCase();
+  const catBgs={'Dairy':'#EAF5FF','Meat & Fish':'#FDECEA','Fruit & Veg':'#EAFAF1','Dry Goods':'#FEF9E7',
+    'Cleaning':'#E8F5F0','Bakery':'#FEF0E6','Frozen':'#F4ECF7','Snacks':'#FEF0E6',
+    'Beverages':'#E8F4FD','Personal Care':'#FFF0F3','Household':'#F5F5F5','Baby & Kids':'#FFF0F3','Other':'#F5F5F5','misc':'#F5F5F5'};
+  let emoji = null;
+  for(const [key, em] of Object.entries(ITEM_EMOJI_MAP)){
+    if(lower.includes(key)){ emoji=em; break; }
+  }
+  if(!emoji){
+    const catEmoji={'Dairy':'&#129371;','Meat & Fish':'&#129385;','Fruit & Veg':'&#129382;','Dry Goods':'&#127807;',
+      'Cleaning':'&#129532;','Bakery':'&#127838;','Frozen':'&#10052;','Snacks':'&#127839;',
+      'Beverages':'&#129381;','Personal Care':'&#129532;','Household':'&#127968;','Baby & Kids':'&#128118;'};
+    emoji = catEmoji[category] || '&#128722;';
+  }
+  return { bg: catBgs[category]||'#F5F5F5', html: emoji };
+}
+
+// ══ RECIPE IMAGE HELPER (Unsplash) ══
+const UNSPLASH_KEY = 'YOUR_UNSPLASH_KEY';
+const recipeImageCache = {};
+function getRecipeImage(title, category){
+  if(UNSPLASH_KEY === 'YOUR_UNSPLASH_KEY') return '';
+  const key = (title||'').toLowerCase().split(' ').slice(0,2).join(' ');
+  if(recipeImageCache[key]) return recipeImageCache[key];
+  const query = encodeURIComponent(key + ' food');
+  const url = `https://api.unsplash.com/photos/random?query=${query}&orientation=landscape&client_id=${UNSPLASH_KEY}`;
+  fetch(url).then(r=>r.json()).then(d=>{
+    if(d.urls&&d.urls.small){
+      recipeImageCache[key]=d.urls.small;
+      const img=document.querySelector(`#rthumb-${CSS.escape(title)} img`);
+    }
+  }).catch(()=>{});
+  return '';
+}
+
+// ══ QUANTITY STEPPER ══
+async function changeItemQty(id, newQty){
+  if(newQty < 1){ await deleteListItem(id); return; }
+  await db.from('shopping_list_items').update({quantity:newQty}).eq('id',id);
+  const item = shoppingItems.find(i=>i.id===id);
+  if(item){ item.quantity=newQty; renderShoppingList(); }
+}
+
+// ══ HOME LISTS ══
+function renderHomeLists(){
+  const el=document.getElementById('home-lists');
+  if(!el) return;
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  const ws=weekStart.toISOString().split('T')[0];
+  const we=new Date(weekStart); we.setDate(weekStart.getDate()+6);
+  const weStr=we.toISOString().split('T')[0];
+
+  Promise.all([
+    db.from('shopping_list_items').select('id,is_checked').eq('user_id',currentUser.id).gte('week_start',ws).lte('week_start',weStr),
+    db.from('shopping_list_items').select('id,is_checked').eq('user_id',currentUser.id).eq('week_start','monthly'),
+  ]).then(([thisWeek,monthly])=>{
+    const tw=thisWeek.data||[]; const mn=monthly.data||[];
+    const twDone=tw.filter(i=>i.is_checked).length;
+    const mnDone=mn.filter(i=>i.is_checked).length;
+    const twPct=tw.length>0?Math.round((twDone/tw.length)*100):0;
+    const mnPct=mn.length>0?Math.round((mnDone/mn.length)*100):0;
+
+    el.innerHTML=`
+      <div class="list-card" onclick="showScreen('list')">
+        <div class="lc-top">
+          <div class="lc-icon" style="background:var(--mint-pale)">&#128722;</div>
+          <div style="flex:1">
+            <div class="lc-name">This week</div>
+            <div class="lc-meta">${tw.length} items</div>
+          </div>
+          <span style="font-size:18px;color:var(--muted)">&#8250;</span>
+        </div>
+        <div class="lc-prog-bar"><div class="lc-prog-fill" style="width:${twPct}%;background:var(--mint-dark)"></div></div>
+        <div class="lc-prog-label"><span>${twDone} of ${tw.length} done</span><span style="color:var(--mint-dark);font-weight:700">${twPct}%</span></div>
+      </div>
+      <div class="list-card" onclick="showScreen('list');setTimeout(()=>switchListBasket('monthly'),100)">
+        <div class="lc-top">
+          <div class="lc-icon" style="background:var(--lav-pale)">&#128230;</div>
+          <div style="flex:1">
+            <div class="lc-name">Monthly basket</div>
+            <div class="lc-meta">${mn.length} items</div>
+          </div>
+          <span style="font-size:18px;color:var(--muted)">&#8250;</span>
+        </div>
+        <div class="lc-prog-bar"><div class="lc-prog-fill" style="width:${mnPct}%;background:var(--lav-dark)"></div></div>
+        <div class="lc-prog-label"><span>${mnDone} of ${mn.length} done</span><span style="color:var(--lav-dark);font-weight:700">${mnPct}%</span></div>
+      </div>`;
+  });
 }
 
 // ══ TOAST ══
