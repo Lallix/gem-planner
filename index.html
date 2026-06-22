@@ -565,7 +565,8 @@ let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shopp
 // ══ INIT ══
 document.addEventListener('DOMContentLoaded', async()=>{
   updateClock(); setInterval(updateClock,30000);
-  document.getElementById('receipt-date').value = new Date().toISOString().split('T')[0];
+  const rdEl=document.getElementById('receipt-date');
+  if(rdEl) rdEl.value = new Date().toISOString().split('T')[0];
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   const {data:{session}} = await db.auth.getSession();
   if(session){ await loadUser(session.user); showApp(); }
@@ -1221,23 +1222,18 @@ async function createUser(){
 
 // ══ PASSWORD CHANGE ══
 function openChangePassword(){
-  document.getElementById('new-password').value='';
-  document.getElementById('confirm-password').value='';
-  document.getElementById('password-error').textContent='';
-  openModal('modal-change-password');
+  const pwEl=document.getElementById('new-password');
+  if(pwEl) pwEl.value='';
+  openModal('modal-password');
 }
 
 async function savePassword(){
-  const newPass=document.getElementById('new-password').value;
-  const confirm=document.getElementById('confirm-password').value;
-  const errEl=document.getElementById('password-error');
-  errEl.textContent='';
-  if(!newPass||newPass.length<6){errEl.textContent='Password must be at least 6 characters';return;}
-  if(newPass!==confirm){errEl.textContent='Passwords do not match';return;}
+  const newPass=document.getElementById('new-password')?.value||'';
+  if(!newPass||newPass.length<6){showToast('Password must be at least 6 characters');return;}
   const {error}=await db.auth.updateUser({password:newPass});
-  if(error){errEl.textContent=error.message;return;}
-  closeModal('modal-change-password');
-  showToast('✓ Password updated successfully');
+  if(error){showToast('Error: '+error.message);return;}
+  closeModal('modal-password');
+  showToast('\u2713 Password updated');
 }
 
 // ══ PROFILE — EDIT NAME ══
@@ -1278,7 +1274,7 @@ async function saveBudget(){
 }
 
 // ══ RECEIPTS ══
-function openManualReceipt(){ document.getElementById('receipt-date').value=new Date().toISOString().split('T')[0]; openModal('modal-receipt'); }
+function openManualReceipt(){ const el=document.getElementById('receipt-date'); if(el) el.value=new Date().toISOString().split('T')[0]; openModal('modal-receipt'); }
 async function saveReceipt(){
   const storeKey=document.getElementById('receipt-store').value;
   const date=document.getElementById('receipt-date').value;
