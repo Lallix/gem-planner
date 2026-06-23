@@ -390,6 +390,8 @@ async function loadShoppingList(){
   }
   const {data:items}=await query;
   shoppingItems=items||[];
+  // Load frequently bought alongside list items
+  await loadFrequentlyBought();
   renderShoppingList();
 }
 
@@ -397,10 +399,134 @@ let currentListStoreFilter='';
 
 function setListStoreFilter(storeKey){
   currentListStoreFilter=storeKey;
-  document.querySelectorAll('[id^="store-filter-"]').forEach(b=>b.classList.remove('filter-active'));
-  const activeId='store-filter-'+(storeKey||'all');
-  const activeEl=document.getElementById(activeId);
-  if(activeEl) activeEl.classList.add('filter-active');
+  // Clear all active states on store buttons
+  document.querySelectorAll('.store-filter-btn').forEach(b=>b.classList.remove('active'));
+  const allBtn=document.getElementById('store-filter-all');
+  if(allBtn) allBtn.classList.toggle('active',!storeKey);
+  if(storeKey){
+    const btn=document.getElementById('store-filter-'+storeKey);
+    if(btn) btn.classList.add('active');
+  }
+  renderShoppingList();
+}
+
+
+// ══ FREQUENTLY BOUGHT ══
+let freqItems=[];
+
+async function loadFrequentlyBought(){
+  if(!currentUser) return;
+  // Pull most recently and frequently bought items from price_history
+  const {data}=await db.from('price_history')
+    .select('item_name,store_key,price,recorded_at')
+    .eq('user_id',currentUser.id)
+    .order('recorded_at',{ascending:false})
+    .limit(200);
+  if(!data||!data.length){ freqItems=[]; return; }
+  // Count frequency per item name
+  const counts={};
+  const lastPrice={};
+  const lastStore={};
+  data.forEach(row=>{
+    const key=row.item_name.toLowerCase().trim();
+    counts[key]=(counts[key]||0)+1;
+    if(!lastPrice[key]){ lastPrice[key]=row.price; lastStore[key]=row.store_key; }
+  });
+  // Sort by frequency, take top 10
+  freqItems=Object.entries(counts)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,10)
+    .map(([key])=>({
+      name:data.find(r=>r.item_name.toLowerCase().trim()===key)?.item_name||key,
+      price:lastPrice[key],
+      store_key:lastStore[key],
+    }));
+}
+
+function renderFrequentlyBought(){
+  if(!freqItems.length) return '';
+  // Tile colours cycling through palette
+  const palettes=[
+    {bg:'var(--blue-pale)',    btn:'var(--blue)'},
+    {bg:'var(--orange-pale)',  btn:'var(--orange)'},
+    {bg:'var(--yellow-pale)',  btn:'var(--yellow)',btnText:'var(--charcoal)'},
+    {bg:'var(--pink-pale)',    btn:'var(--pink)'},
+    {bg:'var(--purple-pale)',  btn:'var(--purple)'},
+    {bg:'var(--green-pale)',   btn:'var(--green-dark)'},
+  ];
+  const tiles=freqItems.map((item,i)=>{
+    const pal=palettes[i%palettes.length];
+    const emoji=getFreqEmoji(item.name);
+    const btnText=pal.btnText||'#fff';
+    return `<div class="freq-tile" style="background:${pal.bg};box-shadow:0 4px 14px rgba(0,0,0,.1)">
+      <div class="freq-thumb">${emoji}</div>
+      <div class="freq-name">${item.name}</div>
+      ${item.price?`<div class="freq-price">R${parseFloat(item.price).toFixed(2)}</div>`:'<div class="freq-price" style="opacity:0">—</div>'}
+      <button class="freq-add-btn" style="background:${pal.btn};color:${btnText}"
+        onclick="addFreqItemToList('${item.name.replace(/'/g,"\\'")}','${item.store_key||''}')">+</button>
+    </div>`;
+  }).join('');
+  return `<div style="padding:12px 0 0">
+    <div class="freq-section-head">
+      <span style="font-size:14px;font-weight:800;color:var(--text)">Frequently bought</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:500">scroll &#8594;</span>
+    </div>
+    <div class="freq-scroll">${tiles}</div>
+    <div style="height:1px;background:var(--line);margin:0 16px 14px"></div>
+  </div>`;
+}
+
+function getFreqEmoji(name){
+  const n=name.toLowerCase();
+  const map=[
+    ['milk','&#129371;'],['egg','&#129040;'],['bread','&#127838;'],['butter','&#129371;'],
+    ['cheese','&#129472;'],['chicken','&#129385;'],['beef','&#129385;'],['mince','&#129385;'],
+    ['tomato','&#127813;'],['potato','&#129479;'],['onion','&#129382;'],['carrot','&#129365;'],
+    ['apple','&#127822;'],['banana','&#127820;'],['orange','&#127818;'],['avocado','&#129361;'],
+    ['rice','&#127858;'],['pasta','&#127857;'],['flour','&#127807;'],['sugar','&#127807;'],
+    ['oil','&#127807;'],['coffee','&#9749;'],['tea','&#9749;'],['juice','&#129381;'],
+    ['soap','&#129532;'],['detergent','&#129532;'],['sauce','&#127798;'],['yoghurt','&#129371;'],
+    ['cream','&#129371;'],['bacon','&#129385;'],['fish','&#127957;'],['pork','&#129385;'],
+  ];
+  for(const [key,emoji] of map){ if(n.includes(key)) return emoji; }
+  return '&#128230;';
+}
+
+async function addFreqItemToList(name,storeKey){
+  if(!currentUser) return;
+  const grocery=groceryItems.find(g=>g.name.toLowerCase()===name.toLowerCase());
+  // Respect whichever basket is currently active
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(currentListBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const ws=currentListBasket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+  const {error}=await db.from('shopping_list_items').insert({
+    user_id:currentUser.id,
+    name,
+    category:grocery?.category||'misc',
+    amount:grocery?.unit||null,
+    normal_price:grocery?.normal_price||null,
+    store_key:storeKey||null,
+    week_start:ws,
+    quantity:1,
+    is_checked:false,
+  });
+  if(!error){
+    showToast('\u2713 '+name+' added to '+(currentListBasket==='monthly'?'monthly':'list'));
+    loadShoppingList();
+  }
+}
+
+
+// ══ LIST CATEGORY FILTER ══
+let currentListCatFilter='all';
+
+function setListCatFilter(cat){
+  currentListCatFilter=cat;
+  document.querySelectorAll('[id^="list-cat-"]').forEach(b=>b.classList.remove('filter-active'));
+  const activeId='list-cat-'+(cat==='all'?'all':cat==='Dairy'?'dairy':cat==='Meat & Fish'?'meat':cat==='Fruit & Veg'?'veg':cat==='Dry Goods'?'dry':cat==='Cleaning'?'cleaning':cat==='Bakery'?'bakery':cat==='Frozen'?'frozen':cat==='Beverages'?'drinks':'all');
+  const el=document.getElementById(activeId);
+  if(el) el.classList.add('filter-active');
   renderShoppingList();
 }
 
@@ -408,12 +534,12 @@ function renderShoppingList(){
   renderListHero();
   let items=shoppingItems;
   if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
+  if(currentListCatFilter&&currentListCatFilter!=='all') items=items.filter(i=>(i.category||'misc')===currentListCatFilter);
 
   const listEl=document.getElementById('shopping-list-content');
   if(items.length===0){
-    listEl.innerHTML=currentListStoreFilter
-      ?`<div class="empty-state"><div class="empty-state-icon">&#127978;</div><div class="empty-title">No items for ${STORES[currentListStoreFilter]?.label||currentListStoreFilter}</div></div>`
-      :`<div class="empty-state"><div class="empty-state-icon">&#128722;</div><div class="empty-title">List is empty</div><div class="empty-sub">Tap + Add or the basket icon to add items</div></div>`;
+    listEl.innerHTML=renderFrequentlyBought()+
+      `<div class="empty-state"><div class="empty-state-icon">&#128722;</div><div class="empty-title">List is empty</div><div class="empty-sub">Tap + Add or the basket icon to add items</div></div>`;
     return;
   }
 
@@ -447,7 +573,7 @@ function renderShoppingList(){
     grouped[cat].push(i);
   });
 
-  let html='';
+  let html=renderFrequentlyBought();
   Object.entries(grouped).forEach(([cat,catItems])=>{
     const cfg=catCfg[cat]||{bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',dot:'var(--yellow)'};
     const emoji=catEmoji[cat]||'&#128230;';
@@ -1300,12 +1426,11 @@ let currentListBasket='this_week';
 
 function switchListBasket(basket){
   currentListBasket=basket;
-  ['this_week','next_week','monthly'].forEach(b=>{
-    const el=document.getElementById('list-tab-'+b.replace('_week',b==='this_week'?'-this':b==='next_week'?'-next':'').replace('this_week','this').replace('next_week','next').replace('monthly','monthly'));
-  });
-  document.getElementById('list-tab-this').classList.toggle('filter-active',basket==='this_week');
-  document.getElementById('list-tab-next').classList.toggle('filter-active',basket==='next_week');
-  document.getElementById('list-tab-monthly').classList.toggle('filter-active',basket==='monthly');
+  // Toggle active class — must use 'active' to match .basket-tab.active CSS
+  document.querySelectorAll('.basket-tab').forEach(t=>t.classList.remove('active'));
+  const activeTab=basket==='this_week'?'list-tab-this':basket==='next_week'?'list-tab-next':'list-tab-monthly';
+  const el=document.getElementById(activeTab);
+  if(el) el.classList.add('active');
   loadShoppingList();
 }
 

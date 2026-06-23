@@ -179,7 +179,10 @@
   </div>
 
   <!-- LIST -->
+    <!-- LIST -->
   <div id="screen-list" class="screen">
+
+    <!-- Floating header — pink basket icon, no box -->
     <div class="float-header">
       <div>
         <div class="float-title">Shopping List</div>
@@ -193,22 +196,38 @@
         </svg>
       </button>
     </div>
+
+    <!-- Green gradient hero card — estimated total + progress -->
     <div id="list-hero-card"></div>
-    <div class="basket-tabs">
-      <div id="list-tab-this" class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
-      <div id="list-tab-next" class="basket-tab" onclick="switchListBasket('next_week')">Next week</div>
-      <div id="list-tab-monthly" class="basket-tab" onclick="switchListBasket('monthly')">Monthly</div>
+
+    <!-- Basket tabs — This week / Next week / Monthly -->
+    <div class="basket-tabs" id="basket-tabs-row">
+      <div id="list-tab-this"    class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
+      <div id="list-tab-next"    class="basket-tab"        onclick="switchListBasket('next_week')">Next week</div>
+      <div id="list-tab-monthly" class="basket-tab"        onclick="switchListBasket('monthly')">Monthly</div>
     </div>
-    <div class="store-filter-row">
-      <button id="store-filter-all" class="store-filter-all active" onclick="setListStoreFilter('')">All stores</button>
-      <button id="store-filter-woolworths" class="store-filter-btn" onclick="setListStoreFilter('woolworths')"><img src="logos/woolworths.png" alt="Woolworths"/></button>
-      <button id="store-filter-checkers" class="store-filter-btn" onclick="setListStoreFilter('checkers')"><img src="logos/checkers.png" alt="Checkers"/></button>
-      <button id="store-filter-pnp" class="store-filter-btn" onclick="setListStoreFilter('pnp')"><img src="logos/pnp.jpg" alt="PnP"/></button>
-      <button id="store-filter-spar" class="store-filter-btn" onclick="setListStoreFilter('spar')"><img src="logos/spar.jpg" alt="Spar"/></button>
-      <button id="store-filter-walmart" class="store-filter-btn" onclick="setListStoreFilter('walmart')"><img src="logos/walmart.png" alt="Walmart"/></button>
+
+    <!-- Shopping list content — freq bought + cat filters + 3-col grid injected by JS -->
+    <!-- Category filter pills — below frequently bought, above product grid -->
+    <div id="list-cat-filters" style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      <button class="filter-pill filter-active" id="list-cat-all" onclick="setListCatFilter('all')">All</button>
+      <button class="filter-pill" id="list-cat-dairy" onclick="setListCatFilter('Dairy')">&#129371; Dairy</button>
+      <button class="filter-pill" id="list-cat-meat" onclick="setListCatFilter('Meat &amp; Fish')">&#129385; Meat</button>
+      <button class="filter-pill" id="list-cat-veg" onclick="setListCatFilter('Fruit &amp; Veg')">&#129382; Veg</button>
+      <button class="filter-pill" id="list-cat-dry" onclick="setListCatFilter('Dry Goods')">&#127807; Dry</button>
+      <button class="filter-pill" id="list-cat-cleaning" onclick="setListCatFilter('Cleaning')">&#129529; Cleaning</button>
+      <button class="filter-pill" id="list-cat-bakery" onclick="setListCatFilter('Bakery')">&#129360; Bakery</button>
+      <button class="filter-pill" id="list-cat-frozen" onclick="setListCatFilter('Frozen')">&#10052; Frozen</button>
+      <button class="filter-pill" id="list-cat-drinks" onclick="setListCatFilter('Beverages')">&#129381; Drinks</button>
     </div>
     <div id="shopping-list-content"><div class="spinner"></div></div>
-    <button class="btn btn-accent" onclick="openAddListItem()" style="position:fixed;bottom:90px;right:16px;border-radius:var(--r-pill);padding:10px 20px;box-shadow:var(--shadow-pink);z-index:89">+ Add</button>
+
+    <!-- Floating + Add button -->
+    <button class="btn btn-accent" onclick="openAddListItem()"
+      style="position:fixed;bottom:90px;right:16px;border-radius:var(--r-pill);padding:10px 20px;box-shadow:var(--shadow-pink);z-index:89;font-size:14px;font-weight:700">
+      + Add
+    </button>
+
   </div>
 
   <!-- RECIPES -->
