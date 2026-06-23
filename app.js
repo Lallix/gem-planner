@@ -25,11 +25,11 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg = STORES[key]||STORES.other;
   if(cfg.logo) {
-    return `<div class="store-logo-wrap" style="width:${size}px;height:${size}px">
-      <img src="${cfg.logo}" alt="${cfg.label}" onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style=font-size:${Math.round(size*.35)}px;font-weight:800;color:white>${cfg.label.charAt(0)}</span>'"/>
+    return `<div style="width:${size}px;height:${size}px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f5f5f5;flex-shrink:0">
+      <img src="${cfg.logo}" alt="${cfg.label}" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style=\"font-size:${Math.round(size*.35)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span>'"/>
     </div>`;
   }
-  return `<div class="store-logo-badge" style="background:${cfg.brand};width:${size}px;height:${size}px;font-size:${Math.round(size*.35)}px">${cfg.label.charAt(0)}</div>`;
+  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.35)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
 }
 
 // ══ STATE ══
