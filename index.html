@@ -12,232 +12,8 @@
 <link rel="manifest" href="manifest.json"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{
-  --mint:#A8E6CF;--mint-mid:#5BC99A;--mint-dark:#2E9E6B;--mint-pale:#E8F8F0;--mint-deeper:#1F7A52;
-  --pink:#FFB7D5;--pink-dark:#D4547E;--pink-pale:#FFF0F6;
-  --blue:#A7D8FF;--blue-dark:#3A8FD4;--blue-pale:#EAF5FF;
-  --peach:#FFD6B5;--peach-dark:#C4743A;--peach-pale:#FFF4EC;
-  --lav:#DCC6FF;--lav-dark:#7A52C4;--lav-pale:#F3EEFF;
-  --amber:#FFD166;--amber-dark:#B8860B;--amber-pale:#FFF8E1;
-  --emerald:#1B8A6B;--emerald-pale:#E8F5F0;
-  --bg:#F5F7FA;--card:#FFFFFF;--text:#1A1A2E;--muted:#8B95A1;--line:#EAEEF2;--charcoal:#2D3748;
-  --r-sm:10px;--r-md:14px;--r-lg:18px;--r-xl:24px;
-  --font:'DM Sans','Segoe UI',sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-#app{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative}
-.screen{display:none;padding-bottom:100px;min-height:100vh}
-.screen.active{display:block}
-.hidden{display:none!important}
+<link rel="stylesheet" href="app.css"/>
 
-/* AUTH */
-#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:linear-gradient(160deg,#E8F8F0 0%,#EAF5FF 50%,#FFF0F6 100%)}
-.auth-title{font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-0.5px}
-.auth-sub{font-size:13px;color:var(--muted);margin-bottom:32px;text-align:center}
-.auth-card{background:var(--card);border-radius:var(--r-xl);padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.08);border:1px solid var(--line)}
-.auth-input{width:100%;padding:14px 16px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:15px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:12px;outline:none;transition:border-color .2s}
-.auth-input:focus{border-color:var(--mint-dark)}
-.auth-error{font-size:12px;color:var(--pink-dark);margin-bottom:10px;min-height:18px;text-align:center}
-.auth-switch{font-size:13px;color:var(--muted);text-align:center;margin-top:16px}
-.auth-switch span{color:var(--mint-dark);font-weight:600;cursor:pointer}
-
-/* TOP BAR */
-#topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
-.topbar-logo{display:flex;align-items:center;gap:8px}
-.topbar-logo-text{font-size:16px;font-weight:700;letter-spacing:-0.3px;color:var(--mint-dark)}
-#topbar-time{font-size:12px;font-weight:500;color:var(--muted)}
-#topbar-user{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;cursor:pointer;box-shadow:0 2px 8px rgba(46,158,107,0.3)}
-
-/* HERO */
-.hero-section{position:relative;height:240px;overflow:hidden;background:var(--mint-pale)}
-.hero-img{width:100%;height:100%;object-fit:cover;object-position:center;display:block}
-.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.02) 35%,rgba(245,247,250,0.88) 75%,rgba(245,247,250,1) 100%)}
-.hero-greeting{position:absolute;bottom:16px;left:20px;right:20px}
-.hero-hi{font-size:14px;color:var(--muted);margin-bottom:2px}
-.hero-name{font-size:27px;font-weight:700;color:var(--charcoal);letter-spacing:-0.5px;line-height:1.1}
-.hero-sub{font-size:13px;color:var(--muted);margin-top:4px}
-
-/* SEARCH */
-.search-outer{padding:14px 20px 0}
-.search-bar{background:var(--card);border-radius:var(--r-lg);border:1.5px solid var(--line);padding:13px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.05);cursor:pointer}
-.search-placeholder{font-size:14px;color:var(--muted);flex:1}
-.scan-pill{background:var(--mint-pale);border-radius:var(--r-sm);padding:5px 10px;display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--mint-dark);cursor:pointer}
-
-/* CATEGORIES */
-.cat-scroll{display:flex;gap:10px;padding:16px 20px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.cat-scroll::-webkit-scrollbar{display:none}
-.cat-tile{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;cursor:pointer}
-.cat-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;border:1.5px solid rgba(0,0,0,.04);transition:transform .15s}
-.cat-tile:active .cat-icon{transform:scale(.93)}
-.cat-label{font-size:11px;font-weight:500;color:var(--charcoal);white-space:nowrap}
-
-/* BUDGET STRIP */
-.budget-strip{margin:4px 20px 16px;background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));border-radius:var(--r-lg);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(46,158,107,0.25);cursor:pointer}
-.bs-label{font-size:11px;color:rgba(255,255,255,.75);margin-bottom:2px}
-.bs-amount{font-size:20px;font-weight:700;color:white;letter-spacing:-0.3px}
-.bs-budget{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
-.bs-pct{font-size:26px;font-weight:700;color:white}
-
-/* SECTION HEADERS */
-.sec-head{display:flex;justify-content:space-between;align-items:center;padding:0 20px 10px}
-.sec-title{font-size:16px;font-weight:700;color:var(--text)}
-.sec-link{font-size:13px;color:var(--mint-dark);font-weight:600;cursor:pointer}
-
-/* HOME LIST CARDS */
-.list-card{background:var(--card);border-radius:var(--r-lg);border:1px solid var(--line);margin:0 20px 10px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.04);cursor:pointer;transition:transform .15s}
-.list-card:active{transform:scale(.98)}
-.lc-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.lc-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.lc-name{font-size:14px;font-weight:600;color:var(--text)}
-.lc-meta{font-size:12px;color:var(--muted);margin-top:2px}
-.lc-prog-bar{height:5px;background:var(--line);border-radius:10px;overflow:hidden}
-.lc-prog-fill{height:100%;border-radius:10px;transition:width .4s}
-.lc-prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:5px}
-
-/* SCREEN HEADERS */
-.screen-header{padding:20px 20px 12px;display:flex;justify-content:space-between;align-items:flex-end}
-.screen-title{font-size:22px;font-weight:700;color:var(--text)}
-.screen-sub{font-size:13px;color:var(--muted);margin-top:2px}
-
-/* SCAN */
-.scan-method-row{display:flex;gap:10px;padding:0 20px 16px}
-.scan-method{flex:1;border-radius:var(--r-lg);padding:16px 10px;text-align:center;cursor:pointer;border:2px solid var(--line);background:var(--card);transition:all .15s}
-.scan-method:active{transform:scale(.96)}
-.scan-method-icon{font-size:28px;margin-bottom:6px}
-.scan-method-name{font-size:12px;font-weight:600;color:var(--text)}
-.scan-method-sub{font-size:10px;color:var(--muted);margin-top:2px}
-
-/* RECEIPT ROWS */
-.receipt-row{background:var(--card);border-radius:var(--r-md);margin:0 0 8px;padding:12px 14px;display:flex;align-items:center;gap:12px;border:1px solid var(--line)}
-
-/* PLAN */
-.week-tab{padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid var(--line);color:var(--muted);background:var(--card);transition:all .2s}
-.week-tab.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
-.plan-day-card{background:var(--card);border-radius:var(--r-lg);margin:0 20px 10px;border:1.5px solid var(--line);overflow:hidden}
-.plan-day-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
-.plan-day-name{font-size:14px;font-weight:600;color:var(--text)}
-.plan-day-date{font-size:12px;color:var(--muted)}
-.today-badge{font-size:10px;font-weight:700;background:var(--mint-dark);color:white;padding:2px 8px;border-radius:20px;margin-left:8px}
-.plan-slot{margin:0 12px 12px;border-radius:var(--r-md);padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
-.plan-slot-empty{border:2px dashed var(--line);color:var(--muted);font-size:13px}
-.plan-slot-filled{background:var(--mint-pale);border:1.5px solid rgba(46,158,107,0.25)}
-
-/* LIST SCREEN */
-.list-hero{background:linear-gradient(135deg,var(--mint-dark),var(--mint-mid));margin:14px 20px;border-radius:var(--r-xl);padding:18px 20px;box-shadow:0 6px 20px rgba(46,158,107,0.3)}
-.lh-total-label{font-size:11px;color:rgba(255,255,255,.75);margin-bottom:2px}
-.lh-amount{font-size:28px;font-weight:700;color:white;letter-spacing:-0.5px}
-.lh-prog-row{display:flex;justify-content:space-between;font-size:12px;color:rgba(255,255,255,.8);margin-top:10px}
-.lh-prog-bar{height:5px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-top:6px}
-.lh-prog-fill{height:100%;background:white;border-radius:3px}
-.basket-tabs{display:flex;gap:8px;padding:0 20px 10px}
-.basket-tab{flex:1;padding:8px 0;border-radius:var(--r-md);font-size:12px;font-weight:600;text-align:center;cursor:pointer;border:2px solid var(--line);color:var(--muted);background:var(--card);transition:all .2s}
-.basket-tab.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
-.store-filter-row{display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;align-items:center}
-.store-filter-row::-webkit-scrollbar{display:none}
-.store-filter-btn{border-radius:var(--r-md);border:2px solid var(--line);background:var(--card);cursor:pointer;padding:5px 7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s}
-.store-filter-btn.active{border-color:var(--mint-dark)}
-.store-filter-btn img{height:24px;width:auto;object-fit:contain}
-.store-filter-all{padding:6px 14px;font-size:12px;font-weight:600;border-radius:var(--r-md);border:2px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:all .2s}
-.store-filter-all.active{background:var(--mint-dark);color:white;border-color:var(--mint-dark)}
-.cat-group{margin:0 20px 6px}
-.cat-group-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 0 6px;cursor:pointer}
-.cat-group-name{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.cat-group-count{font-size:12px;color:var(--muted)}
-.item-card{background:var(--card);border-radius:var(--r-md);border:1px solid var(--line);padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.item-card.checked{opacity:.5}
-.item-thumb{width:44px;height:44px;border-radius:var(--r-sm);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px}
-.item-thumb img{width:100%;height:100%;object-fit:cover}
-.item-info{flex:1;min-width:0}
-.item-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item-name.checked{text-decoration:line-through;color:var(--muted)}
-.item-meta{font-size:11px;color:var(--muted);margin-top:2px}
-.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.item-price{font-size:13px;font-weight:700;color:var(--text)}
-.qty-stepper{display:flex;align-items:center;border-radius:var(--r-md);overflow:hidden;border:1.5px solid var(--line)}
-.qty-btn{width:28px;height:28px;border:none;background:var(--bg);color:var(--charcoal);font-size:16px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.qty-btn:active{background:var(--mint-pale)}
-.qty-num{width:30px;text-align:center;font-size:13px;font-weight:700;color:var(--text);background:var(--card)}
-.check-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;background:var(--card)}
-.check-circle.done{background:var(--mint);border-color:var(--mint-dark)}
-.delete-btn{background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px;opacity:.5}
-.delete-btn:active{opacity:1;color:var(--pink-dark)}
-.list-section-header{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:8px 0 4px;display:flex;align-items:center;gap:6px}
-
-/* RECIPES */
-.recipe-filters{display:flex;gap:8px;padding:0 20px 12px;overflow-x:auto;scrollbar-width:none}
-.recipe-filters::-webkit-scrollbar{display:none}
-.recipe-card{background:var(--card);border-radius:var(--r-lg);margin:0 20px 12px;border:1px solid var(--line);overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:transform .15s}
-.recipe-card:active{transform:scale(.98)}
-.recipe-thumb{width:100%;height:140px;background:var(--mint-pale);display:flex;align-items:center;justify-content:center;font-size:52px;overflow:hidden}
-.recipe-thumb img{width:100%;height:100%;object-fit:cover}
-.recipe-body{padding:12px 14px}
-.recipe-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:6px}
-.recipe-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
-.recipe-meta-row{font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center}
-
-/* PROFILE */
-.profile-hero{margin:14px 20px 16px;background:linear-gradient(135deg,var(--mint-deeper),var(--mint-dark));border-radius:var(--r-xl);padding:22px 20px;display:flex;align-items:center;gap:16px;box-shadow:0 6px 20px rgba(46,158,107,0.3)}
-.profile-avatar{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:white;flex-shrink:0;border:2px solid rgba(255,255,255,.4)}
-.profile-name{font-size:20px;font-weight:700;color:white}
-.profile-email{font-size:12px;color:rgba(255,255,255,.75);margin-top:3px}
-.profile-role{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);color:white}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 20px;border-radius:var(--r-md);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--font);transition:opacity .2s,transform .15s}
-.btn:active{opacity:.85;transform:scale(.97)}
-.btn-primary{background:var(--mint-dark);color:white;box-shadow:0 2px 8px rgba(46,158,107,.25)}
-.btn-accent{background:var(--pink);color:white;box-shadow:0 2px 8px rgba(212,84,126,.2)}
-.btn-emerald{background:var(--mint-deeper);color:white}
-.btn-outline{background:transparent;color:var(--mint-dark);border:2px solid var(--mint-dark)}
-.btn-danger{background:transparent;color:var(--pink-dark);border:2px solid var(--pink-dark)}
-.btn-full{width:100%}
-.btn-sm{padding:7px 14px;font-size:12px}
-.flex-1{flex:1}
-.fab{position:fixed;bottom:90px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--pink);border:none;display:flex;align-items:center;justify-content:center;font-size:26px;color:white;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(255,183,213,.6);transition:transform .15s}
-.fab:active{transform:scale(.93)}
-
-/* FILTER PILLS */
-.filter-pill{font-size:12px;font-weight:600;padding:7px 14px;border-radius:20px;cursor:pointer;border:2px solid var(--line);font-family:var(--font);white-space:nowrap;background:var(--card);color:var(--muted);transition:all .2s}
-.filter-pill.filter-active{border-color:transparent;color:white!important}
-
-/* BOTTOM NAV */
-#bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;padding:10px 0 24px;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,.06)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;transition:color .2s}
-.nav-icon{font-size:22px;color:var(--muted);line-height:1}
-.nav-label{font-size:10px;font-weight:500;color:var(--muted)}
-.nav-item.active .nav-icon{filter:none}
-.nav-item.active .nav-label{color:var(--mint-dark);font-weight:700}
-.nav-dot{width:18px;height:3px;border-radius:2px;background:var(--mint-dark);margin-top:2px}
-
-/* MODALS */
-.modal-overlay{position:fixed;inset:0;background:rgba(10,10,20,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
-.modal-sheet{background:var(--card);border-radius:28px 28px 0 0;padding:12px 24px 32px;width:100%;max-width:430px;max-height:92vh;overflow-y:auto}
-.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 20px}
-.modal-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px}
-.modal-input{width:100%;padding:13px 14px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:var(--bg);margin-bottom:10px;outline:none;transition:border-color .2s}
-.modal-input:focus{border-color:var(--mint-dark)}
-.modal-row{display:flex;gap:10px;margin-top:8px}
-.modal-section{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
-
-/* CARD SECTION */
-.card-section{background:var(--card);border-radius:var(--r-lg);margin:0 20px 14px;padding:16px;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.card-section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-
-/* MISC */
-.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty-state-icon{font-size:52px;margin-bottom:12px}
-.spinner{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--mint-dark);border-radius:50%;animation:spin .8s linear infinite;margin:24px auto}
-@keyframes spin{to{transform:rotate(360deg)}}
-#toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--charcoal);color:white;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.admin-user-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.admin-user-row:last-child{border-bottom:none}
-.user-avatar{width:38px;height:38px;border-radius:50%;background:var(--mint-pale);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--mint-dark);flex-shrink:0}
-.pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;display:inline-block}
-</style>
 </head>
 <body>
 <!-- AUTH SCREEN -->
@@ -292,48 +68,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <!-- HOME -->
   <div id="screen-home" class="screen">
-    <div class="hero-section">
-      <img class="hero-img" src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80&auto=format&fit=crop" alt="Fresh groceries" onerror="this.style.display='none'"/>
-      <div class="hero-overlay"></div>
-      <div class="hero-greeting">
-        <div class="hero-hi" id="home-greeting-time">Good morning</div>
-        <div class="hero-name" id="home-greeting-name">Welcome</div>
-        <div class="hero-sub">What's on the list today?</div>
-      </div>
-    </div>
-    <div class="search-outer">
-      <div class="search-bar" onclick="showScreen('list')">
-        <span style="font-size:18px;color:var(--muted)">&#128269;</span>
-        <span class="search-placeholder">Search products, recipes...</span>
-        <div class="scan-pill" onclick="event.stopPropagation();showScreen('scan')">&#128247; Scan</div>
-      </div>
-    </div>
-    <div class="cat-scroll">
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--mint-pale)">&#129382;</div><div class="cat-label">Veggies</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--peach-pale)">&#127822;</div><div class="cat-label">Fruit</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--blue-pale)">&#129371;</div><div class="cat-label">Dairy</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--pink-pale)">&#129385;</div><div class="cat-label">Meat</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--peach-pale)">&#129360;</div><div class="cat-label">Bakery</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--lav-pale)">&#10052;&#65039;</div><div class="cat-label">Frozen</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--blue-pale)">&#129380;</div><div class="cat-label">Drinks</div></div>
-      <div class="cat-tile" onclick="showScreen('list')"><div class="cat-icon" style="background:var(--mint-pale)">&#129529;</div><div class="cat-label">Cleaning</div></div>
-    </div>
-    <div class="budget-strip" onclick="openBudgetModal()">
+    <div class="home-header">
       <div>
-        <div class="bs-label" id="home-budget-month">Budget</div>
-        <div class="bs-amount" id="home-budget-spent">R 0.00</div>
-        <div class="bs-budget" id="home-budget-of">of R 0.00</div>
+        <div class="home-greeting-time" id="home-greeting-time">Good morning</div>
+        <div class="home-greeting-name" id="home-greeting-name">Welcome</div>
+        <div class="home-greeting-sub">Here's your day at a glance</div>
       </div>
-      <div style="text-align:right">
-        <div class="bs-pct" id="home-budget-pct">0%</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px" id="home-budget-left"></div>
+      <div class="home-avatar" id="home-avatar" onclick="showScreen('profile')">G</div>
+    </div>
+    <div class="search-bar" onclick="showScreen('list')" style="margin:14px 16px 0">
+      <span style="font-size:18px;color:var(--muted)">&#128269;</span>
+      <span class="search-placeholder">Search groceries, recipes...</span>
+      <button class="btn btn-charcoal btn-sm" onclick="event.stopPropagation();showScreen('scan')" style="padding:6px 12px;font-size:12px">&#128247; Scan</button>
+    </div>
+    <div class="budget-card" onclick="openBudgetModal()">
+      <div class="budget-card-top">
+        <div>
+          <div class="bc-label" id="home-budget-month">Budget</div>
+          <div class="bc-spent" id="home-budget-spent">R 0.00</div>
+          <div class="bc-of" id="home-budget-of">of R 0</div>
+        </div>
+        <div class="bc-circle">
+          <div class="bc-pct" id="home-budget-pct">0%</div>
+          <div class="bc-pct-label">used</div>
+        </div>
+      </div>
+      <div class="bc-bar-row">
+        <span>Budget used</span>
+        <span id="home-budget-left">Set budget</span>
+      </div>
+      <div class="bc-bar-bg"><div class="bc-bar-fill" id="home-budget-bar" style="width:0%"></div></div>
+      <div class="bc-stats">
+        <div class="bc-stat"><div class="bc-stat-val" id="home-stat-week">R 0</div><div class="bc-stat-lbl">This week</div></div>
+        <div class="bc-stat"><div class="bc-stat-val" id="home-stat-avg">R 0</div><div class="bc-stat-lbl">Avg/week</div></div>
+        <div class="bc-stat"><div class="bc-stat-val" id="home-stat-pred">R 0</div><div class="bc-stat-lbl">Predicted</div></div>
       </div>
     </div>
-    <div class="sec-head">
-      <div class="sec-title">My Lists</div>
-      <div class="sec-link" onclick="showScreen('list')">View all</div>
+    <div class="lift">
+      <div class="sec-head"><div class="sec-title">My Lists</div><div class="sec-link" onclick="showScreen('list')">View all</div></div>
+      <div id="home-lists"><div class="spinner"></div></div>
+      <div class="sec-head" style="margin-top:8px"><div class="sec-title">This week's meals</div><div class="sec-link" onclick="showScreen('plan')">View plan</div></div>
+      <div id="home-meals"><div class="spinner"></div></div>
+      <div class="sec-head" style="margin-top:8px"><div class="sec-title">Recent receipts</div><div class="sec-link" onclick="showScreen('scan')">View all</div></div>
+      <div id="home-receipts"><div class="spinner"></div></div>
     </div>
-    <div id="home-lists"><div class="spinner"></div></div>
   </div>
 
   <!-- SCAN -->
@@ -412,7 +190,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <button class="btn btn-primary btn-sm" onclick="openAddRecipe()">+ New</button>
     </div>
     <div class="recipe-filters">
-      <button id="filter-all" class="filter-pill filter-active" style="background:var(--mint-dark)" onclick="filterRecipes('all')">All</button>
+      <button id="filter-all" class="filter-pill filter-active" style="background:var(--green-dark)" onclick="filterRecipes('all')">All</button>
       <button id="filter-dinner" class="filter-pill" onclick="filterRecipes('dinner')">&#127829; Dinner</button>
       <button id="filter-baking" class="filter-pill" onclick="filterRecipes('baking')">&#129360; Baking</button>
       <button id="filter-shared" class="filter-pill" onclick="filterRecipes('shared')">&#128106; Shared</button>
@@ -574,7 +352,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
     <!-- Category filters -->
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch">
-      <button class="filter-pill filter-active" id="qa-cat-all"         onclick="setQACat('all')"          style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px;white-space:nowrap">All</button>
+      <button class="filter-pill filter-active" id="qa-cat-all"         onclick="setQACat('all')"          style="background:var(--green-pale);color:var(--green-dark);font-size:11px;padding:5px 10px;white-space:nowrap">All</button>
       <button class="filter-pill"              id="qa-cat-Dairy"        onclick="setQACat('Dairy')"         style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 10px;white-space:nowrap">🥛 Dairy</button>
       <button class="filter-pill"              id="qa-cat-Meat"         onclick="setQACat('Meat & Fish')"   style="background:#FDECEA;color:#C0392B;font-size:11px;padding:5px 10px;white-space:nowrap">🥩 Meat</button>
       <button class="filter-pill"              id="qa-cat-Fruit"        onclick="setQACat('Fruit & Veg')"   style="background:#EAFAF1;color:#27AE60;font-size:11px;padding:5px 10px;white-space:nowrap">🥦 Veg</button>
@@ -621,9 +399,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div style="border-top:1px solid var(--line);padding-top:10px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button class="filter-pill filter-active" id="qa-basket-this"    onclick="setQABasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
+        <button class="filter-pill filter-active" id="qa-basket-this"    onclick="setQABasket('this_week')" style="background:var(--green-pale);color:var(--green-dark);font-size:11px">This week</button>
         <button class="filter-pill"               id="qa-basket-next"    onclick="setQABasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill"               id="qa-basket-monthly" onclick="setQABasket('monthly')"   style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+        <button class="filter-pill"               id="qa-basket-monthly" onclick="setQABasket('monthly')"   style="background:var(--yellow-pale);color:var(--yellow);font-size:11px">Monthly</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
       <select class="modal-input" id="list-item-store" style="margin:0">
@@ -696,7 +474,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <option value="private">🔒 Private</option>
         <option value="everyone">🌐 Everyone on GEM</option>
       </select>
-      <div id="edit-recipe-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
+      <div id="edit-recipe-error" style="font-size:12px;color:var(--pink);margin-bottom:8px"></div>
       <div class="modal-row">
         <button class="btn btn-outline btn-sm" onclick="archiveRecipe()">📁 Archive</button>
         <button class="btn btn-danger btn-sm" onclick="deleteRecipe()">🗑 Delete</button>
@@ -721,9 +499,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       </div>
       <input class="modal-input" type="text" id="plan-recipe-search" placeholder="Search recipes..." oninput="renderPlanRecipePicker()" style="margin-bottom:8px"/>
       <div style="display:flex;gap:6px;margin-bottom:8px">
-        <button class="filter-pill filter-active" id="pr-filter-all"    onclick="setPRFilter('all')"    style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 10px">All</button>
-        <button class="filter-pill"              id="pr-filter-dinner"  onclick="setPRFilter('dinner')" style="background:var(--amber-pale);color:var(--amber);font-size:11px;padding:5px 10px">🍽️ Dinner</button>
-        <button class="filter-pill"              id="pr-filter-baking"  onclick="setPRFilter('baking')" style="background:var(--accent-pale);color:var(--accent);font-size:11px;padding:5px 10px">🥐 Baking</button>
+        <button class="filter-pill filter-active" id="pr-filter-all"    onclick="setPRFilter('all')"    style="background:var(--green-pale);color:var(--green-dark);font-size:11px;padding:5px 10px">All</button>
+        <button class="filter-pill"              id="pr-filter-dinner"  onclick="setPRFilter('dinner')" style="background:var(--yellow-pale);color:var(--yellow);font-size:11px;padding:5px 10px">🍽️ Dinner</button>
+        <button class="filter-pill"              id="pr-filter-baking"  onclick="setPRFilter('baking')" style="background:var(--pink-pale);color:var(--pink);font-size:11px;padding:5px 10px">🥐 Baking</button>
       </div>
       <div id="plan-recipe-list" style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
     </div>
@@ -738,11 +516,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button id="picker-tab-this" class="filter-pill filter-active" style="background:var(--primary-pale);color:var(--primary)" onclick="setPlanPickerWeek(0)">This week</button>
+        <button id="picker-tab-this" class="filter-pill filter-active" style="background:var(--green-pale);color:var(--green-dark)" onclick="setPlanPickerWeek(0)">This week</button>
         <button id="picker-tab-next" class="filter-pill" style="background:var(--blue-pale);color:var(--blue)" onclick="setPlanPickerWeek(1)">Next week</button>
       </div>
       <div id="plan-day-picker" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div id="plan-picker-error" style="font-size:12px;color:var(--accent);margin-top:8px"></div>
+      <div id="plan-picker-error" style="font-size:12px;color:var(--pink);margin-top:8px"></div>
       <div style="margin-top:12px">
         <button class="btn btn-outline btn-full" onclick="closeModal('modal-plan-picker')">Cancel</button>
       </div>
@@ -766,7 +544,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <input class="modal-input" type="text" id="grocery-search" placeholder="Search items..." oninput="filterGroceryItems(this.value)" style="margin-bottom:8px"/>
     <!-- Category filter tabs — all categories -->
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch">
-      <button class="filter-pill filter-active" id="gcat-all"          onclick="filterGroceryCategory('all')"          style="background:var(--primary-pale);color:var(--primary);font-size:11px;padding:5px 12px;white-space:nowrap">All</button>
+      <button class="filter-pill filter-active" id="gcat-all"          onclick="filterGroceryCategory('all')"          style="background:var(--green-pale);color:var(--green-dark);font-size:11px;padding:5px 12px;white-space:nowrap">All</button>
       <button class="filter-pill"              id="gcat-Dairy"         onclick="filterGroceryCategory('Dairy')"         style="background:#E8F4FD;color:#2980B9;font-size:11px;padding:5px 12px;white-space:nowrap">🥛 Dairy</button>
       <button class="filter-pill"              id="gcat-Meat"          onclick="filterGroceryCategory('Meat & Fish')"   style="background:#FDECEA;color:#C0392B;font-size:11px;padding:5px 12px;white-space:nowrap">🥩 Meat</button>
       <button class="filter-pill"              id="gcat-Fruit"         onclick="filterGroceryCategory('Fruit & Veg')"   style="background:#EAFAF1;color:#27AE60;font-size:11px;padding:5px 12px;white-space:nowrap">🥦 Veg</button>
@@ -813,9 +591,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div id="grocery-basket-bar" style="border-top:1px solid var(--line);padding-top:12px;margin-top:8px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Add to basket</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
-        <button class="filter-pill filter-active" id="basket-this" onclick="setGroceryBasket('this_week')" style="background:var(--primary-pale);color:var(--primary);font-size:11px">This week</button>
+        <button class="filter-pill filter-active" id="basket-this" onclick="setGroceryBasket('this_week')" style="background:var(--green-pale);color:var(--green-dark);font-size:11px">This week</button>
         <button class="filter-pill" id="basket-next" onclick="setGroceryBasket('next_week')" style="background:var(--blue-pale);color:var(--blue);font-size:11px">Next week</button>
-        <button class="filter-pill" id="basket-monthly" onclick="setGroceryBasket('monthly')" style="background:var(--amber-pale);color:var(--amber);font-size:11px">Monthly</button>
+        <button class="filter-pill" id="basket-monthly" onclick="setGroceryBasket('monthly')" style="background:var(--yellow-pale);color:var(--yellow);font-size:11px">Monthly</button>
       </div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Store</div>
       <select id="grocery-item-store" class="modal-input" style="margin:0;font-size:12px;padding:7px 10px">
@@ -890,7 +668,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
     <div id="scan-item-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;max-height:200px;overflow-y:auto"></div>
 
-    <div id="scan-error" style="font-size:12px;color:var(--accent);margin-bottom:8px"></div>
+    <div id="scan-error" style="font-size:12px;color:var(--pink);margin-bottom:8px"></div>
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-scan-review')">Cancel</button>
       <button class="btn btn-primary flex-1" onclick="saveScanReceipt()">Save receipt</button>
@@ -901,7 +679,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <!-- Delete receipt modal -->
 <div id="modal-delete-receipt" class="modal-overlay hidden">
   <div class="modal-sheet">
-    <div class="modal-title" style="color:var(--accent)">🗑 Delete receipt?</div>
+    <div class="modal-title" style="color:var(--pink)">🗑 Delete receipt?</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:6px">You are about to delete:</div>
     <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px" id="del-receipt-label"></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">This also removes all items from this receipt. This cannot be undone.</div>
@@ -921,7 +699,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="modal-title">&#128279; Import from link</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Paste a recipe URL from any website &mdash; we'll extract the ingredients and method automatically.</div>
     <input class="modal-input" type="url" id="recipe-import-url" placeholder="https://www.example.com/recipe..."/>
-    <div id="recipe-import-error" style="font-size:12px;color:var(--pink-deep);margin-bottom:8px"></div>
+    <div id="recipe-import-error" style="font-size:12px;color:var(--pink);margin-bottom:8px"></div>
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-recipe-import')">Cancel</button>
       <button class="btn btn-primary flex-1" id="recipe-import-btn" onclick="importRecipeFromUrl()">Import recipe</button>
@@ -980,8 +758,8 @@ function renderHomeLists() {
         <div class="lc-row"><div class="lc-icon" style="background:#E8F8F0">&#128722;</div>
           <div style="flex:1"><div class="lc-name">This week</div><div class="lc-meta">${twI.length} items</div></div>
           <span style="font-size:18px;color:var(--muted)">&#8250;</span></div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${twP}%;background:var(--mint-dark)"></div></div>
-        <div class="prog-label"><span>${twD} of ${twI.length} done</span><span style="color:var(--mint-dark);font-weight:800">${twP}%</span></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${twP}%;background:var(--green-dark)"></div></div>
+        <div class="prog-label"><span>${twD} of ${twI.length} done</span><span style="color:var(--green-dark);font-weight:800">${twP}%</span></div>
       </div>
       <div class="list-card" onclick="showScreen('list');setTimeout(()=>switchListBasket('monthly'),100)">
         <div class="lc-row"><div class="lc-icon" style="background:#F3EEFF">&#128230;</div>
@@ -1009,8 +787,8 @@ showScreen=function(name){
   document.querySelectorAll('.nav-item').forEach((item,i)=>{
     const icon=item.querySelector('.nav-icon'),label=item.querySelector('.nav-label');
     const active=i===(nm[name]??-1);
-    if(icon) icon.style.background=active?'var(--mint-dark)':'transparent';
-    if(label){label.style.color=active?'var(--mint-dark)':'var(--muted)';label.style.fontWeight=active?800:600;}
+    if(icon) icon.style.background=active?'var(--green-dark)':'transparent';
+    if(label){label.style.color=active?'var(--green-dark)':'var(--muted)';label.style.fontWeight=active?800:600;}
   });
 };
 

@@ -1,4 +1,4 @@
-const CACHE = 'gem-planner-v26';
+const CACHE = 'gem-planner-v28';
 const ASSETS = [
   './',
   './index.html',

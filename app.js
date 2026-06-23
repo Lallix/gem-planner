@@ -104,6 +104,8 @@ async function loadUser(user){
   ss('profile-avatar',name.charAt(0).toUpperCase());
   ss('topbar-user',name.charAt(0).toUpperCase());
   ss('topbar-initial',name.charAt(0).toUpperCase()); // legacy
+  ss('home-avatar',name.charAt(0).toUpperCase());
+  ss('home-greeting-name',name);
   const editNameEl=document.getElementById('edit-name-input');
   if(editNameEl) editNameEl.value=name;
   const roleEl=document.getElementById('profile-role');
@@ -141,18 +143,24 @@ function fmtR(n){ return `R ${fmt(n)}`; }
 function renderDashboard(now,monthName){
   const totalSpent=receipts.reduce((s,r)=>s+(r.total||0),0);
   const pct=budget>0?Math.min(Math.round((totalSpent/budget)*100),100):0;
-  const remaining=budget-totalSpent;
-  // Safe setter — silently skips missing elements (old dashboard elements)
+  const remaining=Math.max(0,budget-totalSpent);
   const ss=(id,val,prop='textContent')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
-  ss('hero-spent',fmtR(totalSpent));
-  ss('hero-budget-label',budget>0?`of R ${budget.toLocaleString()} budget`:'No budget set yet');
-  ss('hero-bar',`${pct}%`,'style.width');
-  ss('ring-pct',`${pct}%`);
-  ss('hero-sub',budget>0?`${pct}% used · ${fmtR(remaining)} remaining`:'Tap "Set monthly budget" below');
-  const ringEl=document.getElementById('ring-progress');
-  if(ringEl){const circ=2*Math.PI*32;ringEl.setAttribute('stroke-dasharray',`${circ*(pct/100)} ${circ}`);ringEl.setAttribute('stroke',pct>85?'#FFB6C8':'white');}
 
-  // Stats
+  // ── NEW home screen budget card ──
+  ss('home-budget-month',monthName+' budget');
+  ss('home-budget-spent',fmtR(totalSpent));
+  ss('home-budget-of','of '+fmtR(budget||0));
+  ss('home-budget-pct',pct+'%');
+  ss('home-budget-left',budget>0?fmtR(remaining)+' left':'Tap to set budget');
+  const barEl=document.getElementById('home-budget-bar');
+  if(barEl) barEl.style.width=pct+'%';
+
+  // ── Greeting ──
+  const hr=now.getHours();
+  const greet=hr<12?'Good morning':hr<17?'Good afternoon':hr<21?'Good evening':'Good night';
+  ss('home-greeting-time',greet);
+
+  // ── Stats ──
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
   weekStart.setHours(0,0,0,0);
   const weekRx=receipts.filter(r=>new Date(r.receipt_date)>=weekStart);
@@ -162,10 +170,19 @@ function renderDashboard(now,monthName){
   const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const daysLeft=daysInMonth-now.getDate();
   const predicted=totalSpent+(avgWeek/7)*daysLeft;
+  ss('home-stat-week','R '+Math.round(weekTotal).toLocaleString());
+  ss('home-stat-avg','R '+Math.round(avgWeek).toLocaleString());
+  ss('home-stat-pred','R '+Math.round(predicted).toLocaleString());
+  // Legacy stat elements
   ss('stat-week',`R ${Math.round(weekTotal).toLocaleString()}`);
   ss('stat-week-sub',`${weekRx.length} receipt${weekRx.length!==1?'s':''}`);
   ss('stat-avg',`R ${Math.round(avgWeek).toLocaleString()}`);
   ss('stat-predicted',`R ${Math.round(predicted).toLocaleString()}`);
+
+  // ── Home lists, meals, receipts ──
+  renderHomeLists();
+  renderHomeMeals();
+  renderHomeReceipts();
 
   // Stores (old dashboard element — skip if not present)
   const sm={};
@@ -1929,3 +1946,66 @@ function openRecipeImport(){
   if(errEl) errEl.textContent='';
   openModal('modal-recipe-import');
 }
+
+// ══ HOME MEALS STRIP ══
+async function renderHomeMeals(){
+  const el=document.getElementById('home-meals');
+  if(!el||!currentUser) return;
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  const {data:entries}=await db.from('meal_plan_entries').select('day_of_week,recipes(title,category)').eq('user_id',currentUser.id).eq('week_offset',0);
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const catBg={dinner:'var(--orange-pale)',baking:'var(--pink-pale)',lunch:'var(--blue-pale)',other:'var(--green-pale)'};
+  const catTag={dinner:'Dinner',baking:'Baking',lunch:'Lunch',other:'Other'};
+  const catCol={dinner:'#8B3A00',baking:'#8B0038',lunch:'var(--blue-dark)',other:'var(--green-deeper)'};
+  // Show next 3 days
+  const todayDow=(now.getDay()+6)%7;
+  const upcoming=[0,1,2].map(offset=>(todayDow+offset)%7);
+  el.innerHTML=upcoming.map(dow=>{
+    const dayDate=new Date(weekStart); dayDate.setDate(weekStart.getDate()+dow);
+    const dateStr=dayDate.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+    const entry=entries?.find(e=>e.day_of_week===dow);
+    const isToday=dow===todayDow;
+    if(entry?.recipes){
+      const bg=catBg[entry.recipes.category]||catBg.other;
+      const col=catCol[entry.recipes.category]||catCol.other;
+      return `<div class="meal-strip-row">
+        <span class="meal-day-label">${days[dow]}${isToday?' <span style="font-size:9px;background:var(--green-dark);color:#fff;padding:1px 6px;border-radius:10px;font-weight:800">Today</span>':''}</span>
+        <div class="meal-icon-thumb" style="background:${bg}">&#127869;&#65039;</div>
+        <span class="meal-name-text">${entry.recipes.title}</span>
+        <span class="meal-cat-tag" style="background:${bg};color:${col}">${catTag[entry.recipes.category]||'Other'}</span>
+      </div>`;
+    } else {
+      return `<div class="meal-strip-row empty" onclick="showScreen('plan')">
+        <span class="meal-day-label">${days[dow]}${isToday?' <span style="font-size:9px;background:var(--green-dark);color:#fff;padding:1px 6px;border-radius:10px;font-weight:800">Today</span>':''}</span>
+        <div class="meal-icon-thumb" style="background:rgba(168,217,200,.3)">&#43;</div>
+        <span class="meal-name-text">Add dinner</span>
+      </div>`;
+    }
+  }).join('');
+}
+
+// ══ HOME RECEIPTS ══
+function renderHomeReceipts(){
+  const el=document.getElementById('home-receipts');
+  if(!el) return;
+  const recent=receipts.slice(0,3);
+  if(!recent.length){el.innerHTML='<div style="font-size:13px;color:var(--muted);padding:8px 0">No receipts yet — tap Scan to add your first</div>';return;}
+  const initials={'woolworths':'WW','checkers':'CK','pnp':'PnP','spar':'SP','walmart':'WM','other':'?'};
+  const colors={'woolworths':'var(--green-pale)','checkers':'var(--blue-pale)','pnp':'var(--orange-pale)','spar':'var(--green-pale)','walmart':'var(--blue-pale)','other':'var(--purple-pale)'};
+  el.innerHTML=recent.map(r=>{
+    const cfg=STORES[r.store_key]||STORES.other;
+    const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+    const init=initials[r.store_key]||'?';
+    const col=colors[r.store_key]||colors.other;
+    return `<div class="receipt-strip-row">
+      <div class="store-initials" style="background:${col}">${init}</div>
+      <div style="flex:1;min-width:0">
+        <div class="receipt-store-name">${cfg.label}</div>
+        <div class="receipt-meta">${d} &middot; ${r.item_count||'?'} items</div>
+      </div>
+      <div class="receipt-amount">${fmtR(r.total||0)}</div>
+    </div>`;
+  }).join('');
+}
+
