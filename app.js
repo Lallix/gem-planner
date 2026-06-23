@@ -340,15 +340,31 @@ async function loadRecipes(){
   renderRecipes();
 }
 
-function filterRecipes(f){ setFilterActive(f); currentFilter=f; renderRecipes(); }
+function filterRecipes(f){
+  setFilterActive(f);
+  currentFilter=f;
+  // Reset archived state when switching to a non-archived filter
+  if(f!=='archived'){
+    showArchived=false;
+    const archBtn=document.getElementById('filter-archived');
+    if(archBtn){ archBtn.style.background=''; archBtn.style.color=''; }
+  }
+  renderRecipes();
+}
 
 function renderRecipes(){
   let list=allRecipes;
-  if(currentFilter==='dinner') list=list.filter(r=>r.category==='dinner');
-  else if(currentFilter==='baking') list=list.filter(r=>r.category==='baking');
-  else if(currentFilter==='lunch') list=list.filter(r=>r.category==='lunch');
-  else if(currentFilter==='shared') list=list.filter(r=>r.visibility==='everyone');
-  else if(currentFilter!=='archived') list=list.filter(r=>r.visibility!=='archived');
+  if(currentFilter==='archived'){
+    // Show ONLY archived
+    list=list.filter(r=>r.visibility==='archived');
+  } else {
+    // Always exclude archived from other filters unless showArchived is on
+    if(!showArchived) list=list.filter(r=>r.visibility!=='archived');
+    if(currentFilter==='dinner') list=list.filter(r=>r.category==='dinner');
+    else if(currentFilter==='baking') list=list.filter(r=>r.category==='baking');
+    else if(currentFilter==='lunch') list=list.filter(r=>r.category==='lunch');
+    else if(currentFilter==='shared') list=list.filter(r=>r.visibility==='everyone');
+  }
 
   // Category colours
   const tagColors={dinner:{bg:'var(--orange-pale)',col:'#8B3A00'},baking:{bg:'var(--pink-pale)',col:'#8B0038'},lunch:{bg:'var(--blue-pale)',col:'var(--blue-dark)'},other:{bg:'var(--green-pale)',col:'var(--green-deeper)'}};
@@ -1335,11 +1351,16 @@ async function archiveRecipe(){
 }
 
 function toggleArchived(){
-  showArchived=!showArchived;
+  // Set filter to archived and reload — archived recipes fetched from DB
+  currentFilter='archived';
+  showArchived=true;
+  // Update pill active states
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('filter-active'));
   const btn=document.getElementById('filter-archived');
   if(btn){
-    btn.style.background=showArchived?'var(--primary-pale)':'var(--bg)';
-    btn.style.color=showArchived?'var(--primary)':'var(--muted)';
+    btn.classList.add('filter-active');
+    btn.style.background='#6B7280';
+    btn.style.color='#fff';
   }
   loadRecipes();
 }
