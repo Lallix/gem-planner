@@ -299,21 +299,43 @@ function renderRecipes(){
   let list=allRecipes;
   if(currentFilter==='dinner') list=list.filter(r=>r.category==='dinner');
   else if(currentFilter==='baking') list=list.filter(r=>r.category==='baking');
+  else if(currentFilter==='lunch') list=list.filter(r=>r.category==='lunch');
   else if(currentFilter==='shared') list=list.filter(r=>r.visibility==='everyone');
-  const colors={dinner:'#F5A623',baking:'#FF8FAB',lunch:'#6CC2C0',other:'#9B7FD4'};
-  const bgs={dinner:'#FEF3DC',baking:'#FFF0F3',lunch:'#CFE8E4',other:'#EDE8F9'};
+  else if(currentFilter!=='archived') list=list.filter(r=>r.visibility!=='archived');
+
+  // Category colours
+  const tagColors={dinner:{bg:'var(--orange-pale)',col:'#8B3A00'},baking:{bg:'var(--pink-pale)',col:'#8B0038'},lunch:{bg:'var(--blue-pale)',col:'var(--blue-dark)'},other:{bg:'var(--green-pale)',col:'var(--green-deeper)'}};
+  const thumbBgs={dinner:'linear-gradient(135deg,#FFE4CC,#FFD0A8)',baking:'linear-gradient(135deg,#FFE0EE,#FFCCE4)',lunch:'linear-gradient(135deg,#D6EEFF,#BED8F8)',other:'linear-gradient(135deg,#D4F5E9,#B8EDD5)'};
+  const thumbEmoji={dinner:'&#127829;&#65039;',baking:'&#129360;',lunch:'&#129367;',other:'&#127869;&#65039;'};
+
   document.getElementById('recipe-list').innerHTML=list.length===0
-    ?'<div class="empty-state"><div class="empty-state-icon">🍽️</div>No recipes yet — add your first one!</div>'
+    ?`<div class="empty-state">
+        <div class="empty-state-icon">&#127869;&#65039;</div>
+        <div class="empty-title">No recipes yet</div>
+        <div class="empty-sub">Tap + New to add your first recipe, or import one from a link</div>
+      </div>`
     :list.map(r=>{
-      const col=colors[r.category]||'#9B7FD4';
-      const bg=bgs[r.category]||'#EDE8F9';
-      const shareLabel=r.visibility==='everyone'?'<span class="recipe-share-badge" style="background:var(--primary-pale);color:var(--primary)">🌐 Everyone</span>':r.visibility==='shared'?'<span class="recipe-share-badge" style="background:var(--blue-pale);color:var(--blue)">👨‍👩‍👧 Shared</span>':'';
-      const meta=[r.prep_time?`⏱ ${r.prep_time}min prep`:'',r.cook_time?`🔥 ${r.cook_time}min cook`:'',r.servings?`🍽 Serves ${r.servings}`:''].filter(Boolean).join(' · ');
+      const tc=tagColors[r.category]||tagColors.other;
+      const bg=thumbBgs[r.category]||thumbBgs.other;
+      const emoji=thumbEmoji[r.category]||thumbEmoji.other;
+      const meta=[r.prep_time?`&#9201; ${r.prep_time}min prep`:'',r.cook_time?`&#128293; ${r.cook_time}min cook`:'',r.servings?`&#127869; Serves ${r.servings}`:''].filter(Boolean).join(' &middot; ');
+      const sharedBadge=r.visibility==='everyone'?`<div class="recipe-shared-badge">Shared</div>`:'';
+      const archivedBadge=r.visibility==='archived'?`<div class="recipe-shared-badge" style="color:var(--muted)">Archived</div>`:'';
       return `<div class="recipe-card" onclick="viewRecipe('${r.id}')">
-        <div>${shareLabel}<span class="recipe-tag" style="background:${bg};color:${col}">${CATEGORY_LABELS[r.category]||r.category}</span></div>
-        <div class="recipe-title">${r.title}</div>
-        ${meta?`<div class="recipe-meta">${meta}</div>`:''}
-        ${r.description?`<div style="font-size:12px;color:var(--muted);margin-top:4px">${r.description}</div>`:''}
+        <div class="recipe-thumb" style="background:${bg}">
+          <span class="recipe-thumb-emoji">${emoji}</span>
+          <div class="recipe-cat-tag" style="background:${tc.bg};color:${tc.col}">${CATEGORY_LABELS[r.category]||r.category}</div>
+          ${sharedBadge}${archivedBadge}
+        </div>
+        <div class="recipe-body">
+          <div class="recipe-title">${r.title}</div>
+          ${meta?`<div class="recipe-meta-row">${meta}</div>`:''}
+          ${r.description?`<div style="font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4">${r.description}</div>`:''}
+          <div class="recipe-actions" style="margin-top:10px">
+            <button class="recipe-act-btn" style="background:var(--green-pale);color:var(--green-deeper)" onclick="event.stopPropagation();openPlanPickerFromRecipe('${r.id}')">&#128197; Plan</button>
+            <button class="recipe-act-btn" style="background:var(--blue-pale);color:var(--blue-dark)" onclick="event.stopPropagation();viewRecipeAndAddToList('${r.id}')">&#128722; List</button>
+          </div>
+        </div>
       </div>`;}).join('');
 }
 
@@ -384,50 +406,130 @@ function setListStoreFilter(storeKey){
 
 function renderShoppingList(){
   renderListHero();
-  // Apply store filter
   let items=shoppingItems;
   if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
 
+  const listEl=document.getElementById('shopping-list-content');
   if(items.length===0){
-    const msg=currentListStoreFilter
-      ?'<div class="empty-state"><div class="empty-state-icon">🏪</div>No items for '+( STORES[currentListStoreFilter]?.label||currentListStoreFilter)+'</div>'
-      :'<div class="empty-state"><div class="empty-state-icon">🛒</div>Your list is empty — add items or tap 🛍️ to browse groceries!</div>';
-    document.getElementById('shopping-list-content').innerHTML=msg;
+    listEl.innerHTML=currentListStoreFilter
+      ?`<div class="empty-state"><div class="empty-state-icon">&#127978;</div><div class="empty-title">No items for ${STORES[currentListStoreFilter]?.label||currentListStoreFilter}</div></div>`
+      :`<div class="empty-state"><div class="empty-state-icon">&#128722;</div><div class="empty-title">List is empty</div><div class="empty-sub">Tap + Add or the basket icon to add items</div></div>`;
     return;
   }
 
-  // Group by store first if filtering all, else by category
-  const storeColors={'woolworths':'#1A1A1A','checkers':'#00B5AD','pnp':'#004F9F','spar':'#007A3D','walmart':'#0071CE','other':'#8FA8A6'};
-  const storeBgs={'woolworths':'#F0F0F0','checkers':'#E0F7F6','pnp':'#E6EEF9','spar':'#E6F4EC','walmart':'#E6F2FB','other':'#F5F5F5'};
+  // Category config — tinted backgrounds + coloured shadows
+  const catCfg={
+    'Dairy':       {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.3)',  dot:'var(--blue)'},
+    'Meat & Fish': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.3)',   dot:'var(--pink)'},
+    'Fruit & Veg': {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.3)',    dot:'var(--green)'},
+    'Dry Goods':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.3)',   dot:'var(--orange)'},
+    'Bakery':      {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
+    'Frozen':      {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.25)',  dot:'var(--purple)'},
+    'Cleaning':    {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.2)',    dot:'var(--green-dark)'},
+    'Beverages':   {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.25)',  dot:'var(--blue)'},
+    'Snacks':      {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
+    'Personal Care':{bg:'var(--pink-pale)', shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
+    'Household':   {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.2)',   dot:'var(--purple)'},
+    'Baby & Kids': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
+    'meal_plan':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
+    'misc':        {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
+    'Other':       {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',    dot:'var(--yellow)'},
+  };
 
-  const groups={meal_plan:[],school_lunch:[],baking:[],cleaning:[],misc:[]};
-  items.forEach(i=>{const g=groups[i.category]||groups.misc;g.push(i);});
-  const groupOrder=['meal_plan','school_lunch','baking','cleaning','misc'];
-  const groupColors={meal_plan:'var(--amber)',school_lunch:'var(--blue)',baking:'var(--accent)',cleaning:'var(--emerald)',misc:'var(--muted)'};
+  // Category emoji map
+  const catEmoji={'Dairy':'&#129371;','Meat & Fish':'&#129385;','Fruit & Veg':'&#129382;','Dry Goods':'&#127807;','Bakery':'&#127838;','Frozen':'&#10052;&#65039;','Cleaning':'&#129532;','Beverages':'&#129381;','Snacks':'&#127839;','Personal Care':'&#129532;','Household':'&#127968;','Baby & Kids':'&#128118;','meal_plan':'&#127869;&#65039;','misc':'&#128230;','Other':'&#128230;'};
+
+  // Group by category
+  const grouped={};
+  items.forEach(i=>{
+    const cat=i.category||'misc';
+    if(!grouped[cat]) grouped[cat]=[];
+    grouped[cat].push(i);
+  });
 
   let html='';
-  groupOrder.forEach(g=>{
-    if(!groups[g]||groups[g].length===0) return;
-    html+=`<div class="list-section-header" style="color:${groupColors[g]}">${CATEGORY_LABELS[g]||g}</div>
-    <div style="background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">`;
-    html+=groups[g].map(item=>{
-      const sc=storeColors[item.store_key]||null;
-      const sb=storeBgs[item.store_key]||null;
-      const storeLabel=item.store_key?STORES[item.store_key]?.label||item.store_key:null;
-      return `
-      <div class="list-item">
-        <div class="list-check ${item.is_checked?'checked':''}" onclick="toggleListItem('${item.id}','${!item.is_checked}')">${item.is_checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>':''}</div>
-        <div class="list-item-name ${item.is_checked?'checked':''}" style="flex:1" onclick="toggleListItem('${item.id}','${!item.is_checked}')">${item.name}</div>
-        ${(item.quantity||1)>1?`<div style="font-size:11px;font-weight:700;color:var(--primary);background:var(--primary-pale);padding:2px 8px;border-radius:10px;flex-shrink:0;margin-right:4px">×${item.quantity}</div>`:''}
-        ${item.amount?`<div class="list-item-amount" style="margin-right:4px">${item.amount}</div>`:''}
-        ${storeLabel&&!currentListStoreFilter?`<div style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:${sb};color:${sc};flex-shrink:0;margin-right:4px">${storeLabel.split(' ')[0]}</div>`:''}
-        <button onclick="deleteListItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;font-size:16px;color:var(--line);padding:2px 4px;flex-shrink:0">✕</button>
-      </div>`;}).join('');
-    html+='</div>';
+  Object.entries(grouped).forEach(([cat,catItems])=>{
+    const cfg=catCfg[cat]||{bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',dot:'var(--yellow)'};
+    const emoji=catEmoji[cat]||'&#128230;';
+    const catLabel=CATEGORY_LABELS[cat]||cat;
+
+    // Frequently bought row for this category (from grocery items)
+    const freq=groceryItems.filter(g=>g.category===cat).slice(0,8);
+
+    if(freq.length>0){
+      html+=`<div style="padding:10px 16px 0">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
+        </div>
+      </div>`;
+    } else {
+      html+=`<div style="padding:10px 16px 0">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
+        </div>
+      </div>`;
+    }
+
+    // 3-column tile grid
+    html+=`<div class="prod-grid">`;
+    catItems.forEach(item=>{
+      const price=item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:'';
+      const qty=item.quantity||1;
+      html+=`<div class="prod-card ${item.is_checked?'opacity-50':''}" style="background:${cfg.bg};box-shadow:0 4px 16px ${cfg.shadow}">
+        <div class="prod-thumb">${emoji}</div>
+        <div class="prod-name ${item.is_checked?'checked':''}">${item.name}</div>
+        ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
+        ${price}
+        <div class="qty-stepper" onclick="event.stopPropagation()">
+          <button class="qty-btn" onclick="changeItemQty('${item.id}',${qty-1})">&#8722;</button>
+          <div class="qty-num">${qty}</div>
+          <button class="qty-btn plus" onclick="changeItemQty('${item.id}',${qty+1})">+</button>
+        </div>
+        <button onclick="deleteListItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px;margin-top:4px;width:100%;text-align:right">&#10005;</button>
+      </div>`;
+    });
+    // Empty add tile
+    html+=`<div class="prod-card-empty" onclick="openAddListItem()" style="min-height:100px">
+      <div style="text-align:center;color:var(--muted)">
+        <div style="font-size:24px;font-weight:800;color:var(--green)">+</div>
+        <div style="font-size:11px;font-weight:700;margin-top:2px">Add</div>
+      </div>
+    </div>`;
+    html+=`</div>`;
   });
-  document.getElementById('shopping-list-content').innerHTML=html;
+
+  listEl.innerHTML=html;
 }
 
+
+// ══ RECIPE QUICK ACTIONS ══
+function openPlanPickerFromRecipe(recipeId){
+  const r=allRecipes.find(x=>x.id===recipeId);
+  if(!r) return;
+  planPickerRecipe=r;
+  planPickerWeek=0;
+  pendingDayOfWeek=null;
+  document.getElementById('plan-picker-recipe-name').textContent=r.title;
+  document.getElementById('plan-picker-error').textContent='';
+  setPlanPickerWeek(0);
+  renderPlanDayPicker();
+  document.getElementById('plan-step-recipe').classList.add('hidden');
+  document.getElementById('plan-step-day').classList.remove('hidden');
+  openModal('modal-plan-picker');
+}
+
+function viewRecipeAndAddToList(recipeId){
+  viewRecipe(recipeId);
+  // After modal opens, trigger pantry check automatically
+  setTimeout(()=>checkPantry(),400);
+}
+
+async function changeItemQty(id,newQty){
+  if(newQty<1){ deleteListItem(id); return; }
+  await db.from('shopping_list_items').update({quantity:newQty}).eq('id',id);
+  const item=shoppingItems.find(i=>i.id===id);
+  if(item){ item.quantity=newQty; renderShoppingList(); }
+}
 async function toggleListItem(id,checked){
   await db.from('shopping_list_items').update({is_checked:checked==='true'}).eq('id',id);
   const item=shoppingItems.find(i=>i.id===id);
