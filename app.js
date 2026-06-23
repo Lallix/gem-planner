@@ -1417,14 +1417,19 @@ async function handleEmailImport(input){
 }
 
 function showScanModal(title){
-  document.getElementById('scan-review-title').textContent=title;
-  document.getElementById('scan-status').textContent='';
-  document.getElementById('scan-store').value='';
-  document.getElementById('scan-date').value=new Date().toISOString().split('T')[0];
-  document.getElementById('scan-total').value='';
-  document.getElementById('scan-items').value='';
-  document.getElementById('scan-items-text').value='';
-  document.getElementById('scan-error').textContent='';
+  const ss=(id,val,prop='textContent')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
+  ss('scan-review-title',title);
+  ss('scan-status','');
+  ss('scan-store','','value');
+  ss('scan-date',new Date().toISOString().split('T')[0],'value');
+  ss('scan-total','','value');
+  // Legacy elements — guard in case they don't exist
+  ss('scan-items','','value');
+  ss('scan-items-text','','value');
+  ss('scan-error','');
+  // Clear the item list
+  const listEl=document.getElementById('scan-item-list');
+  if(listEl) listEl.innerHTML='';
   openModal('modal-scan-review');
 }
 
@@ -1503,6 +1508,77 @@ function parseReceiptText(text){
 
   // Populate item list with special price support
   parseItemsFromOCR(text);
+}
+
+
+// ══ SCAN ITEM STATE ══
+let scanItems=[];
+
+// ══ PARSE OCR ITEMS ══
+function parseItemsFromOCR(text){
+  scanItems=[];
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  // Match lines with a price pattern: "Item name   R12.99" or "Item name   12.99"
+  const priceRe=/^(.+?)\s+[Rr]?\s*(\d+[\.,]\d{2})\s*$/;
+  for(const line of lines){
+    // Skip obvious header/footer lines
+    const lower=line.toLowerCase();
+    if(/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|amount due/i.test(lower)) continue;
+    if(line.length<3||line.length>80) continue;
+    const m=line.match(priceRe);
+    if(m){
+      const name=m[1].trim();
+      const price=m[2].replace(',','.');
+      if(name.length>1&&parseFloat(price)>0&&parseFloat(price)<5000){
+        scanItems.push({name,price,isSpecial:false,normalPrice:''});
+      }
+    }
+  }
+  renderScanItems();
+}
+
+// ══ RENDER SCAN ITEMS ══
+function renderScanItems(){
+  const listEl=document.getElementById('scan-item-list');
+  if(!listEl) return;
+  if(scanItems.length===0){
+    listEl.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">No items detected — tap + Add item to add manually</div>';
+    return;
+  }
+  listEl.innerHTML=scanItems.map((item,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;padding:6px;background:#F8FAF9;border-radius:10px;border:1px solid var(--line-light)">
+      <input style="flex:2;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12px;font-family:var(--font);outline:none"
+        value="${item.name}" onchange="scanItems[${i}].name=this.value" placeholder="Item name"/>
+      <input style="width:70px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12px;font-family:var(--font);outline:none"
+        value="${item.price}" onchange="scanItems[${i}].price=this.value" placeholder="Price"/>
+      <button onclick="toggleScanSpecial(${i})" title="Mark as special price"
+        style="padding:5px 8px;border-radius:8px;border:1.5px solid ${item.isSpecial?'var(--green-dark)':'var(--line)'};background:${item.isSpecial?'var(--green-pale)':'transparent'};font-size:13px;cursor:pointer">&#127991;&#65039;</button>
+      ${item.isSpecial?`<input style="width:70px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--green-dark);font-size:12px;font-family:var(--font);outline:none;background:var(--green-pale)"
+        value="${item.normalPrice}" onchange="scanItems[${i}].normalPrice=this.value" placeholder="Normal R"/>`:'' }
+      <button onclick="removeScanItem(${i})"
+        style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px">&#10005;</button>
+    </div>`).join('');
+}
+
+function toggleScanSpecial(i){
+  scanItems[i].isSpecial=!scanItems[i].isSpecial;
+  if(!scanItems[i].isSpecial) scanItems[i].normalPrice='';
+  renderScanItems();
+}
+
+function removeScanItem(i){
+  scanItems.splice(i,1);
+  renderScanItems();
+}
+
+function addScanItem(){
+  scanItems.push({name:'',price:'',isSpecial:false,normalPrice:''});
+  renderScanItems();
+  // Focus last item name input
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('#scan-item-list input');
+    if(inputs.length) inputs[inputs.length-2].focus();
+  },100);
 }
 
 // ══ SAVE SCANNED RECEIPT ══
