@@ -57,7 +57,12 @@ function updateClock(){
 
 // ══ AUTH ══
 function showAuth(){ document.getElementById('auth-screen').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); }
-function showApp(){ document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadDashboard(); }
+function showApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  window.scrollTo({top:0,behavior:'instant'});
+  loadDashboard();
+}
 function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 
@@ -798,7 +803,12 @@ function showScreen(name){
     if(d&&!a)d.remove();
     if(a&&!d){const dot=document.createElement('div');dot.className='nav-dot';n.appendChild(dot);}
   });
+  // Scroll to top on every tab switch
+  window.scrollTo({top:0,behavior:'instant'});
+  const screenEl=document.getElementById('screen-'+name);
+  if(screenEl) screenEl.scrollTop=0;
   // Lazy load screens
+  if(name==='home') loadDashboard();
   if(name==='scan') loadAllReceipts();
   if(name==='recipes') loadRecipes();
   if(name==='list') loadShoppingList();
@@ -807,7 +817,15 @@ function showScreen(name){
 }
 
 // ══ MODALS ══
-function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
+function openModal(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('hidden');
+  // Scroll modal sheet to top
+  window.scrollTo({top:0,behavior:'instant'});
+  const sheet=el.querySelector('.modal-sheet');
+  if(sheet) sheet.scrollTop=0;
+}
 function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
 function openAddRecipe(){ openModal('modal-add-recipe'); }
 function openCreateUser(){ document.getElementById('create-user-error').textContent=''; openModal('modal-create-user'); }
