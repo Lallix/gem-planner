@@ -61,7 +61,8 @@ function showApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'instant'});
-  loadDashboard();
+  // Small delay so DOM renders before we try to populate elements
+  setTimeout(()=>loadDashboard(), 150);
 }
 function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
@@ -134,6 +135,11 @@ async function loadUser(user){
 
 // ══ DASHBOARD ══
 async function loadDashboard(){
+  // Guard — if home screen elements not in DOM yet, retry once
+  if(!document.getElementById('home-budget-spent')){
+    setTimeout(()=>loadDashboard(), 300);
+    return;
+  }
   const now=new Date();
   const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const monthName=now.toLocaleString('default',{month:'long'});
