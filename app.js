@@ -32,6 +32,53 @@ function storeLogo(key, size=36) {
   return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.35)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
 }
 
+
+// ══ UNSPLASH IMAGE LOADER ══
+const UNSPLASH_KEY='fnnAFjR1mriM9J8cN7zN8T4fCJ_6gL0TwrhGMGQ_haA';
+const IMG_CACHE_KEY='gem_img_cache';
+
+function getImgCache(){
+  try{ return JSON.parse(localStorage.getItem(IMG_CACHE_KEY)||'{}'); }
+  catch(e){ return {}; }
+}
+function setImgCache(cache){
+  try{ localStorage.setItem(IMG_CACHE_KEY,JSON.stringify(cache)); }
+  catch(e){}
+}
+
+async function fetchUnsplashUrl(query){
+  const cache=getImgCache();
+  const key=query.toLowerCase().trim();
+  if(cache[key]) return cache[key];
+  try{
+    const res=await fetch(`https://api.unsplash.com/photos/random?query=${encodeURIComponent(key+' food')}&orientation=squarish&client_id=${UNSPLASH_KEY}`);
+    if(!res.ok) return null;
+    const data=await res.json();
+    const url=data?.urls?.small||null;
+    if(url){
+      cache[key]=url;
+      setImgCache(cache);
+    }
+    return url;
+  }catch(e){ return null; }
+}
+
+// Load image into an element by ID — shows emoji fallback until loaded
+async function loadUnsplashInto(elId, query, fallbackEmoji){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  const url=await fetchUnsplashUrl(query);
+  if(!url) return;
+  const img=new Image();
+  img.onload=()=>{
+    el.style.backgroundImage=`url(${url})`;
+    el.style.backgroundSize='cover';
+    el.style.backgroundPosition='center';
+    el.style.fontSize='0'; // hide emoji once image loads
+  };
+  img.src=url;
+}
+
 // ══ STATE ══
 let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shoppingItems=[], currentFilter='all';
 
@@ -322,8 +369,8 @@ function renderRecipes(){
       const sharedBadge=r.visibility==='everyone'?`<div class="recipe-shared-badge">Shared</div>`:'';
       const archivedBadge=r.visibility==='archived'?`<div class="recipe-shared-badge" style="color:var(--muted)">Archived</div>`:'';
       return `<div class="recipe-card" onclick="viewRecipe('${r.id}')">
-        <div class="recipe-thumb" style="background:${bg}">
-          <span class="recipe-thumb-emoji">${emoji}</span>
+        <div class="recipe-thumb" id="rimg-${r.id}" style="background:${bg}">
+          <span class="recipe-thumb-emoji" style="transition:font-size .3s">${emoji}</span>
           <div class="recipe-cat-tag" style="background:${tc.bg};color:${tc.col}">${CATEGORY_LABELS[r.category]||r.category}</div>
           ${sharedBadge}${archivedBadge}
         </div>
@@ -337,6 +384,23 @@ function renderRecipes(){
           </div>
         </div>
       </div>`;}).join('');
+  // Load Unsplash images after render
+  list.forEach(r=>{
+    fetchUnsplashUrl(r.title+' food recipe').then(url=>{
+      if(!url) return;
+      const el=document.getElementById('rimg-'+r.id);
+      if(!el) return;
+      const img=new Image();
+      img.onload=()=>{
+        el.style.backgroundImage=`url(${url})`;
+        el.style.backgroundSize='cover';
+        el.style.backgroundPosition='center';
+        const emoji=el.querySelector('.recipe-thumb-emoji');
+        if(emoji) emoji.style.fontSize='0';
+      };
+      img.src=url;
+    });
+  });
 }
 
 // viewRecipe defined below
@@ -458,14 +522,31 @@ function renderFrequentlyBought(){
     const pal=palettes[i%palettes.length];
     const emoji=getFreqEmoji(item.name);
     const btnText=pal.btnText||'#fff';
+    const safeId='freq-img-'+item.name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
     return `<div class="freq-tile" style="background:${pal.bg};box-shadow:0 4px 14px rgba(0,0,0,.1)">
-      <div class="freq-thumb">${emoji}</div>
+      <div class="freq-thumb" id="${safeId}">${emoji}</div>
       <div class="freq-name">${item.name}</div>
       ${item.price?`<div class="freq-price">R${parseFloat(item.price).toFixed(2)}</div>`:'<div class="freq-price" style="opacity:0">—</div>'}
       <button class="freq-add-btn" style="background:${pal.btn};color:${btnText}"
         onclick="addFreqItemToList('${item.name.replace(/'/g,"\\'")}','${item.store_key||''}')">+</button>
     </div>`;
   }).join('');
+  // Defer image loading so DOM is ready
+  setTimeout(()=>{
+    freqItems.forEach(item=>{
+      const safeId='freq-img-'+item.name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+      fetchUnsplashUrl(item.name+' food').then(url=>{
+        if(!url) return;
+        const el=document.getElementById(safeId);
+        if(!el) return;
+        el.style.backgroundImage=`url(${url})`;
+        el.style.backgroundSize='cover';
+        el.style.backgroundPosition='center';
+        el.style.borderRadius='12px';
+        el.textContent='';
+      });
+    });
+  },300);
   return `<div style="padding:12px 0 0">
     <div class="freq-section-head">
       <span style="font-size:14px;font-weight:800;color:var(--text)">Frequently bought</span>
@@ -601,8 +682,9 @@ function renderShoppingList(){
     catItems.forEach(item=>{
       const price=item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:'';
       const qty=item.quantity||1;
+      const prodImgId='prod-img-'+item.id;
       html+=`<div class="prod-card ${item.is_checked?'opacity-50':''}" style="background:${cfg.bg};box-shadow:0 4px 16px ${cfg.shadow}">
-        <div class="prod-thumb">${emoji}</div>
+        <div class="prod-thumb" id="${prodImgId}" style="transition:all .3s">${emoji}</div>
         <div class="prod-name ${item.is_checked?'checked':''}">${item.name}</div>
         ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
         ${price}
@@ -625,6 +707,21 @@ function renderShoppingList(){
   });
 
   listEl.innerHTML=html;
+  // Load Unsplash images for product tiles after DOM renders
+  setTimeout(()=>{
+    items.forEach(item=>{
+      const el=document.getElementById('prod-img-'+item.id);
+      if(!el) return;
+      fetchUnsplashUrl(item.name+' food').then(url=>{
+        if(!url) return;
+        el.style.backgroundImage=`url(${url})`;
+        el.style.backgroundSize='cover';
+        el.style.backgroundPosition='center';
+        el.style.borderRadius='10px';
+        el.textContent='';
+      });
+    });
+  },400);
 }
 
 
