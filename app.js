@@ -38,7 +38,8 @@ let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shopp
 // ══ INIT ══
 document.addEventListener('DOMContentLoaded', async()=>{
   updateClock(); setInterval(updateClock,30000);
-  document.getElementById('receipt-date').value = new Date().toISOString().split('T')[0];
+  const rdEl=document.getElementById('receipt-date');
+  if(rdEl) rdEl.value=new Date().toISOString().split('T')[0];
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   const {data:{session}} = await db.auth.getSession();
   if(session){ await loadUser(session.user); showApp(); }
@@ -92,18 +93,23 @@ async function loadUser(user){
 
   isAdmin=profile?.is_admin||false;
   const name=profile?.full_name||user.email.split('@')[0];
-  document.getElementById('profile-name').textContent=name;
-  document.getElementById('profile-email').textContent=user.email;
-  document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase();
-  document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
-  document.getElementById('edit-name-input').value=name;
+  const ss=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  ss('profile-name',name);
+  ss('profile-email',user.email);
+  ss('profile-avatar',name.charAt(0).toUpperCase());
+  ss('topbar-user',name.charAt(0).toUpperCase());
+  ss('topbar-initial',name.charAt(0).toUpperCase()); // legacy
+  const editNameEl=document.getElementById('edit-name-input');
+  if(editNameEl) editNameEl.value=name;
   const roleEl=document.getElementById('profile-role');
+  const adminPanel=document.getElementById('admin-panel');
   if(isAdmin){
-    roleEl.textContent='⭐ Admin';
-    document.getElementById('admin-panel').classList.remove('hidden');
+    if(roleEl) roleEl.textContent='Admin';
+    if(adminPanel){ adminPanel.classList.remove('hidden'); adminPanel.style.display=''; }
     loadUserList();
   } else {
-    roleEl.textContent='Member';
+    if(roleEl) roleEl.textContent='Member';
+    if(adminPanel){ adminPanel.classList.add('hidden'); adminPanel.style.display='none'; }
   }
 }
 
@@ -112,8 +118,10 @@ async function loadDashboard(){
   const now=new Date();
   const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const monthName=now.toLocaleString('default',{month:'long'});
-  document.getElementById('hero-month').textContent=`${monthName} ${now.getFullYear()}`;
-  document.getElementById('chart-month-label').textContent=monthName;
+  // Guard old elements that may not exist in new design
+  const ss=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  ss('hero-month',`${monthName} ${now.getFullYear()}`);
+  ss('chart-month-label',monthName);
   const {data:bd}=await db.from('budgets').select('amount').eq('user_id',currentUser.id).eq('month',monthKey).single();
   budget=bd?.amount||0;
   const monthStart=`${monthKey}-01`;
@@ -129,14 +137,15 @@ function renderDashboard(now,monthName){
   const totalSpent=receipts.reduce((s,r)=>s+(r.total||0),0);
   const pct=budget>0?Math.min(Math.round((totalSpent/budget)*100),100):0;
   const remaining=budget-totalSpent;
-  document.getElementById('hero-spent').textContent=fmtR(totalSpent);
-  document.getElementById('hero-budget-label').textContent=budget>0?`of R ${budget.toLocaleString()} budget`:'No budget set yet';
-  document.getElementById('hero-bar').style.width=`${pct}%`;
-  document.getElementById('ring-pct').textContent=`${pct}%`;
-  document.getElementById('hero-sub').textContent=budget>0?`${pct}% used · ${fmtR(remaining)} remaining`:'Tap "Set monthly budget" below';
-  const circ=2*Math.PI*32;
-  document.getElementById('ring-progress').setAttribute('stroke-dasharray',`${circ*(pct/100)} ${circ}`);
-  document.getElementById('ring-progress').setAttribute('stroke',pct>85?'#FFB6C8':'white');
+  // Safe setter — silently skips missing elements (old dashboard elements)
+  const ss=(id,val,prop='textContent')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
+  ss('hero-spent',fmtR(totalSpent));
+  ss('hero-budget-label',budget>0?`of R ${budget.toLocaleString()} budget`:'No budget set yet');
+  ss('hero-bar',`${pct}%`,'style.width');
+  ss('ring-pct',`${pct}%`);
+  ss('hero-sub',budget>0?`${pct}% used · ${fmtR(remaining)} remaining`:'Tap "Set monthly budget" below');
+  const ringEl=document.getElementById('ring-progress');
+  if(ringEl){const circ=2*Math.PI*32;ringEl.setAttribute('stroke-dasharray',`${circ*(pct/100)} ${circ}`);ringEl.setAttribute('stroke',pct>85?'#FFB6C8':'white');}
 
   // Stats
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
@@ -148,16 +157,17 @@ function renderDashboard(now,monthName){
   const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const daysLeft=daysInMonth-now.getDate();
   const predicted=totalSpent+(avgWeek/7)*daysLeft;
-  document.getElementById('stat-week').textContent=`R ${Math.round(weekTotal).toLocaleString()}`;
-  document.getElementById('stat-week-sub').textContent=`${weekRx.length} receipt${weekRx.length!==1?'s':''}`;
-  document.getElementById('stat-avg').textContent=`R ${Math.round(avgWeek).toLocaleString()}`;
-  document.getElementById('stat-predicted').textContent=`R ${Math.round(predicted).toLocaleString()}`;
+  ss('stat-week',`R ${Math.round(weekTotal).toLocaleString()}`);
+  ss('stat-week-sub',`${weekRx.length} receipt${weekRx.length!==1?'s':''}`);
+  ss('stat-avg',`R ${Math.round(avgWeek).toLocaleString()}`);
+  ss('stat-predicted',`R ${Math.round(predicted).toLocaleString()}`);
 
-  // Stores
+  // Stores (old dashboard element — skip if not present)
   const sm={};
   receipts.forEach(r=>{const k=r.store_key||'other';if(!sm[k])sm[k]={key:k,total:0};sm[k].total+=r.total||0;});
   const sa=Object.values(sm).sort((a,b)=>b.total-a.total);
-  document.getElementById('store-list').innerHTML=sa.length===0
+  const storeListEl=document.getElementById('store-list');
+  if(storeListEl) storeListEl.innerHTML=sa.length===0
     ?'<div class="empty-state" style="padding:16px 0">No receipts yet</div>'
     :sa.map(s=>{
       const cfg=STORES[s.key]||STORES.other;
@@ -172,34 +182,38 @@ function renderDashboard(now,monthName){
           <div style="font-size:10px;color:var(--muted)">${p}%</div>
         </div></div>`;}).join('');
 
-  // Chart
+  // Chart (old dashboard element — skip if not present)
   const wm={};
   receipts.forEach(r=>{const d=new Date(r.receipt_date);const wn=`W${Math.ceil(d.getDate()/7)}`;wm[wn]=(wm[wn]||0)+(r.total||0);});
   const wd=['W1','W2','W3','W4','W5'].map(w=>({week:w,amount:wm[w]||0})).filter(w=>w.amount>0);
   const curW=`W${Math.ceil(now.getDate()/7)}`;
-  document.getElementById('weekly-chart').innerHTML=wd.length===0
+  const chartEl=document.getElementById('weekly-chart');
+  if(chartEl) chartEl.innerHTML=wd.length===0
     ?'<div style="width:100%;text-align:center;font-size:12px;color:var(--muted);padding:20px 0">Add receipts to see your chart</div>'
     :wd.map(w=>{const h=Math.max(8,Math.round((w.amount/Math.max(...wd.map(x=>x.amount)))*60));const a=w.week===curW;
       return `<div class="chart-col">
-        <div style="font-size:9px;font-weight:700;color:${a?'var(--primary)':'transparent'};margin-bottom:2px">R${(w.amount/1000).toFixed(1)}k</div>
-        <div class="chart-bar" style="height:${h}px;background:${a?'linear-gradient(180deg,#86CAC3,#6CC2C0)':'var(--primary-pale)'}"></div>
-        <div style="font-size:9px;color:${a?'var(--primary)':'var(--muted)'};font-weight:${a?700:400}">${w.week}</div>
+        <div style="font-size:9px;font-weight:700;color:${a?'var(--mint-dark)':'transparent'};margin-bottom:2px">R${(w.amount/1000).toFixed(1)}k</div>
+        <div class="chart-bar" style="height:${h}px;background:${a?'linear-gradient(180deg,var(--mint),var(--mint-dark))':'var(--mint-pale)'}"></div>
+        <div style="font-size:9px;color:${a?'var(--mint-dark)':'var(--muted)'};font-weight:${a?700:400}">${w.week}</div>
       </div>`;}).join('');
 
-  // Recent receipts
-  const recent=receipts.slice(0,4);
-  document.getElementById('recent-receipts').innerHTML=recent.length===0
-    ?'<div class="empty-state" style="padding:16px 0">No receipts yet</div>'
-    :recent.map(r=>{
-      const cfg=STORES[r.store_key]||STORES.other;
-      const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-      return `<div class="receipt-row">${storeLogo(r.store_key,38)}
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600">${cfg.label}</div>
-          <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items · ${r.method||'manual'}</div>
-        </div>
-        <div style="font-size:14px;font-weight:700">${fmtR(r.total||0)}</div>
-      </div>`;}).join('');
+  // Recent receipts (old dashboard element — skip if not present)
+  const recentEl=document.getElementById('recent-receipts');
+  if(recentEl){
+    const recent=receipts.slice(0,4);
+    recentEl.innerHTML=recent.length===0
+      ?'<div class="empty-state" style="padding:16px 0">No receipts yet</div>'
+      :recent.map(r=>{
+        const cfg=STORES[r.store_key]||STORES.other;
+        const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+        return `<div class="receipt-row">${storeLogo(r.store_key,38)}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">${cfg.label}</div>
+            <div style="font-size:11px;color:var(--muted)">${d} · ${r.item_count||'?'} items</div>
+          </div>
+          <div style="font-size:14px;font-weight:700">${fmtR(r.total||0)}</div>
+        </div>`;}).join('');
+  }
 }
 
 // ══ SCAN SCREEN ══
@@ -685,7 +699,7 @@ async function createUser(){
     }
 
     closeModal('modal-create-user');
-    ['new-user-name','new-user-email','new-user-password'].forEach(id=>document.getElementById(id).value='');
+    ['new-user-name','new-user-email'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     showToast(`✓ Account created for ${name}`);
     setTimeout(loadUserList,1500);
 
@@ -697,9 +711,9 @@ async function createUser(){
 
 // ══ PASSWORD CHANGE ══
 function openChangePassword(){
-  document.getElementById('new-password').value='';
-  document.getElementById('confirm-password').value='';
-  document.getElementById('password-error').textContent='';
+  const pwEl=document.getElementById('new-password'); if(pwEl) pwEl.value='';
+  const cpEl=document.getElementById('confirm-password'); if(cpEl) cpEl.value='';
+  const peEl=document.getElementById('password-error'); if(peEl) peEl.textContent='';
   openModal('modal-change-password');
 }
 
@@ -732,9 +746,12 @@ async function saveName(){
     showToast('Error: '+error.message);
     return;
   }
-  document.getElementById('profile-name').textContent=name;
-  document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase();
-  document.getElementById('topbar-initial').textContent=name.charAt(0).toUpperCase();
+  const ss=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  ss('profile-name',name);
+  ss('profile-avatar',name.charAt(0).toUpperCase());
+  ss('topbar-user',name.charAt(0).toUpperCase());
+  ss('topbar-initial',name.charAt(0).toUpperCase());
+  ss('home-avatar',name.charAt(0).toUpperCase());
   closeModal('modal-edit-name');
   showToast('Name updated ✓');
 }
