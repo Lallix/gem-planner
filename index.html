@@ -115,29 +115,33 @@
   </div>
 
   <!-- SCAN -->
+    <!-- SCAN -->
   <div id="screen-scan" class="screen">
-    <div class="screen-header">
-      <div><div class="screen-title">Receipts</div><div class="screen-sub">Scan, upload or enter manually</div></div>
+    <div class="float-header">
+      <div>
+        <div class="float-title">Receipts</div>
+        <div class="float-sub">Scan, upload or enter manually</div>
+      </div>
     </div>
     <div class="scan-method-row">
-      <div class="scan-method" onclick="openPhotoScan()">
+      <div class="scan-method-card" onclick="openPhotoScan()">
         <div class="scan-method-icon">&#128248;</div>
         <div class="scan-method-name">Photo</div>
         <div class="scan-method-sub">Camera scan</div>
       </div>
-      <div class="scan-method" onclick="openEmailImport()">
+      <div class="scan-method-card" onclick="openEmailImport()">
         <div class="scan-method-icon">&#128196;</div>
         <div class="scan-method-name">Upload</div>
         <div class="scan-method-sub">PDF or image</div>
       </div>
-      <div class="scan-method" onclick="openManualReceipt()">
+      <div class="scan-method-card" onclick="openManualReceipt()">
         <div class="scan-method-icon">&#9999;&#65039;</div>
         <div class="scan-method-name">Manual</div>
         <div class="scan-method-sub">Type it in</div>
       </div>
     </div>
-    <div style="padding:0 20px 12px">
-      <div class="card-section-title" style="margin-bottom:10px">Recent receipts</div>
+    <div class="lift">
+      <div class="sec-label">Recent receipts</div>
       <div id="all-receipts"><div class="spinner"></div></div>
     </div>
     <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoScan(this)"/>
@@ -146,25 +150,48 @@
 
   <!-- PLAN -->
   <div id="screen-plan" class="screen">
-    <div class="screen-header">
-      <div><div class="screen-title">Meal Planner</div><div class="screen-sub" id="plan-week-label">This week</div></div>
-      <button class="btn btn-primary btn-sm" onclick="generateShoppingList()">&rarr; List</button>
+    <div class="float-header">
+      <div>
+        <div class="float-title">Meal Planner</div>
+        <div class="float-sub" id="plan-week-label">15 Jun &#8212; 21 Jun</div>
+      </div>
+      <button class="btn btn-charcoal btn-sm" onclick="generateShoppingList()">&#128722; &#8594; List</button>
     </div>
-    <div style="display:flex;gap:8px;padding:0 20px 14px">
+    <div class="week-tabs">
       <div id="plan-tab-this" class="week-tab active" onclick="switchPlanWeek(0)">This week</div>
       <div id="plan-tab-next" class="week-tab" onclick="switchPlanWeek(1)">Next week</div>
     </div>
-    <div id="plan-grid"><div class="spinner"></div></div>
+    <div id="week-summary-strip" class="week-strip">
+      <div class="week-strip-label" id="week-summary-label">0 of 7 days planned</div>
+      <div class="week-strip-pills" id="week-summary-pills"></div>
+    </div>
+    <div class="lift">
+      <div class="gen-banner" onclick="generateShoppingList()">
+        <div class="gen-icon">&#128722;</div>
+        <div class="gen-text">
+          <div class="gen-title">Generate shopping list</div>
+          <div class="gen-sub">Add all missing ingredients to this week</div>
+        </div>
+        <span style="color:rgba(255,255,255,.6);font-size:20px">&#8250;</span>
+      </div>
+      <div id="plan-grid"><div class="spinner"></div></div>
+    </div>
   </div>
 
   <!-- LIST -->
   <div id="screen-list" class="screen">
-    <div class="screen-header">
-      <div><div class="screen-title">Shopping List</div><div class="screen-sub" id="list-week-label">This week</div></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-grocery-list')">&#128717;</button>
-        <button class="btn btn-accent btn-sm" onclick="openAddListItem()">+ Add</button>
+    <div class="float-header">
+      <div>
+        <div class="float-title">Shopping List</div>
+        <div class="float-sub" id="list-week-label">This week</div>
       </div>
+      <button class="basket-icon-btn" onclick="openModal('modal-grocery-list')" title="Browse grocery items">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="#FF4F8B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="3" y1="6" x2="21" y2="6" stroke="#FF4F8B" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M16 10a4 4 0 01-8 0" stroke="#FF4F8B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
     <div id="list-hero-card"></div>
     <div class="basket-tabs">
@@ -176,59 +203,126 @@
       <button id="store-filter-all" class="store-filter-all active" onclick="setListStoreFilter('')">All stores</button>
       <button id="store-filter-woolworths" class="store-filter-btn" onclick="setListStoreFilter('woolworths')"><img src="logos/woolworths.png" alt="Woolworths"/></button>
       <button id="store-filter-checkers" class="store-filter-btn" onclick="setListStoreFilter('checkers')"><img src="logos/checkers.png" alt="Checkers"/></button>
-      <button id="store-filter-pnp" class="store-filter-btn" onclick="setListStoreFilter('pnp')"><img src="logos/pnp.jpg" alt="Pick n Pay"/></button>
+      <button id="store-filter-pnp" class="store-filter-btn" onclick="setListStoreFilter('pnp')"><img src="logos/pnp.jpg" alt="PnP"/></button>
       <button id="store-filter-spar" class="store-filter-btn" onclick="setListStoreFilter('spar')"><img src="logos/spar.jpg" alt="Spar"/></button>
       <button id="store-filter-walmart" class="store-filter-btn" onclick="setListStoreFilter('walmart')"><img src="logos/walmart.png" alt="Walmart"/></button>
     </div>
     <div id="shopping-list-content"><div class="spinner"></div></div>
+    <button class="btn btn-accent" onclick="openAddListItem()" style="position:fixed;bottom:90px;right:16px;border-radius:var(--r-pill);padding:10px 20px;box-shadow:var(--shadow-pink);z-index:89">+ Add</button>
   </div>
 
   <!-- RECIPES -->
   <div id="screen-recipes" class="screen">
-    <div class="screen-header">
-      <div><div class="screen-title">Recipes</div><div class="screen-sub">Your kitchen collection</div></div>
-      <button class="btn btn-primary btn-sm" onclick="openAddRecipe()">+ New</button>
+    <div class="float-header">
+      <div>
+        <div class="float-title">Recipes</div>
+        <div class="float-sub">Your kitchen collection</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button style="background:none;border:none;cursor:pointer;padding:0" onclick="openRecipeImport()" title="Import from link">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#3B9EFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#3B9EFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="btn btn-accent btn-sm" onclick="openAddRecipe()">+ New</button>
+      </div>
     </div>
-    <div class="recipe-filters">
-      <button id="filter-all" class="filter-pill filter-active" style="background:var(--green-dark)" onclick="filterRecipes('all')">All</button>
-      <button id="filter-dinner" class="filter-pill" onclick="filterRecipes('dinner')">&#127829; Dinner</button>
-      <button id="filter-baking" class="filter-pill" onclick="filterRecipes('baking')">&#129360; Baking</button>
-      <button id="filter-shared" class="filter-pill" onclick="filterRecipes('shared')">&#128106; Shared</button>
+    <div style="display:flex;gap:7px;padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
+      <button id="filter-all"      class="filter-pill filter-active" onclick="filterRecipes('all')">All</button>
+      <button id="filter-dinner"   class="filter-pill" onclick="filterRecipes('dinner')">&#127829; Dinner</button>
+      <button id="filter-baking"   class="filter-pill" onclick="filterRecipes('baking')">&#129360; Baking</button>
+      <button id="filter-shared"   class="filter-pill" onclick="filterRecipes('shared')">&#128106; Shared</button>
       <button id="filter-archived" class="filter-pill" onclick="toggleArchived()">&#128193; Archived</button>
     </div>
-    <div id="recipe-list"><div class="spinner"></div></div>
+    <div class="link-banner">
+      <div class="link-icon-wrap">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#3B9EFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#3B9EFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="link-title">Import from any website</div>
+        <div class="link-sub">Paste a URL &#8212; ingredients &amp; method extracted automatically</div>
+      </div>
+      <button class="link-import-btn" onclick="openRecipeImport()">Import</button>
+    </div>
+    <div class="recipe-list-wrap">
+      <div id="recipe-list"><div class="spinner"></div></div>
+    </div>
     <button class="fab" onclick="openAddRecipe()">+</button>
   </div>
 
   <!-- PROFILE -->
   <div id="screen-profile" class="screen">
-    <div class="screen-header"><div><div class="screen-title">Profile</div></div></div>
     <div class="profile-hero">
-      <div class="profile-avatar" id="profile-avatar">G</div>
-      <div>
-        <div class="profile-name" id="profile-name">Loading...</div>
-        <div class="profile-email" id="profile-email"></div>
-        <div class="profile-role" id="profile-role">Member</div>
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-main" id="profile-avatar" onclick="toggleAvatarPicker()">G</div>
+        <div class="profile-avatar-edit" onclick="toggleAvatarPicker()">&#9999;&#65039;</div>
+      </div>
+      <div class="profile-name" id="profile-name">Loading...</div>
+      <div class="profile-email" id="profile-email"></div>
+      <div class="profile-role-badge" id="profile-role">Member</div>
+    </div>
+    <div class="profile-stats-row">
+      <div class="profile-stat" style="background:var(--green-pale);box-shadow:0 3px 12px rgba(0,198,122,.15)">
+        <div class="profile-stat-val" id="profile-stat-receipts" style="color:var(--green-deeper)">0</div>
+        <div class="profile-stat-lbl" style="color:var(--green-dark)">Receipts</div>
+      </div>
+      <div class="profile-stat" style="background:var(--blue-pale);box-shadow:0 3px 12px rgba(59,158,255,.15)">
+        <div class="profile-stat-val" id="profile-stat-recipes" style="color:var(--blue-dark)">0</div>
+        <div class="profile-stat-lbl" style="color:var(--blue-dark)">Recipes</div>
+      </div>
+      <div class="profile-stat" style="background:var(--pink-pale);box-shadow:0 3px 12px rgba(255,79,139,.15)">
+        <div class="profile-stat-val" id="profile-stat-budget" style="color:var(--pink)">R0</div>
+        <div class="profile-stat-lbl" style="color:var(--pink)">Budget</div>
       </div>
     </div>
-    <div class="card-section">
-      <div class="card-section-title" style="margin-bottom:12px">Account</div>
-      <button class="btn btn-outline btn-full" style="margin-bottom:8px" onclick="openEditName()">&#9999;&#65039; Change name</button>
-      <button class="btn btn-outline btn-full" style="margin-bottom:8px" onclick="openChangePassword()">&#128273; Change password</button>
-      <button class="btn btn-outline btn-full" onclick="openBudgetModal()">&#128176; Set monthly budget</button>
+    <!-- Avatar picker -->
+    <div class="avatar-picker-wrap" id="avatar-picker-wrap">
+      <div class="avatar-picker-inner">
+        <div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:3px">Choose your chef</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Pick a character that represents you</div>
+        <div class="avatar-grid" id="avatar-grid"></div>
+        <button class="btn btn-accent btn-full" onclick="saveAvatar()">Save avatar</button>
+      </div>
     </div>
-    <div class="card-section" id="admin-panel" style="display:none">
-      <div class="card-section-title" style="margin-bottom:12px">Admin</div>
-      <div id="user-list"></div>
-      <button class="btn btn-primary btn-full" style="margin-top:10px" onclick="openCreateUser()">+ Create user</button>
-    </div>
-    <div style="padding:0 20px 20px">
-      <button class="btn btn-danger btn-full" onclick="signOut()">Sign out</button>
+    <div class="lift">
+      <div class="setting-group">
+        <div class="sec-label">Account</div>
+        <div class="setting-row" onclick="toggleAvatarPicker()">
+          <div class="setting-icon" style="background:var(--pink-pale)">&#128100;</div>
+          <div style="flex:1"><div class="setting-label">Change avatar</div><div class="setting-sub">Pick your chef character</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
+        <div class="setting-row" onclick="openEditName()">
+          <div class="setting-icon" style="background:var(--green-pale)">&#9999;&#65039;</div>
+          <div style="flex:1"><div class="setting-label">Change name</div><div class="setting-sub" id="setting-name-sub">Loading...</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
+        <div class="setting-row" onclick="openChangePassword()">
+          <div class="setting-icon" style="background:var(--blue-pale)">&#128273;</div>
+          <div style="flex:1"><div class="setting-label">Change password</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
+        <div class="setting-row" onclick="openBudgetModal()">
+          <div class="setting-icon" style="background:var(--orange-pale)">&#128176;</div>
+          <div style="flex:1"><div class="setting-label">Monthly budget</div><div class="setting-sub" id="setting-budget-sub">Not set</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
+      </div>
+      <div class="setting-group" id="admin-panel" style="display:none">
+        <div class="sec-label">Admin</div>
+        <div class="setting-row" onclick="openCreateUser()">
+          <div class="setting-icon" style="background:var(--pink-pale)">&#128100;+</div>
+          <div style="flex:1"><div class="setting-label">Create user</div><div class="setting-sub">Add a new family member</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
+        <div id="user-list"></div>
+      </div>
+      <button class="signout-btn" onclick="signOut()">&#128682; Sign out</button>
     </div>
   </div>
 
-  <!-- BOTTOM NAV -->
-  <nav id="bottom-nav">
+<nav id="bottom-nav">
     <div class="nav-item active" onclick="showScreen('home')"><div class="nav-icon">&#127968;</div><div class="nav-label">Home</div><div class="nav-dot"></div></div>
     <div class="nav-item" onclick="showScreen('scan')"><div class="nav-icon">&#128247;</div><div class="nav-label">Scan</div></div>
     <div class="nav-item" onclick="showScreen('plan')"><div class="nav-icon">&#128197;</div><div class="nav-label">Plan</div></div>

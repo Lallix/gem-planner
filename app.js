@@ -118,6 +118,18 @@ async function loadUser(user){
     if(roleEl) roleEl.textContent='Member';
     if(adminPanel){ adminPanel.classList.add('hidden'); adminPanel.style.display='none'; }
   }
+  // Update settings subs
+  const sNameSub=document.getElementById('setting-name-sub');
+  if(sNameSub) sNameSub.textContent=name;
+  // Load profile avatar from DB if saved
+  const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
+  if(pData?.avatar_emoji){
+    const avEl=document.getElementById('profile-avatar');
+    if(avEl) avEl.innerHTML=pData.avatar_emoji;
+    const homeAv=document.getElementById('home-avatar');
+    if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
+  }
+  loadProfileStats();
 }
 
 // ══ DASHBOARD ══
@@ -365,6 +377,7 @@ function setListStoreFilter(storeKey){
 }
 
 function renderShoppingList(){
+  renderListHero();
   // Apply store filter
   let items=shoppingItems;
   if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
@@ -830,7 +843,7 @@ function showScreen(name){
   if(name==='recipes') loadRecipes();
   if(name==='list') loadShoppingList();
   if(name==='plan'){ if(!allRecipes||allRecipes.length===0) loadRecipes(); loadMealPlan(); }
-  if(name==='profile'&&isAdmin) loadUserList();
+  if(name==='profile'){ if(isAdmin) loadUserList(); loadProfileStats(); }
 }
 
 // ══ MODALS ══
@@ -1527,6 +1540,102 @@ function parseReceiptText(text){
   parseItemsFromOCR(text);
 }
 
+
+
+// ══ AVATAR PICKER ══
+const AVATARS=[
+  {emoji:'&#128104;&#8205;&#127859;',name:'Head Chef'},
+  {emoji:'&#128105;&#8205;&#127859;',name:'Chef G'},
+  {emoji:'&#129472;',name:'Cheese Boss'},
+  {emoji:'&#127859;',name:'Fork Life'},
+  {emoji:'&#129361;',name:'Avo King'},
+  {emoji:'&#127839;',name:'Braai Lord'},
+  {emoji:'&#127828;',name:'Pizza Vibes'},
+  {emoji:'&#127856;',name:'Sweet Tooth'},
+  {emoji:'&#129382;',name:'Veg Head'},
+  {emoji:'&#127871;',name:'Bento Box'},
+  {emoji:'&#129360;',name:'Baker'},
+  {emoji:'&#127857;',name:'Ramen God'},
+];
+let selectedAvatar=null;
+
+function toggleAvatarPicker(){
+  const wrap=document.getElementById('avatar-picker-wrap');
+  if(!wrap) return;
+  const open=wrap.style.display==='block';
+  wrap.style.display=open?'none':'block';
+  if(!open) renderAvatarGrid();
+}
+
+function renderAvatarGrid(){
+  const grid=document.getElementById('avatar-grid');
+  if(!grid) return;
+  const currentAvatar=document.getElementById('profile-avatar')?.textContent||'';
+  grid.innerHTML=AVATARS.map((av,i)=>`
+    <div class="av-option${currentAvatar===av.emoji?' selected':''}" onclick="selectAvatar(${i})">
+      <div class="av-emoji">${av.emoji}</div>
+      <div class="av-name">${av.name}</div>
+    </div>`).join('');
+}
+
+function selectAvatar(i){
+  selectedAvatar=AVATARS[i].emoji;
+  document.querySelectorAll('.av-option').forEach((el,idx)=>{
+    el.classList.toggle('selected',idx===i);
+  });
+}
+
+async function saveAvatar(){
+  if(!selectedAvatar||!currentUser) return;
+  const avatarEl=document.getElementById('profile-avatar');
+  if(avatarEl) avatarEl.innerHTML=selectedAvatar;
+  const homeAv=document.getElementById('home-avatar');
+  if(homeAv) homeAv.innerHTML=selectedAvatar;
+  // Save to profile
+  await db.from('profiles').update({avatar_emoji:selectedAvatar}).eq('id',currentUser.id);
+  toggleAvatarPicker();
+  showToast('\u2713 Avatar saved');
+}
+
+// ══ PROFILE STATS ══
+async function loadProfileStats(){
+  if(!currentUser) return;
+  const [{count:rxCount},{count:rcCount}]=await Promise.all([
+    db.from('receipts').select('*',{count:'exact',head:true}).eq('user_id',currentUser.id),
+    db.from('recipes').select('*',{count:'exact',head:true}).eq('user_id',currentUser.id),
+  ]);
+  const ss=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  ss('profile-stat-receipts',rxCount||0);
+  ss('profile-stat-recipes',rcCount||0);
+  ss('profile-stat-budget',budget>0?'R'+Math.round(budget/1000)+'k':'R0');
+  ss('setting-budget-sub',budget>0?'R'+budget.toLocaleString()+' / month':'Not set');
+}
+
+// ══ LIST HERO CARD ══
+function renderListHero(){
+  const el=document.getElementById('list-hero-card');
+  if(!el) return;
+  if(!shoppingItems||shoppingItems.length===0){ el.innerHTML=''; return; }
+  const done=shoppingItems.filter(i=>i.is_checked).length;
+  const pct=Math.round((done/shoppingItems.length)*100);
+  const total=shoppingItems.reduce((s,i)=>s+(i.quantity||1)*(parseFloat(i.normal_price)||0),0);
+  el.innerHTML=`<div class="list-hero">
+    <div class="lh-label">Estimated total</div>
+    <div class="lh-amount">${total>0?fmtR(total):shoppingItems.length+' items'}</div>
+    <div class="lh-sub">${done} of ${shoppingItems.length} done</div>
+    <div class="lh-prog-row"><span>${done} of ${shoppingItems.length} completed</span><span>${pct}%</span></div>
+    <div class="lh-prog-bar"><div class="lh-prog-fill" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+// ══ RECIPE IMPORT MODAL ══
+function openRecipeImport(){
+  const urlEl=document.getElementById('recipe-import-url');
+  const errEl=document.getElementById('recipe-import-error');
+  if(urlEl) urlEl.value='';
+  if(errEl) errEl.textContent='';
+  openModal('modal-recipe-import');
+}
 
 // ══ SCAN ITEM STATE ══
 let scanItems=[];
