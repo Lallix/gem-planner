@@ -1019,9 +1019,10 @@ function openAddListItem(){
 
 function setQABasket(basket){
   qaBasket=basket;
-  document.getElementById('qa-basket-this').classList.toggle('filter-active',basket==='this_week');
-  document.getElementById('qa-basket-next').classList.toggle('filter-active',basket==='next_week');
-  document.getElementById('qa-basket-monthly').classList.toggle('filter-active',basket==='monthly');
+  document.querySelectorAll('[id^="qa-basket-"]').forEach(b=>b.classList.remove('filter-active','active'));
+  const map={'this_week':'qa-basket-this','next_week':'qa-basket-next','monthly':'qa-basket-monthly'};
+  const el=document.getElementById(map[basket]);
+  if(el) el.classList.add('filter-active');
 }
 
 const QA_CAT_ID_MAP={
@@ -1053,8 +1054,8 @@ function toggleQAItem(id){
   const el=document.getElementById('qa-item-'+id);
   if(el){
     const selected=quickAddSelected.has(id);
-    el.style.background=selected?'var(--primary-pale)':'var(--card)';
-    el.style.borderColor=selected?'var(--primary)':'var(--line)';
+    el.style.background=selected?'var(--green-pale)':'var(--card)';
+    el.style.borderColor=selected?'var(--green-dark)':'var(--line)';
     const tick=el.querySelector('.qa-tick');
     if(tick) tick.style.display=selected?'flex':'none';
   }
@@ -1158,7 +1159,7 @@ async function saveListItem(){ await saveAllQuickItems(); }
 
 
 
-function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
+// generateShoppingList — see new async version above
 
 // ══ MEAL PLAN ══
 let currentPlanWeekOffset=0;
