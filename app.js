@@ -2094,6 +2094,33 @@ function switchListBasket(basket){
   loadShoppingList();
 }
 
+
+// ══ CLEAR BASKET ══
+async function clearBasket(){
+  if(!currentUser) return;
+  const basketLabel=currentListBasket==='monthly'?'Monthly basket':currentListBasket==='next_week'?'Next week':'This week';
+  if(!confirm('Clear all items from '+basketLabel+'? This cannot be undone.')) return;
+
+  const now=new Date();
+  let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(currentListBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const ws=weekStart.toISOString().split('T')[0];
+  const we=weekEnd.toISOString().split('T')[0];
+
+  let query=db.from('shopping_list_items').delete().eq('user_id',currentUser.id);
+  if(currentListBasket==='monthly'){
+    query=query.eq('week_start','monthly');
+  } else {
+    query=query.gte('week_start',ws).lte('week_start',we);
+  }
+  const {error}=await query;
+  if(error){ showToast('Error clearing basket'); return; }
+  shoppingItems=[];
+  renderShoppingList();
+  showToast('\u2713 '+basketLabel+' cleared');
+}
+
 // ══ GROCERY MASTER LIST ══
 let groceryItems=[];
 let groceryBasket='this_week';

@@ -201,10 +201,18 @@
     <div id="list-hero-card"></div>
 
     <!-- Basket tabs — This week / Next week / Monthly -->
-    <div class="basket-tabs" id="basket-tabs-row">
-      <div id="list-tab-this"    class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
-      <div id="list-tab-next"    class="basket-tab"        onclick="switchListBasket('next_week')">Next week</div>
-      <div id="list-tab-monthly" class="basket-tab"        onclick="switchListBasket('monthly')">Monthly</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px 12px">
+      <div id="basket-tabs-row" style="display:flex;gap:8px;flex:1">
+        <div id="list-tab-this"    class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
+        <div id="list-tab-next"    class="basket-tab"        onclick="switchListBasket('next_week')">Next week</div>
+        <div id="list-tab-monthly" class="basket-tab"        onclick="switchListBasket('monthly')">Monthly</div>
+      </div>
+      <button onclick="clearBasket()" title="Clear basket"
+        style="flex-shrink:0;background:transparent;border:1.5px solid rgba(255,79,139,.4);
+          border-radius:10px;padding:7px 10px;font-size:11px;font-weight:700;
+          color:var(--pink);cursor:pointer;white-space:nowrap;font-family:var(--font)">
+        &#128465; Clear
+      </button>
     </div>
 
     <!-- Shopping list content — freq bought + cat filters + 3-col grid injected by JS -->
