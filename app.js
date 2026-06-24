@@ -414,13 +414,15 @@ async function loadUser(user){
   const sNameSub=document.getElementById('setting-name-sub');
   if(sNameSub) sNameSub.textContent=name;
   // Load profile avatar from DB if saved
-  const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
-  if(pData?.avatar_emoji){
-    const avEl=document.getElementById('profile-avatar');
-    if(avEl) avEl.innerHTML=pData.avatar_emoji;
-    const homeAv=document.getElementById('home-avatar');
-    if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
-  }
+  try{
+    const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
+    if(pData?.avatar_emoji){
+      const avEl=document.getElementById('profile-avatar');
+      if(avEl) avEl.innerHTML=pData.avatar_emoji;
+      const homeAv=document.getElementById('home-avatar');
+      if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
+    }
+  }catch(e){ /* avatar_emoji column may not exist yet */ }
   loadProfileStats();
 }
 
@@ -1355,14 +1357,10 @@ function toggleIngredient(i){
   renderIngredientSelector();
 }
 
-async 
 // ══ INGREDIENT SELECTOR BASKET TOGGLE ══
 let ingBasket='this_week';
 function setIngBasket(b){
   ingBasket=b;
-  document.querySelectorAll('[id^="ing-tab-"]').forEach(t=>t.classList.remove('active'));
-  const el=document.getElementById('ing-tab-'+b.replace('_week',b==='this_week'?'-this':b==='next_week'?'-next':'').replace('this_week','this').replace('next_week','next'));
-  // simpler:
   const map={'this_week':'ing-tab-this','next_week':'ing-tab-next','monthly':'ing-tab-monthly'};
   document.querySelectorAll('[id^="ing-tab-"]').forEach(t=>t.classList.remove('active'));
   const activeEl=document.getElementById(map[b]);
@@ -2010,7 +2008,7 @@ async function assignRecipeToPlan(dayOfWeek){
 }
 
 // ══ SHOPPING LIST BASKET ══
-let currentListBasket='this_week';
+var currentListBasket='this_week'; // var for hoisting — used before let block
 
 function switchListBasket(basket){
   currentListBasket=basket;
