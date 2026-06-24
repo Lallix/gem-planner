@@ -79,6 +79,250 @@ async function loadUnsplashInto(elId, query, fallbackEmoji){
   img.src=url;
 }
 
+
+// ══ SVG ITEM ILLUSTRATIONS ══
+// Returns an inline SVG for common grocery items and categories
+// Falls back to emoji if no match
+
+function getItemSVG(name, size=46){
+  const n=name.toLowerCase().trim();
+  const s=size;
+
+  // ── Common items ──
+  if(n.includes('milk')||n.includes('dairy'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="8" width="20" height="32" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <rect x="18" y="4" width="12" height="7" rx="3" fill="#3B9EFF"/>
+      <ellipse cx="24" cy="28" rx="7" ry="5" fill="#3B9EFF" opacity=".18"/>
+      <text x="24" y="26" text-anchor="middle" font-size="9" fill="#3B9EFF" font-weight="700" font-family="DM Sans,sans-serif">MILK</text>
+    </svg>`;
+
+  if(n.includes('egg'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="26" rx="10" ry="13" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <ellipse cx="24" cy="27" rx="5" ry="6" fill="#FFB347" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('bread')||n.includes('loaf'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="20" width="32" height="20" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <ellipse cx="24" cy="20" rx="16" ry="8" fill="#FFD0A8" stroke="#FF8C42" stroke-width="1.8"/>
+      <line x1="16" y1="28" x2="32" y2="28" stroke="#FF8C42" stroke-width="1.2" stroke-dasharray="3 2" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('butter'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="18" width="28" height="16" rx="4" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <rect x="14" y="22" width="20" height="8" rx="2" fill="#F5C400" opacity=".3"/>
+      <text x="24" y="28" text-anchor="middle" font-size="7" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">BUTTER</text>
+    </svg>`;
+
+  if(n.includes('cheese'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="8,36 40,36 32,14" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <circle cx="20" cy="28" r="2.5" fill="#F5C400" opacity=".6"/>
+      <circle cx="28" cy="24" r="1.8" fill="#F5C400" opacity=".5"/>
+      <circle cx="25" cy="31" r="2" fill="#F5C400" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('yoghurt')||n.includes('yogurt'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="13" y="14" width="22" height="26" rx="6" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <rect x="16" y="10" width="16" height="8" rx="3" fill="#FF4F8B" opacity=".5"/>
+      <path d="M17 26 Q24 22 31 26" stroke="#FF4F8B" stroke-width="1.5" fill="none"/>
+    </svg>`;
+
+  if(n.includes('chicken')||n.includes('poultry'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="14" ry="10" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <ellipse cx="24" cy="18" rx="8" ry="7" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <circle cx="20" cy="16" r="1.5" fill="#FF4F8B" opacity=".6"/>
+    </svg>`;
+
+  if(n.includes('beef')||n.includes('mince')||n.includes('steak'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="14" ry="9" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <path d="M12 26 Q18 20 24 24 Q30 20 36 26" stroke="#FF4F8B" stroke-width="1.5" fill="none" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('tomato'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="27" r="13" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <path d="M24 14 Q26 10 30 11" stroke="#D4F5E9" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 Q22 10 18 11" stroke="#D4F5E9" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 L24 17" stroke="#009A5C" stroke-width="2"/>
+    </svg>`;
+
+  if(n.includes('potato'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="26" rx="13" ry="10" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <circle cx="18" cy="24" r="1.5" fill="#B8860B" opacity=".4"/>
+      <circle cx="28" cy="22" r="1.5" fill="#B8860B" opacity=".4"/>
+      <circle cx="23" cy="30" r="1.5" fill="#B8860B" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('onion'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="12" ry="10" fill="#E8DFFF" stroke="#8B5CF6" stroke-width="1.8"/>
+      <path d="M20 18 Q24 10 28 18" stroke="#8B5CF6" stroke-width="1.5" fill="none"/>
+      <path d="M24 28 Q28 22 32 26" stroke="#8B5CF6" stroke-width="1" fill="none" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('apple'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 26 Q12 14 24 14 Q36 14 36 26 Q36 38 24 38 Q12 38 12 26Z" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <path d="M24 14 Q26 8 30 9" stroke="#009A5C" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 L24 17" stroke="#009A5C" stroke-width="2"/>
+    </svg>`;
+
+  if(n.includes('banana'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 32 Q14 16 28 12 Q36 10 38 16 Q32 14 22 22 Q14 30 16 38 Q10 38 10 32Z" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+    </svg>`;
+
+  if(n.includes('coffee'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="14" width="20" height="26" rx="5" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <rect x="15" y="17" width="14" height="8" rx="2" fill="#FF8C42" opacity=".25"/>
+      <text x="22" y="34" text-anchor="middle" font-size="7" fill="#8B3A00" font-weight="700" font-family="DM Sans,sans-serif">COFFEE</text>
+      <path d="M32 22 Q38 22 38 28 Q38 32 32 32" stroke="#FF8C42" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    </svg>`;
+
+  if(n.includes('tea'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="20" width="20" height="18" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <path d="M32 24 Q38 24 38 30 Q38 34 32 34" stroke="#009A5C" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M18 20 Q20 14 22 20" stroke="#009A5C" stroke-width="1.5" fill="none"/>
+      <path d="M23 20 Q25 12 27 20" stroke="#009A5C" stroke-width="1.5" fill="none"/>
+    </svg>`;
+
+  if(n.includes('sugar'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="14" width="26" height="26" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="30" text-anchor="middle" font-size="8" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">SUGAR</text>
+      <circle cx="18" cy="20" r="1.5" fill="#F5C400" opacity=".5"/>
+      <circle cx="30" cy="22" r="1" fill="#F5C400" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('rice'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="12" width="26" height="28" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <text x="24" y="29" text-anchor="middle" font-size="8" fill="#006B3C" font-weight="700" font-family="DM Sans,sans-serif">RICE</text>
+      <ellipse cx="24" cy="20" rx="8" ry="3" fill="#009A5C" opacity=".15"/>
+    </svg>`;
+
+  if(n.includes('pasta')||n.includes('noodle')||n.includes('spaghetti'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 38 Q14 14 20 14 Q20 38 24 14 Q28 38 28 14 Q34 14 34 38" stroke="#FFE4CC" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M14 38 Q14 14 20 14 Q20 38 24 14 Q28 38 28 14 Q34 14 34 38" stroke="#FF8C42" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </svg>`;
+
+  if(n.includes('oil')||n.includes('sunflower'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="10" width="16" height="30" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <rect x="19" y="6" width="10" height="8" rx="3" fill="#F5C400" opacity=".5"/>
+      <text x="24" y="30" text-anchor="middle" font-size="6" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">OIL</text>
+    </svg>`;
+
+  if(n.includes('soap')||n.includes('detergent')||n.includes('dishwash'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="14" width="20" height="26" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <rect x="18" y="10" width="12" height="8" rx="3" fill="#009A5C" opacity=".5"/>
+      <circle cx="22" cy="22" r="2" fill="#009A5C" opacity=".3"/>
+      <circle cx="28" cy="26" r="1.5" fill="#009A5C" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('water')||n.includes('still water'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="17" y="8" width="14" height="32" rx="6" fill="#D6EEFF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <path d="M20 20 Q24 16 28 20 Q24 24 20 20Z" fill="#3B9EFF" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('juice'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="10" width="20" height="30" rx="5" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <rect x="17" y="6" width="14" height="8" rx="3" fill="#FF8C42" opacity=".4"/>
+      <ellipse cx="24" cy="28" rx="6" ry="5" fill="#FF8C42" opacity=".2"/>
+    </svg>`;
+
+  if(n.includes('flour'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="14" width="24" height="24" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="29" text-anchor="middle" font-size="7" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">FLOUR</text>
+    </svg>`;
+
+  if(n.includes('salt'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="12" width="16" height="26" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <circle cx="22" cy="22" r="1.5" fill="#3B9EFF" opacity=".4"/>
+      <circle cx="26" cy="26" r="1.5" fill="#3B9EFF" opacity=".4"/>
+      <circle cx="22" cy="30" r="1.5" fill="#3B9EFF" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('pepper'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="12" width="16" height="26" rx="5" fill="#2C2C3E" stroke="#555" stroke-width="1.8" opacity=".85"/>
+      <circle cx="22" cy="22" r="1.5" fill="#fff" opacity=".3"/>
+      <circle cx="26" cy="28" r="1.5" fill="#fff" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('avocado')||n.includes('avo'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 8 Q36 16 36 28 Q36 40 24 40 Q12 40 12 28 Q12 16 24 8Z" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <ellipse cx="24" cy="30" rx="6" ry="7" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.2"/>
+    </svg>`;
+
+  if(n.includes('sauce')||n.includes('ketchup'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="16" width="18" height="22" rx="5" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <rect x="18" y="10" width="12" height="9" rx="3" fill="#FF4F8B" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('cereal')||n.includes('oat'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="10" width="26" height="30" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="28" text-anchor="middle" font-size="6.5" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">CEREAL</text>
+    </svg>`;
+
+  // ── Category fallbacks ──
+  return getCatSVG(name, size);
+}
+
+function getCatSVG(cat, size=46){
+  const s=size;
+  const c=cat.toLowerCase();
+
+  if(c.includes('dairy'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="14" y="8" width="20" height="32" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/><rect x="18" y="4" width="12" height="7" rx="3" fill="#3B9EFF"/><text x="24" y="28" text-anchor="middle" font-size="8" fill="#3B9EFF" font-weight="700" font-family="DM Sans,sans-serif">DAIRY</text></svg>`;
+
+  if(c.includes('meat')||c.includes('fish'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="26" rx="14" ry="10" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/><path d="M14 24 Q20 18 26 22 Q32 18 38 24" stroke="#FF4F8B" stroke-width="1.5" fill="none" opacity=".5"/></svg>`;
+
+  if(c.includes('fruit')||c.includes('veg'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="27" r="13" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/><path d="M24 14 Q28 8 32 10" stroke="#009A5C" stroke-width="2" stroke-linecap="round"/><path d="M24 14 L24 18" stroke="#009A5C" stroke-width="2"/></svg>`;
+
+  if(c.includes('dry')||c.includes('grain'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="11" y="12" width="26" height="28" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/><text x="24" y="29" text-anchor="middle" font-size="8" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">DRY</text></svg>`;
+
+  if(c.includes('bak'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="8" y="20" width="32" height="18" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/><ellipse cx="24" cy="20" rx="16" ry="7" fill="#FFD0A8" stroke="#FF8C42" stroke-width="1.8"/></svg>`;
+
+  if(c.includes('frozen'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><path d="M24 8 L24 40M8 24 L40 24M13 13 L35 35M35 13 L13 35" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="24" r="5" fill="#E8DFFF" stroke="#8B5CF6" stroke-width="1.8"/></svg>`;
+
+  if(c.includes('clean'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="15" y="14" width="18" height="24" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/><rect x="19" y="10" width="10" height="7" rx="2" fill="#009A5C" opacity=".5"/><circle cx="20" cy="24" r="2" fill="#009A5C" opacity=".3"/><circle cx="28" cy="28" r="1.5" fill="#009A5C" opacity=".3"/></svg>`;
+
+  if(c.includes('drink')||c.includes('bev'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><path d="M16 12 L18 38 Q18 40 24 40 Q30 40 30 38 L32 12Z" fill="#D6EEFF" stroke="#3B9EFF" stroke-width="1.8"/><path d="M16 18 L32 18" stroke="#3B9EFF" stroke-width="1.5" opacity=".4"/></svg>`;
+
+  if(c.includes('snack'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="10" y="16" width="28" height="18" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/><circle cx="18" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/><circle cx="24" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/><circle cx="30" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/></svg>`;
+
+  // Default misc
+  return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="12" y="12" width="24" height="24" rx="6" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/><circle cx="24" cy="24" r="6" fill="#F5C400" opacity=".2"/></svg>`;
+}
+
 // ══ STATE ══
 let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shoppingItems=[], currentFilter='all';
 
@@ -547,22 +791,7 @@ function renderFrequentlyBought(){
         onclick="addFreqItemToList('${item.name.replace(/'/g,"\\'")}','${item.store_key||''}')">+</button>
     </div>`;
   }).join('');
-  // Defer image loading so DOM is ready
-  setTimeout(()=>{
-    freqItems.forEach(item=>{
-      const safeId='freq-img-'+item.name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
-      fetchUnsplashUrl(item.name+' food').then(url=>{
-        if(!url) return;
-        const el=document.getElementById(safeId);
-        if(!el) return;
-        el.style.backgroundImage=`url(${url})`;
-        el.style.backgroundSize='cover';
-        el.style.backgroundPosition='center';
-        el.style.borderRadius='12px';
-        el.textContent='';
-      });
-    });
-  },300);
+  // SVG illustrations used — no Unsplash for freq tiles
   return `<div style="padding:12px 0 0">
     <div class="freq-section-head">
       <span style="font-size:14px;font-weight:800;color:var(--text)">Frequently bought</span>
@@ -574,19 +803,8 @@ function renderFrequentlyBought(){
 }
 
 function getFreqEmoji(name){
-  const n=name.toLowerCase();
-  const map=[
-    ['milk','&#129371;'],['egg','&#129040;'],['bread','&#127838;'],['butter','&#129371;'],
-    ['cheese','&#129472;'],['chicken','&#129385;'],['beef','&#129385;'],['mince','&#129385;'],
-    ['tomato','&#127813;'],['potato','&#129479;'],['onion','&#129382;'],['carrot','&#129365;'],
-    ['apple','&#127822;'],['banana','&#127820;'],['orange','&#127818;'],['avocado','&#129361;'],
-    ['rice','&#127858;'],['pasta','&#127857;'],['flour','&#127807;'],['sugar','&#127807;'],
-    ['oil','&#127807;'],['coffee','&#9749;'],['tea','&#9749;'],['juice','&#129381;'],
-    ['soap','&#129532;'],['detergent','&#129532;'],['sauce','&#127798;'],['yoghurt','&#129371;'],
-    ['cream','&#129371;'],['bacon','&#129385;'],['fish','&#127957;'],['pork','&#129385;'],
-  ];
-  for(const [key,emoji] of map){ if(n.includes(key)) return emoji; }
-  return '&#128230;';
+  // Now returns SVG illustration — name kept for backward compat
+  return getItemSVG(name, 46);
 }
 
 async function addFreqItemToList(name,storeKey){
@@ -660,7 +878,7 @@ function renderShoppingList(){
   };
 
   // Category emoji map
-  const catEmoji={'Dairy':'&#129371;','Meat & Fish':'&#129385;','Fruit & Veg':'&#129382;','Dry Goods':'&#127807;','Bakery':'&#127838;','Frozen':'&#10052;&#65039;','Cleaning':'&#129532;','Beverages':'&#129381;','Snacks':'&#127839;','Personal Care':'&#129532;','Household':'&#127968;','Baby & Kids':'&#128118;','meal_plan':'&#127869;&#65039;','misc':'&#128230;','Other':'&#128230;'};
+  // catEmoji replaced by getCatSVG — called inline per item
 
   // Group by category
   const grouped={};
@@ -673,7 +891,7 @@ function renderShoppingList(){
   let html=renderFrequentlyBought();
   Object.entries(grouped).forEach(([cat,catItems])=>{
     const cfg=catCfg[cat]||{bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',dot:'var(--yellow)'};
-    const emoji=catEmoji[cat]||'&#128230;';
+          const emoji=getItemSVG(cat,38); // SVG per category
     const catLabel=CATEGORY_LABELS[cat]||cat;
 
     // Frequently bought row for this category (from grocery items)
@@ -698,9 +916,8 @@ function renderShoppingList(){
     catItems.forEach(item=>{
       const price=item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:'';
       const qty=item.quantity||1;
-      const prodImgId='prod-img-'+item.id;
       html+=`<div class="prod-card ${item.is_checked?'opacity-50':''}" style="background:${cfg.bg};box-shadow:0 4px 16px ${cfg.shadow}">
-        <div class="prod-thumb" id="${prodImgId}" style="transition:all .3s">${emoji}</div>
+        <div class="prod-thumb">${getItemSVG(item.name,38)}</div>
         <div class="prod-name ${item.is_checked?'checked':''}">${item.name}</div>
         ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
         ${price}
@@ -723,21 +940,7 @@ function renderShoppingList(){
   });
 
   listEl.innerHTML=html;
-  // Load Unsplash images for product tiles after DOM renders
-  setTimeout(()=>{
-    items.forEach(item=>{
-      const el=document.getElementById('prod-img-'+item.id);
-      if(!el) return;
-      fetchUnsplashUrl(item.name+' food').then(url=>{
-        if(!url) return;
-        el.style.backgroundImage=`url(${url})`;
-        el.style.backgroundSize='cover';
-        el.style.backgroundPosition='center';
-        el.style.borderRadius='10px';
-        el.textContent='';
-      });
-    });
-  },400);
+  // SVG illustrations used — no Unsplash for product tiles
 }
 
 
