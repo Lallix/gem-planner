@@ -966,50 +966,62 @@ function renderShoppingList(){
         const qty=item.quantity||1;
         const checked=item.is_checked;
         const isLast=idx===catItems.length-1;
-        html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;
-          background:${checked?'rgba(0,0,0,.03)':'transparent'};
-          border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,.06)'};
-          opacity:${checked?'.5':'1'};transition:opacity .2s">
-          <!-- SVG icon -->
-          <div style="width:36px;height:36px;border-radius:10px;
-            background:rgba(0,0,0,.04);display:flex;align-items:center;
-            justify-content:center;flex-shrink:0">
-            ${getItemSVG(item.name,28)}
-          </div>
-          <!-- Name + unit -->
-          <div style="flex:1;min-width:0;cursor:pointer"
-            onclick="toggleListItem('${item.id}','${!checked}')">
-            <div style="font-size:14px;font-weight:600;color:var(--text);
-              ${checked?'text-decoration:line-through;':''};
-              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
-            ${item.amount?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${item.amount}</div>`:''}
-          </div>
-          <!-- Edit store pencil -->
-          <button onclick="openEditItemStore('${item.id}','${item.store_key||''}')"
-            style="background:none;border:none;cursor:pointer;padding:4px;
-              color:var(--muted);font-size:14px;flex-shrink:0"
-            title="Change store">&#9998;&#65039;</button>
-          <!-- Qty stepper -->
-          <div style="display:flex;align-items:center;border-radius:8px;
-            border:1.5px solid var(--line);overflow:hidden;background:#fff;
-            flex-shrink:0" onclick="event.stopPropagation()">
-            <button onclick="changeItemQty('${item.id}',${qty-1})"
-              style="width:26px;height:26px;border:none;background:transparent;
-                font-size:16px;font-weight:800;cursor:pointer;color:var(--text)">&#8722;</button>
-            <div style="width:22px;text-align:center;font-size:12px;
-              font-weight:700;color:var(--text)">${qty}</div>
-            <button onclick="changeItemQty('${item.id}',${qty+1})"
-              style="width:26px;height:26px;border:none;background:transparent;
-                font-size:18px;font-weight:800;cursor:pointer;color:var(--green-dark)">+</button>
-          </div>
-          <!-- Tick circle -->
-          <div onclick="toggleListItem('${item.id}','${!checked}')"
-            style="width:26px;height:26px;border-radius:50%;flex-shrink:0;cursor:pointer;
-              display:flex;align-items:center;justify-content:center;
-              background:${checked?'var(--green-dark)':'#fff'};
-              border:2px solid ${checked?'var(--green-dark)':'var(--line)'};
-              transition:all .2s">
-            ${checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        html+=`<div class="swipe-row" style="position:relative;overflow:hidden;
+          border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,.06)'}">
+          <!-- Red delete zone — revealed by swipe -->
+          <button class="swipe-delete-btn" onclick="deleteListItem('${item.id}')"
+            style="position:absolute;right:0;top:0;bottom:0;width:72px;
+              background:#FF3B5C;color:#fff;border:none;cursor:pointer;
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              gap:2px;opacity:0;pointer-events:none;transition:opacity .15s;font-family:var(--font)">
+            <span style="font-size:18px">&#128465;</span>
+            <span style="font-size:10px;font-weight:700">Remove</span>
+          </button>
+          <!-- Row content — slides left on swipe -->
+          <div class="swipe-row-inner" style="display:flex;align-items:center;gap:10px;
+            padding:11px 14px;background:${checked?'rgba(0,0,0,.03)':'transparent'};
+            opacity:${checked?'.5':'1'};transition:opacity .2s;
+            transform:translateX(0);will-change:transform">
+            <!-- SVG icon -->
+            <div style="width:36px;height:36px;border-radius:10px;
+              background:rgba(0,0,0,.04);display:flex;align-items:center;
+              justify-content:center;flex-shrink:0">
+              ${getItemSVG(item.name,28)}
+            </div>
+            <!-- Name + unit -->
+            <div style="flex:1;min-width:0;cursor:pointer"
+              onclick="toggleListItem('${item.id}','${!checked}')">
+              <div style="font-size:14px;font-weight:600;color:var(--text);
+                ${checked?'text-decoration:line-through;':''}
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+              ${item.amount?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${item.amount}</div>`:''}
+            </div>
+            <!-- Edit store pencil -->
+            <button onclick="openEditItemStore('${item.id}','${item.store_key||''}')"
+              style="background:none;border:none;cursor:pointer;padding:4px;
+                color:var(--muted);font-size:14px;flex-shrink:0">&#9998;&#65039;</button>
+            <!-- Qty stepper -->
+            <div style="display:flex;align-items:center;border-radius:8px;
+              border:1.5px solid var(--line);overflow:hidden;background:#fff;
+              flex-shrink:0" onclick="event.stopPropagation()">
+              <button onclick="changeItemQty('${item.id}',${qty-1})"
+                style="width:26px;height:26px;border:none;background:transparent;
+                  font-size:16px;font-weight:800;cursor:pointer;color:var(--text)">&#8722;</button>
+              <div style="width:22px;text-align:center;font-size:12px;
+                font-weight:700;color:var(--text)">${qty}</div>
+              <button onclick="changeItemQty('${item.id}',${qty+1})"
+                style="width:26px;height:26px;border:none;background:transparent;
+                  font-size:18px;font-weight:800;cursor:pointer;color:var(--green-dark)">+</button>
+            </div>
+            <!-- Tick circle -->
+            <div onclick="toggleListItem('${item.id}','${!checked}')"
+              style="width:26px;height:26px;border-radius:50%;flex-shrink:0;cursor:pointer;
+                display:flex;align-items:center;justify-content:center;
+                background:${checked?'var(--green-dark)':'#fff'};
+                border:2px solid ${checked?'var(--green-dark)':'var(--line)'};
+                transition:all .2s">
+              ${checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+            </div>
           </div>
         </div>`;
       });
@@ -1021,9 +1033,59 @@ function renderShoppingList(){
   });
 
   listEl.innerHTML=html;
+  setTimeout(()=>initSwipeToDelete(),50);
 }
 
+// ══ SWIPE TO DELETE ══
+let activeSwipeRow=null;
 
+function initSwipeToDelete(){
+  document.querySelectorAll('.swipe-row').forEach(row=>{
+    let startX=0,startY=0,currentX=0,swiping=false;
+    const inner=row.querySelector('.swipe-row-inner');
+    const del=row.querySelector('.swipe-delete-btn');
+    if(!inner) return;
+
+    row.addEventListener('touchstart',e=>{
+      if(activeSwipeRow&&activeSwipeRow!==row) resetSwipe(activeSwipeRow);
+      startX=e.touches[0].clientX;
+      startY=e.touches[0].clientY;
+      currentX=0; swiping=true;
+    },{passive:true});
+
+    row.addEventListener('touchmove',e=>{
+      if(!swiping) return;
+      const dx=e.touches[0].clientX-startX;
+      const dy=e.touches[0].clientY-startY;
+      if(Math.abs(dy)>Math.abs(dx)&&Math.abs(currentX)<5){ swiping=false; return; }
+      if(dx>0&&currentX>=0) return;
+      currentX=Math.max(dx,-80);
+      inner.style.transform=`translateX(${currentX}px)`;
+      inner.style.transition='none';
+      if(del) del.style.opacity=Math.min(1,Math.abs(currentX)/60)+'';
+    },{passive:true});
+
+    row.addEventListener('touchend',()=>{
+      if(!swiping) return; swiping=false;
+      if(currentX<-50){
+        inner.style.transition='transform .2s';
+        inner.style.transform='translateX(-72px)';
+        if(del){del.style.opacity='1';del.style.pointerEvents='auto';}
+        activeSwipeRow=row;
+      } else {
+        resetSwipe(row);
+      }
+    });
+  });
+}
+
+function resetSwipe(row){
+  const inner=row?.querySelector('.swipe-row-inner');
+  const del=row?.querySelector('.swipe-delete-btn');
+  if(inner){inner.style.transition='transform .2s';inner.style.transform='translateX(0)';}
+  if(del){del.style.opacity='0';del.style.pointerEvents='none';}
+  if(activeSwipeRow===row) activeSwipeRow=null;
+}
 
 // ══ EDIT ITEM STORE ══
 let editStoreItemId=null;
@@ -2879,11 +2941,26 @@ async function importRecipeFromUrl(){
   if(btn){btn.textContent='Importing...';btn.disabled=true;}
 
   try{
-    // Use allorigins CORS proxy to fetch the page
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const res=await fetch(proxy);
-    const data=await res.json();
-    const html=data.contents||'';
+    // Try multiple CORS proxies in order — allorigins is unreliable
+    let html='';
+    const proxies=[
+      async()=>{
+        const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        return r.ok?await r.text():'';
+      },
+      async()=>{
+        const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        const d=await r.json(); return d.contents||'';
+      },
+      async()=>{
+        const r=await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        return r.ok?await r.text():'';
+      },
+    ];
+    for(const proxy of proxies){
+      try{ html=await proxy(); if(html.length>500) break; }catch(e){ continue; }
+    }
+    if(!html) throw new Error('All proxies failed — check your internet connection');
 
     // Try to parse schema.org/Recipe JSON-LD first
     const recipe=parseSchemaRecipe(html)||parseOpenGraph(html,url);
