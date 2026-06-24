@@ -848,130 +848,134 @@ function setListCatFilter(cat){
 function renderShoppingList(){
   renderListHero();
   let items=shoppingItems;
-  if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
-  if(currentListCatFilter&&currentListCatFilter!=='all') items=items.filter(i=>(i.category||'misc')===currentListCatFilter);
+  if(currentListCatFilter&&currentListCatFilter!=='all')
+    items=items.filter(i=>(i.category||'misc')===currentListCatFilter);
 
   const listEl=document.getElementById('shopping-list-content');
   if(items.length===0){
-    listEl.innerHTML=renderFrequentlyBought()+
-      `<div class="empty-state"><div class="empty-state-icon">&#128722;</div><div class="empty-title">List is empty</div><div class="empty-sub">Tap + Add or the basket icon to add items</div></div>`;
+    listEl.innerHTML=`<div class="empty-state">
+      <div class="empty-state-icon">&#128722;</div>
+      <div class="empty-title">List is empty</div>
+      <div class="empty-sub">Tap + Add or the basket icon to browse items</div>
+    </div>`;
     return;
   }
 
-  // Category config — tinted backgrounds + coloured shadows
-  const catCfg={
-    'Dairy':       {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.3)',  dot:'var(--blue)'},
-    'Meat & Fish': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.3)',   dot:'var(--pink)'},
-    'Fruit & Veg': {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.3)',    dot:'var(--green)'},
-    'Dry Goods':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.3)',   dot:'var(--orange)'},
-    'Bakery':      {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
-    'Frozen':      {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.25)',  dot:'var(--purple)'},
-    'Cleaning':    {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.2)',    dot:'var(--green-dark)'},
-    'Beverages':   {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.25)',  dot:'var(--blue)'},
-    'Snacks':      {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
-    'Personal Care':{bg:'var(--pink-pale)', shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
-    'Household':   {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.2)',   dot:'var(--purple)'},
-    'Baby & Kids': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
-    'meal_plan':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
-    'misc':        {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
-    'Other':       {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',    dot:'var(--yellow)'},
+  // Group by store first, then by category within each store
+  const STORE_ORDER=['woolworths','checkers','pnp','spar','walmart','other',''];
+  const STORE_COLORS={
+    woolworths:{bg:'#1A1A1A',text:'#fff',pale:'#F0F0F0'},
+    checkers:{bg:'#00B5AD',text:'#fff',pale:'#E0F7F6'},
+    pnp:{bg:'#004F9F',text:'#fff',pale:'#E6EEF9'},
+    spar:{bg:'#007A3D',text:'#fff',pale:'#E6F4EC'},
+    walmart:{bg:'#0071CE',text:'#fff',pale:'#E6F2FB'},
+    other:{bg:'#6B7280',text:'#fff',pale:'#F3F4F6'},
+    '': {bg:'#9CA3AF',text:'#fff',pale:'#F9FAFB'},
   };
 
-  // Category emoji map
-  // catEmoji replaced by getCatSVG — called inline per item
+  // Category config
+  const catCfg={
+    'Dairy':        {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.3)',   dot:'var(--blue)'},
+    'Meat & Fish':  {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.3)',    dot:'var(--pink)'},
+    'Fruit & Veg':  {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.3)',     dot:'var(--green)'},
+    'Dry Goods':    {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.3)',    dot:'var(--orange)'},
+    'Bakery':       {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',   dot:'var(--orange)'},
+    'Frozen':       {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.25)',   dot:'var(--purple)'},
+    'Cleaning':     {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.2)',     dot:'var(--green-dark)'},
+    'Beverages':    {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.25)',   dot:'var(--blue)'},
+    'Snacks':       {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',    dot:'var(--yellow)'},
+    'meal_plan':    {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',   dot:'var(--orange)'},
+    'misc':         {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',     dot:'var(--yellow)'},
+    'Other':        {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',     dot:'var(--yellow)'},
+  };
 
-  // Group by category
-  const grouped={};
-  items.forEach(i=>{
-    const cat=i.category||'misc';
-    if(!grouped[cat]) grouped[cat]=[];
-    grouped[cat].push(i);
+  // Build store groups
+  const storeGroups={};
+  items.forEach(item=>{
+    const sk=item.store_key||'';
+    if(!storeGroups[sk]) storeGroups[sk]=[];
+    storeGroups[sk].push(item);
   });
 
   let html=renderFrequentlyBought();
-  Object.entries(grouped).forEach(([cat,catItems])=>{
-    const cfg=catCfg[cat]||{bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',dot:'var(--yellow)'};
-          const emoji=getItemSVG(cat,38); // SVG per category
-    const catLabel=CATEGORY_LABELS[cat]||cat;
 
-    // Frequently bought row for this category (from grocery items)
-    const freq=groceryItems.filter(g=>g.category===cat).slice(0,8);
+  STORE_ORDER.forEach(sk=>{
+    const storeItems=storeGroups[sk];
+    if(!storeItems||!storeItems.length) return;
+    const cfg=STORE_COLORS[sk]||STORE_COLORS[''];
+    const storeCfg=STORES[sk]||STORES.other;
+    const storeLabel=sk?storeCfg.label:'No store assigned';
+    const doneCount=storeItems.filter(i=>i.is_checked).length;
+    const total=storeItems.reduce((s,i)=>s+(i.quantity||1)*(parseFloat(i.normal_price)||0),0);
 
-    if(freq.length>0){
-      html+=`<div style="padding:10px 16px 0">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
+    // Store header
+    html+=`<div style="margin:0 0 0">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${cfg.bg};margin:0 0 0;border-radius:var(--r-lg) var(--r-lg) 0 0;margin:8px 16px 0">
+        ${sk?`<div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">${storeLogo(sk,36)}</div>`:'<div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px">&#128230;</div>'}
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:800;color:${cfg.text}">${storeLabel}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:1px">${doneCount} of ${storeItems.length} done${total>0?' &middot; ~'+fmtR(total):''}</div>
         </div>
-      </div>`;
-    } else {
-      html+=`<div style="padding:10px 16px 0">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
-        </div>
-      </div>`;
-    }
-
-    // 3-column tile grid
-    html+=`<div class="prod-grid">`;
-    catItems.forEach(item=>{
-      const price=item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:'';
-      const qty=item.quantity||1;
-      html+=`<div class="prod-card ${item.is_checked?'opacity-50':''}" style="background:${cfg.bg};box-shadow:0 4px 16px ${cfg.shadow}">
-        <div class="prod-thumb">${getItemSVG(item.name,38)}</div>
-        <div class="prod-name ${item.is_checked?'checked':''}">${item.name}</div>
-        ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
-        ${price}
-        <div class="qty-stepper" onclick="event.stopPropagation()">
-          <button class="qty-btn" onclick="changeItemQty('${item.id}',${qty-1})">&#8722;</button>
-          <div class="qty-num">${qty}</div>
-          <button class="qty-btn plus" onclick="changeItemQty('${item.id}',${qty+1})">+</button>
-        </div>
-        <button onclick="deleteListItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px;margin-top:4px;width:100%;text-align:right">&#10005;</button>
-      </div>`;
-    });
-    // Empty add tile
-    html+=`<div class="prod-card-empty" onclick="openAddListItem()" style="min-height:100px">
-      <div style="text-align:center;color:var(--muted)">
-        <div style="font-size:24px;font-weight:800;color:var(--green)">+</div>
-        <div style="font-size:11px;font-weight:700;margin-top:2px">Add</div>
       </div>
     </div>`;
-    html+=`</div>`;
+
+    // Group by category within store
+    const catGroups={};
+    storeItems.forEach(item=>{
+      const cat=item.category||'misc';
+      if(!catGroups[cat]) catGroups[cat]=[];
+      catGroups[cat].push(item);
+    });
+
+    html+=`<div style="margin:0 16px 16px;background:rgba(255,255,255,.8);border-radius:0 0 var(--r-lg) var(--r-lg);padding:12px 12px 4px">`;
+
+    Object.entries(catGroups).forEach(([cat,catItems])=>{
+      const catcfg=catCfg[cat]||catCfg.Other;
+      html+=`<div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="width:6px;height:6px;border-radius:50%;background:${catcfg.dot};display:inline-block"></span>${CATEGORY_LABELS[cat]||cat}
+      </div>
+      <div class="prod-grid" style="margin:0 0 12px">`;
+
+      catItems.forEach(item=>{
+        const qty=item.quantity||1;
+        const checked=item.is_checked;
+        html+=`<div class="prod-card" style="background:${catcfg.bg};box-shadow:0 4px 12px ${catcfg.shadow};position:relative;opacity:${checked?'.55':'1'}"
+          onclick="toggleListItem('${item.id}',${!checked})">
+          <!-- Green tick circle top-right -->
+          <div style="position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;
+            background:${checked?'var(--green-dark)':'rgba(255,255,255,.8)'};
+            border:2px solid ${checked?'var(--green-dark)':'rgba(168,217,200,.8)'};
+            display:flex;align-items:center;justify-content:center;z-index:2;transition:all .2s">
+            ${checked?'<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+          </div>
+          <div class="prod-thumb">${getItemSVG(item.name,38)}</div>
+          <div class="prod-name${checked?' checked':''}">${item.name}</div>
+          ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
+          ${item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
+          <div class="qty-stepper" onclick="event.stopPropagation()">
+            <button class="qty-btn" onclick="changeItemQty('${item.id}',${qty-1})">&#8722;</button>
+            <div class="qty-num">${qty}</div>
+            <button class="qty-btn plus" onclick="changeItemQty('${item.id}',${qty+1})">+</button>
+          </div>
+        </div>`;
+      });
+
+      // Add item tile
+      html+=`<div class="prod-card-empty" onclick="openAddListItem()">
+        <div style="text-align:center;color:var(--muted)">
+          <div style="font-size:24px;font-weight:800;color:var(--green)">+</div>
+          <div style="font-size:10px;font-weight:700;margin-top:2px">Add</div>
+        </div>
+      </div></div>`;
+    });
+
+    html+='</div>';
   });
 
   listEl.innerHTML=html;
-  // SVG illustrations used — no Unsplash for product tiles
 }
 
 
-// ══ RECIPE QUICK ACTIONS ══
-function openPlanPickerFromRecipe(recipeId){
-  const r=allRecipes.find(x=>x.id===recipeId);
-  if(!r) return;
-  planPickerRecipe=r;
-  planPickerWeek=0;
-  pendingDayOfWeek=null;
-  document.getElementById('plan-picker-recipe-name').textContent=r.title;
-  document.getElementById('plan-picker-error').textContent='';
-  setPlanPickerWeek(0);
-  renderPlanDayPicker();
-  document.getElementById('plan-step-recipe').classList.add('hidden');
-  document.getElementById('plan-step-day').classList.remove('hidden');
-  openModal('modal-plan-picker');
-}
-
-function viewRecipeAndAddToList(recipeId){
-  viewRecipe(recipeId);
-  // After modal opens, trigger pantry check automatically
-  setTimeout(()=>checkPantry(),400);
-}
-
-async function changeItemQty(id,newQty){
-  if(newQty<1){ deleteListItem(id); return; }
-  await db.from('shopping_list_items').update({quantity:newQty}).eq('id',id);
-  const item=shoppingItems.find(i=>i.id===id);
-  if(item){ item.quantity=newQty; renderShoppingList(); }
-}
 async function toggleListItem(id,checked){
   await db.from('shopping_list_items').update({is_checked:checked==='true'}).eq('id',id);
   const item=shoppingItems.find(i=>i.id===id);
@@ -1159,76 +1163,338 @@ function generateShoppingList(){showToast('Meal plan → shopping list coming so
 // ══ MEAL PLAN ══
 let currentPlanWeekOffset=0;
 
+
+// ══ MEAL PLANNER — ADD MEAL FLOW ══
+let addMealDay=null;
+let addMealWeek=null;
+let addMealType=null;
+
+function openAddMealForDay(dayOfWeek, weekOffset){
+  addMealDay=dayOfWeek;
+  addMealWeek=weekOffset;
+  addMealType=null;
+  // Reset modal state
+  document.getElementById('add-meal-type-step').classList.remove('hidden');
+  document.getElementById('add-meal-recipe-step').classList.add('hidden');
+  document.getElementById('add-meal-other-wrap').classList.add('hidden');
+  document.getElementById('add-meal-other-input').value='';
+  document.querySelectorAll('.meal-type-btn').forEach(b=>b.classList.remove('selected'));
+  openModal('modal-add-meal');
+}
+
+function selectMealType(type){
+  addMealType=type;
+  document.querySelectorAll('.meal-type-btn').forEach(b=>b.classList.remove('selected'));
+  const btn=document.getElementById('meal-type-btn-'+type);
+  if(btn) btn.classList.add('selected');
+  // Show other input if 'other' selected
+  const otherWrap=document.getElementById('add-meal-other-wrap');
+  if(type==='other'){
+    otherWrap.classList.remove('hidden');
+    document.getElementById('add-meal-other-input').focus();
+  } else {
+    otherWrap.classList.add('hidden');
+  }
+}
+
+function goToMealRecipePicker(){
+  if(!addMealType){ showToast('Please select a meal type first'); return; }
+  if(addMealType==='other'){
+    const custom=document.getElementById('add-meal-other-input').value.trim();
+    if(!custom){ showToast('Please enter a meal type'); return; }
+    addMealType=custom;
+  }
+  // Show recipe picker step
+  document.getElementById('add-meal-type-step').classList.add('hidden');
+  document.getElementById('add-meal-recipe-step').classList.remove('hidden');
+  renderAddMealRecipePicker();
+}
+
+function renderAddMealRecipePicker(){
+  const list=allRecipes.filter(r=>r.visibility!=='archived');
+  const el=document.getElementById('add-meal-recipe-list');
+  if(!el) return;
+  const catBg={dinner:'var(--orange-pale)',baking:'var(--pink-pale)',lunch:'var(--blue-pale)',other:'var(--green-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)'};
+  const catCol={dinner:'#8B3A00',baking:'#8B0038',lunch:'var(--blue-dark)',other:'var(--green-deeper)',breakfast:'#8B6B00',snack:'var(--green-deeper)'};
+  el.innerHTML=list.length===0
+    ?'<div style="text-align:center;padding:20px;color:var(--muted)">No recipes yet — add recipes first</div>'
+    :list.map(r=>{
+      const bg=catBg[r.category]||catBg.other;
+      const col=catCol[r.category]||catCol.other;
+      return `<div onclick="confirmAddMealEntry('${r.id}','${r.title.replace(/'/g,"\\'")}','${r.category}')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--white);border-radius:var(--r-md);margin-bottom:6px;cursor:pointer;border:1.5px solid var(--line-light)">
+        <span style="font-size:24px">${r.category==='baking'?'&#129360;':r.category==='lunch'?'&#129365;':'&#127869;&#65039;'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${r.title}</div>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${bg};color:${col}">${r.category}</span>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+async function confirmAddMealEntry(recipeId, recipeTitle, recipeCategory){
+  if(!currentUser||addMealDay===null) return;
+  // Ensure meal_plans row exists for this week
+  const now=new Date();
+  const thisMonday=new Date(now);
+  thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
+  thisMonday.setHours(0,0,0,0);
+  const weekStart=new Date(thisMonday);
+  weekStart.setDate(thisMonday.getDate()+(addMealWeek*7));
+  const ws=weekStart.toISOString().split('T')[0];
+
+  // Get or create meal plan for this week
+  let planId=null;
+  const {data:existing}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).limit(1);
+  if(existing&&existing.length>0){
+    planId=existing[0].id;
+  } else {
+    const {data:newPlan}=await db.from('meal_plans').insert({user_id:currentUser.id,week_start:ws}).select('id').single();
+    planId=newPlan?.id;
+  }
+  if(!planId){ showToast('Error creating meal plan'); return; }
+
+  // Insert meal entry — allow multiple per day
+  const {error}=await db.from('meal_plan_entries').insert({
+    user_id:currentUser.id,
+    plan_id:planId,
+    week_offset:addMealWeek,
+    day_of_week:addMealDay,
+    meal_type:addMealType||'dinner',
+    recipe_id:recipeId,
+  });
+
+  if(error){ console.error(error); showToast('Error saving meal'); return; }
+  closeModal('modal-add-meal');
+  showToast('\u2713 '+recipeTitle+' added to plan');
+  loadMealPlan();
+}
+
+// ══ ADD RECIPE TO LIST FROM PLAN (single meal) ══
+async function addRecipeToListFromPlan(recipeId, recipeTitle){
+  if(!recipeId) return;
+  // Set up ingredient selector for this recipe
+  const {data:recipe}=await db.from('recipes').select('*,recipe_ingredients(*)').eq('id',recipeId).single();
+  if(!recipe){ showToast('Recipe not found'); return; }
+  openIngredientSelector([recipe]);
+}
+
+// ══ GENERATE SHOPPING LIST FROM FULL WEEK ══
+async function generateShoppingList(){
+  if(!currentUser) return;
+  // Load all entries for current week
+  const {data:entries}=await db.from('meal_plan_entries')
+    .select('recipe_id,recipes(title,recipe_ingredients(name,amount,unit))')
+    .eq('user_id',currentUser.id)
+    .eq('week_offset',currentPlanWeekOffset);
+
+  if(!entries||entries.length===0){
+    showToast('No meals planned for this week');
+    return;
+  }
+
+  // Collect all recipes
+  const recipes=entries.map(e=>e.recipes).filter(Boolean);
+  if(recipes.length===0){ showToast('No recipe details found'); return; }
+  openIngredientSelector(recipes);
+}
+
+// ══ INGREDIENT SELECTOR MODAL ══
+let ingredientSelectorItems=[];
+
+function openIngredientSelector(recipes){
+  // Collect + deduplicate ingredients across all recipes
+  const allIngredients=[];
+  const seen=new Set();
+  recipes.forEach(recipe=>{
+    (recipe.recipe_ingredients||[]).forEach(ing=>{
+      const key=ing.name.toLowerCase().trim();
+      if(!seen.has(key)){
+        seen.add(key);
+        allIngredients.push({name:ing.name,amount:ing.amount||'',unit:ing.unit||'',selected:true});
+      }
+    });
+  });
+
+  if(allIngredients.length===0){
+    showToast('No ingredients found — add ingredients to your recipes first');
+    return;
+  }
+
+  ingredientSelectorItems=allIngredients;
+  renderIngredientSelector();
+  openModal('modal-ingredient-selector');
+}
+
+function renderIngredientSelector(){
+  const el=document.getElementById('ingredient-selector-list');
+  if(!el) return;
+  el.innerHTML=ingredientSelectorItems.map((item,i)=>`
+    <div onclick="toggleIngredient(${i})"
+      style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--r-md);cursor:pointer;margin-bottom:6px;
+        background:${item.selected?'var(--green-pale)':'#F5F5F5'};transition:background .2s">
+      <div style="width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+        background:${item.selected?'var(--green-dark)':'#E0E0E0'};border:2.5px solid ${item.selected?'var(--green-dark)':'#CCC'};transition:all .2s">
+        ${item.selected?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:${item.selected?'var(--text)':'var(--muted)'}">${item.name}</div>
+        ${item.amount||item.unit?`<div style="font-size:11px;color:var(--muted)">${[item.amount,item.unit].filter(Boolean).join(' ')}</div>`:''}
+      </div>
+    </div>`).join('');
+
+  // Update button count
+  const count=ingredientSelectorItems.filter(i=>i.selected).length;
+  const btn=document.getElementById('ingredient-add-btn');
+  if(btn) btn.textContent=`Add ${count} item${count!==1?'s':''} to list`;
+}
+
+function toggleIngredient(i){
+  ingredientSelectorItems[i].selected=!ingredientSelectorItems[i].selected;
+  renderIngredientSelector();
+}
+
+async 
+// ══ INGREDIENT SELECTOR BASKET TOGGLE ══
+let ingBasket='this_week';
+function setIngBasket(b){
+  ingBasket=b;
+  document.querySelectorAll('[id^="ing-tab-"]').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById('ing-tab-'+b.replace('_week',b==='this_week'?'-this':b==='next_week'?'-next':'').replace('this_week','this').replace('next_week','next'));
+  // simpler:
+  const map={'this_week':'ing-tab-this','next_week':'ing-tab-next','monthly':'ing-tab-monthly'};
+  document.querySelectorAll('[id^="ing-tab-"]').forEach(t=>t.classList.remove('active'));
+  const activeEl=document.getElementById(map[b]);
+  if(activeEl) activeEl.classList.add('active');
+}
+function saveIngredientSelection(){
+  const selected=ingredientSelectorItems.filter(i=>i.selected);
+  if(!selected.length){ showToast('Nothing selected'); return; }
+  if(!currentUser) return;
+
+  // Get basket week_start from ingredient selector's own basket choice
+  const basket=typeof ingBasket!=='undefined'?ingBasket:currentListBasket;
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const ws=basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+
+  const rows=selected.map(item=>({
+    user_id:currentUser.id,
+    name:item.name,
+    amount:item.amount||null,
+    category:'misc',
+    week_start:ws,
+    quantity:1,
+    is_checked:false,
+  }));
+
+  const {error}=await db.from('shopping_list_items').insert(rows);
+  if(error){ console.error(error); showToast('Error adding items'); return; }
+  closeModal('modal-ingredient-selector');
+  showToast('\u2713 '+selected.length+' item'+( selected.length!==1?'s':'')+' added to list');
+  showScreen('list');
+}
+
 function switchPlanWeek(offset){
   currentPlanWeekOffset=offset;
-  // Update tab active state
-  document.getElementById('plan-tab-this').classList.toggle('filter-active', offset===0);
-  document.getElementById('plan-tab-next').classList.toggle('filter-active', offset===1);
+  document.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));
+  const activeTab=offset===0?'plan-tab-this':'plan-tab-next';
+  const el=document.getElementById(activeTab);
+  if(el) el.classList.add('active');
   loadMealPlan();
 }
 
 async function loadMealPlan(){
   const now=new Date();
-  // Calculate start of current week (Monday)
   const thisMonday=new Date(now);
   thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
   thisMonday.setHours(0,0,0,0);
-  // Apply week offset
   const weekStart=new Date(thisMonday);
   weekStart.setDate(thisMonday.getDate()+(currentPlanWeekOffset*7));
-
   const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
   const startStr=weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
   const endStr=weekEnd.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-  document.getElementById('plan-week-label').textContent=`${startStr} — ${endStr}`;
+  const labelEl=document.getElementById('plan-week-label');
+  if(labelEl) labelEl.textContent=`${startStr} — ${endStr}`;
 
-  // Load meal plan for this week — join via meal_plans table
   const ws=weekStart.toISOString().split('T')[0];
 
-  // First get the meal plan ID for this week
-  const {data:planArr}=await db.from('meal_plans')
-    .select('id')
+  // Load entries directly using week_offset column (no join through meal_plans)
+  const {data:entries}=await db.from('meal_plan_entries')
+    .select('*,recipes(id,title,category,prep_time,cook_time)')
     .eq('user_id',currentUser.id)
-    .eq('week_start',ws)
-    .limit(1);
+    .eq('week_offset',currentPlanWeekOffset)
+    .order('day_of_week');
 
-  let entries=[];
-  if(planArr&&planArr.length>0){
-    const {data:entryData}=await db.from('meal_plan_entries')
-      .select('*,recipes(title,category)')
-      .eq('plan_id',planArr[0].id)
-      .order('day_of_week');
-    entries=entryData||[];
+  const allEntries=entries||[];
+
+  // Week summary
+  const mealCounts={};
+  allEntries.forEach(e=>{
+    const t=e.meal_type||'dinner';
+    mealCounts[t]=(mealCounts[t]||0)+1;
+  });
+  const summaryEl=document.getElementById('week-summary-label');
+  if(summaryEl) summaryEl.textContent=`${allEntries.length} of 7 days have meals`;
+  const pillsEl=document.getElementById('week-summary-pills');
+  if(pillsEl){
+    const mealColors={dinner:'var(--orange-pale)',lunch:'var(--blue-pale)',baking:'var(--pink-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)',other:'var(--purple-pale)'};
+    const mealText={dinner:'#8B3A00',lunch:'var(--blue-dark)',baking:'#8B0038',breakfast:'#8B6B00',snack:'var(--green-deeper)',other:'var(--purple)'};
+    pillsEl.innerHTML=Object.entries(mealCounts).map(([t,n])=>
+      `<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;background:${mealColors[t]||'var(--purple-pale)'};color:${mealText[t]||'var(--purple)'}">${n} ${t.charAt(0).toUpperCase()+t.slice(1)}</span>`
+    ).join('');
   }
 
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const today=new Date(); today.setHours(0,0,0,0);
+  const mealEmoji={dinner:'&#127869;&#65039;',lunch:'&#129365;',baking:'&#129360;',breakfast:'&#9749;',snack:'&#127822;',other:'&#127869;&#65039;'};
+  const mealBg={dinner:'var(--orange-pale)',lunch:'var(--blue-pale)',baking:'var(--pink-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)',other:'var(--purple-pale)'};
+  const mealCol={dinner:'#8B3A00',lunch:'var(--blue-dark)',baking:'#8B0038',breakfast:'#8B6B00',snack:'var(--green-deeper)',other:'var(--purple)'};
 
   document.getElementById('plan-grid').innerHTML=days.map((day,i)=>{
     const date=new Date(weekStart); date.setDate(weekStart.getDate()+i);
     const dateStr=date.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
     const isToday=date.getTime()===today.getTime();
     const isPast=date<today;
-    const dayEntry=entries?.find(e=>e.day_of_week===i);
+    const dayEntries=allEntries.filter(e=>e.day_of_week===i);
 
-    return `<div class="plan-day" style="${isToday?'border-color:var(--primary);border-width:2px;':''}${isPast?'opacity:0.6;':''}">
-      <div class="plan-day-header">
-        <div class="plan-day-name" style="${isToday?'color:var(--primary);font-weight:800;':''}">${day}${isToday?' <span style="font-size:10px;background:var(--primary);color:white;padding:1px 7px;border-radius:10px;font-weight:700;vertical-align:middle">Today</span>':''}</div>
+    const mealsHtml=dayEntries.map(e=>{
+      const mt=e.meal_type||'dinner';
+      const bg=mealBg[mt]||mealBg.other;
+      const col=mealCol[mt]||mealCol.other;
+      const emoji=mealEmoji[mt]||mealEmoji.other;
+      return `<div class="plan-slot plan-slot-filled" style="border-top:.5px solid var(--line-light)">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <span style="font-size:18px">${emoji}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:${col}">${mt}</div>
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${e.recipes?.title||'Unknown recipe'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="addRecipeToListFromPlan('${e.recipe_id}','${e.recipes?.title||''}')" 
+            style="font-size:10px;font-weight:700;padding:4px 8px;border-radius:8px;background:${bg};color:${col};border:none;cursor:pointer">+ List</button>
+          <button onclick="removeMealEntry('${e.id}')" 
+            style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">&#10005;</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="plan-day-card${isToday?' today':''}${isPast?' past':''}">
+      <div class="plan-day-hdr${isToday?' today-hdr':''}">
+        <div class="plan-day-name">${day}${isToday?` <span class="today-badge">Today</span>`:''}${isPast?` <span class="past-label">passed</span>`:''}</div>
         <div class="plan-day-date">${dateStr}</div>
       </div>
-      ${dayEntry?.recipes
-        ?`<div class="plan-slot plan-slot-filled" style="justify-content:space-between">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-              <span style="font-size:16px">${dayEntry.recipes.category==='baking'?'🥐':'🍽️'}</span>
-              <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dayEntry.recipes.title}</span>
-            </div>
-            <button onclick="removeMealEntry('${dayEntry.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0" title="Remove">✕</button>
-          </div>`
-        :`<div class="plan-slot plan-slot-empty" onclick="openPlanPickerForDay(${i},${currentPlanWeekOffset})">
-            <span style="font-size:16px">+</span><span>Add dinner</span>
-          </div>`
-      }
-    </div>`;}).join('');
+      ${mealsHtml}
+      <div class="plan-slot" style="border-top:.5px dashed var(--line);cursor:pointer;background:rgba(255,255,255,.3)" 
+        onclick="openAddMealForDay(${i},${currentPlanWeekOffset})">
+        <div class="plan-empty-icon"><span style="font-size:18px;color:var(--muted)">+</span></div>
+        <span style="font-size:13px;color:var(--muted);font-weight:500">Add meal</span>
+        <div class="plan-empty-plus"><span style="font-size:16px;color:#fff">+</span></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ══ ADMIN — USERS ══
