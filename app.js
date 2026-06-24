@@ -847,48 +847,48 @@ function setListCatFilter(cat){
   renderShoppingList();
 }
 
+// ══ COLLAPSED STORE STATE ══
+let collapsedStores=new Set();
+
+function toggleStoreCollapse(sk){
+  if(collapsedStores.has(sk)) collapsedStores.delete(sk);
+  else collapsedStores.add(sk);
+  renderShoppingList();
+}
+
 function renderShoppingList(){
   renderListHero();
   let items=shoppingItems;
-  if(currentListCatFilter&&currentListCatFilter!=='all')
-    items=items.filter(i=>(i.category||'misc')===currentListCatFilter);
 
   const listEl=document.getElementById('shopping-list-content');
   if(items.length===0){
-    listEl.innerHTML=`<div class="empty-state">
-      <div class="empty-state-icon">&#128722;</div>
-      <div class="empty-title">List is empty</div>
-      <div class="empty-sub">Tap + Add or the basket icon to browse items</div>
-    </div>`;
+    listEl.innerHTML=renderFrequentlyBought()+
+      `<div class="empty-state">
+        <div class="empty-state-icon">&#128722;</div>
+        <div class="empty-title">List is empty</div>
+        <div class="empty-sub">Tap + Add to get started</div>
+      </div>`;
     return;
   }
 
-  // Group by store first, then by category within each store
+  // Store order + config
   const STORE_ORDER=['woolworths','checkers','pnp','spar','walmart','other',''];
   const STORE_COLORS={
-    woolworths:{bg:'#1A1A1A',text:'#fff',pale:'#F0F0F0'},
-    checkers:{bg:'#00B5AD',text:'#fff',pale:'#E0F7F6'},
-    pnp:{bg:'#004F9F',text:'#fff',pale:'#E6EEF9'},
-    spar:{bg:'#007A3D',text:'#fff',pale:'#E6F4EC'},
-    walmart:{bg:'#0071CE',text:'#fff',pale:'#E6F2FB'},
-    other:{bg:'#6B7280',text:'#fff',pale:'#F3F4F6'},
-    '': {bg:'#9CA3AF',text:'#fff',pale:'#F9FAFB'},
+    woolworths:{bg:'#1A1A1A',text:'#fff',badge:'rgba(255,255,255,.12)'},
+    checkers:  {bg:'#00B5AD',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    pnp:       {bg:'#004F9F',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    spar:      {bg:'#007A3D',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    walmart:   {bg:'#0071CE',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    other:     {bg:'#6B7280',text:'#fff',badge:'rgba(255,255,255,.12)'},
+    '':        {bg:'#9CA3AF',text:'#fff',badge:'rgba(255,255,255,.12)'},
   };
 
-  // Category config
-  const catCfg={
-    'Dairy':        {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.3)',   dot:'var(--blue)'},
-    'Meat & Fish':  {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.3)',    dot:'var(--pink)'},
-    'Fruit & Veg':  {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.3)',     dot:'var(--green)'},
-    'Dry Goods':    {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.3)',    dot:'var(--orange)'},
-    'Bakery':       {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',   dot:'var(--orange)'},
-    'Frozen':       {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.25)',   dot:'var(--purple)'},
-    'Cleaning':     {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.2)',     dot:'var(--green-dark)'},
-    'Beverages':    {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.25)',   dot:'var(--blue)'},
-    'Snacks':       {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',    dot:'var(--yellow)'},
-    'meal_plan':    {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',   dot:'var(--orange)'},
-    'misc':         {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',     dot:'var(--yellow)'},
-    'Other':        {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',     dot:'var(--yellow)'},
+  // Category dot colours
+  const catDot={
+    'Dairy':'#3B9EFF','Meat & Fish':'#FF4F8B','Fruit & Veg':'#00C67A',
+    'Dry Goods':'#FF8C42','Bakery':'#FF8C42','Frozen':'#8B5CF6',
+    'Cleaning':'#009A5C','Beverages':'#3B9EFF','Snacks':'#F5C400',
+    'meal_plan':'#FF8C42','misc':'#9CA3AF','Other':'#9CA3AF',
   };
 
   // Build store groups
@@ -909,17 +909,35 @@ function renderShoppingList(){
     const storeLabel=sk?storeCfg.label:'No store assigned';
     const doneCount=storeItems.filter(i=>i.is_checked).length;
     const total=storeItems.reduce((s,i)=>s+(i.quantity||1)*(parseFloat(i.normal_price)||0),0);
+    const collapsed=collapsedStores.has(sk);
 
     // Store header
-    html+=`<div style="margin:0 0 0">
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${cfg.bg};margin:0 0 0;border-radius:var(--r-lg) var(--r-lg) 0 0;margin:8px 16px 0">
-        ${sk?`<div style="width:36px;height:36px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center">${storeLogo(sk,36)}</div>`:'<div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px">&#128230;</div>'}
-        <div style="flex:1">
-          <div style="font-size:14px;font-weight:800;color:${cfg.text}">${storeLabel}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:1px">${doneCount} of ${storeItems.length} done${total>0?' &middot; ~'+fmtR(total):''}</div>
+    html+=`<div style="margin:8px 16px 0">
+      <div onclick="toggleStoreCollapse('${sk}')"
+        style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+          background:${cfg.bg};border-radius:${collapsed?'14px':'14px 14px 0 0'};cursor:pointer;
+          user-select:none">
+        <div style="width:36px;height:36px;border-radius:9px;overflow:hidden;
+          background:rgba(255,255,255,.15);display:flex;align-items:center;
+          justify-content:center;flex-shrink:0">
+          ${sk?`<img src="logos/${sk==='pnp'?'pnp.jpg':sk==='spar'?'spar.jpg':sk+'.png'}"
+            style="width:100%;height:100%;object-fit:contain"
+            onerror="this.parentNode.innerHTML='<span style=font-size:13px;font-weight:800;color:white>${storeLabel.charAt(0)}</span>'"
+            alt="${storeLabel}"/>`
+            :`<span style="font-size:18px">&#128230;</span>`}
         </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:${cfg.text}">${storeLabel}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px">
+            ${doneCount} of ${storeItems.length} done${total>0?' &middot; ~'+fmtR(total):''}
+          </div>
+        </div>
+        <span style="color:rgba(255,255,255,.7);font-size:18px;transition:transform .2s;
+          transform:rotate(${collapsed?'-90':'0'}deg)">&#8964;</span>
       </div>
     </div>`;
+
+    if(collapsed) return;
 
     // Group by category within store
     const catGroups={};
@@ -929,46 +947,74 @@ function renderShoppingList(){
       catGroups[cat].push(item);
     });
 
-    html+=`<div style="margin:0 16px 16px;background:rgba(255,255,255,.8);border-radius:0 0 var(--r-lg) var(--r-lg);padding:12px 12px 4px">`;
+    html+=`<div style="margin:0 16px 16px;background:rgba(255,255,255,.85);
+      border-radius:0 0 14px 14px;overflow:hidden">`;
 
     Object.entries(catGroups).forEach(([cat,catItems])=>{
-      const catcfg=catCfg[cat]||catCfg.Other;
-      html+=`<div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-        <span style="width:6px;height:6px;border-radius:50%;background:${catcfg.dot};display:inline-block"></span>${CATEGORY_LABELS[cat]||cat}
-      </div>
-      <div class="prod-grid" style="margin:0 0 12px">`;
+      const dot=catDot[cat]||'#9CA3AF';
+      const catLabel=CATEGORY_LABELS[cat]||cat;
+      // Category sub-header
+      html+=`<div style="display:flex;align-items:center;gap:6px;padding:8px 14px 4px;
+        background:rgba(0,0,0,.03)">
+        <span style="width:7px;height:7px;border-radius:50%;background:${dot};
+          display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:10px;font-weight:800;color:var(--muted);
+          text-transform:uppercase;letter-spacing:.7px">${catLabel}</span>
+      </div>`;
 
-      catItems.forEach(item=>{
+      catItems.forEach((item,idx)=>{
         const qty=item.quantity||1;
         const checked=item.is_checked;
-        html+=`<div class="prod-card" style="background:${catcfg.bg};box-shadow:0 4px 12px ${catcfg.shadow};position:relative;opacity:${checked?'.55':'1'}"
-          onclick="toggleListItem('${item.id}',${!checked})">
-          <!-- Green tick circle top-right -->
-          <div style="position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;
-            background:${checked?'var(--green-dark)':'rgba(255,255,255,.8)'};
-            border:2px solid ${checked?'var(--green-dark)':'rgba(168,217,200,.8)'};
-            display:flex;align-items:center;justify-content:center;z-index:2;transition:all .2s">
-            ${checked?'<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        const isLast=idx===catItems.length-1;
+        html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;
+          background:${checked?'rgba(0,0,0,.03)':'transparent'};
+          border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,.06)'};
+          opacity:${checked?'.5':'1'};transition:opacity .2s">
+          <!-- SVG icon -->
+          <div style="width:36px;height:36px;border-radius:10px;
+            background:rgba(0,0,0,.04);display:flex;align-items:center;
+            justify-content:center;flex-shrink:0">
+            ${getItemSVG(item.name,28)}
           </div>
-          <div class="prod-thumb">${getItemSVG(item.name,38)}</div>
-          <div class="prod-name${checked?' checked':''}">${item.name}</div>
-          ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
-          ${item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
-          <div class="qty-stepper" onclick="event.stopPropagation()">
-            <button class="qty-btn" onclick="changeItemQty('${item.id}',${qty-1})">&#8722;</button>
-            <div class="qty-num">${qty}</div>
-            <button class="qty-btn plus" onclick="changeItemQty('${item.id}',${qty+1})">+</button>
+          <!-- Name + unit -->
+          <div style="flex:1;min-width:0;cursor:pointer"
+            onclick="toggleListItem('${item.id}','${!checked}')">
+            <div style="font-size:14px;font-weight:600;color:var(--text);
+              ${checked?'text-decoration:line-through;':''};
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+            ${item.amount?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${item.amount}</div>`:''}
+          </div>
+          <!-- Edit store pencil -->
+          <button onclick="openEditItemStore('${item.id}','${item.store_key||''}')"
+            style="background:none;border:none;cursor:pointer;padding:4px;
+              color:var(--muted);font-size:14px;flex-shrink:0"
+            title="Change store">&#9998;&#65039;</button>
+          <!-- Qty stepper -->
+          <div style="display:flex;align-items:center;border-radius:8px;
+            border:1.5px solid var(--line);overflow:hidden;background:#fff;
+            flex-shrink:0" onclick="event.stopPropagation()">
+            <button onclick="changeItemQty('${item.id}',${qty-1})"
+              style="width:26px;height:26px;border:none;background:transparent;
+                font-size:16px;font-weight:800;cursor:pointer;color:var(--text)">&#8722;</button>
+            <div style="width:22px;text-align:center;font-size:12px;
+              font-weight:700;color:var(--text)">${qty}</div>
+            <button onclick="changeItemQty('${item.id}',${qty+1})"
+              style="width:26px;height:26px;border:none;background:transparent;
+                font-size:18px;font-weight:800;cursor:pointer;color:var(--green-dark)">+</button>
+          </div>
+          <!-- Tick circle -->
+          <div onclick="toggleListItem('${item.id}','${!checked}')"
+            style="width:26px;height:26px;border-radius:50%;flex-shrink:0;cursor:pointer;
+              display:flex;align-items:center;justify-content:center;
+              background:${checked?'var(--green-dark)':'#fff'};
+              border:2px solid ${checked?'var(--green-dark)':'var(--line)'};
+              transition:all .2s">
+            ${checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
           </div>
         </div>`;
       });
 
-      // Add item tile
-      html+=`<div class="prod-card-empty" onclick="openAddListItem()">
-        <div style="text-align:center;color:var(--muted)">
-          <div style="font-size:24px;font-weight:800;color:var(--green)">+</div>
-          <div style="font-size:10px;font-weight:700;margin-top:2px">Add</div>
-        </div>
-      </div></div>`;
+      html+='';
     });
 
     html+='</div>';
@@ -977,6 +1023,32 @@ function renderShoppingList(){
   listEl.innerHTML=html;
 }
 
+
+
+// ══ EDIT ITEM STORE ══
+let editStoreItemId=null;
+
+function openEditItemStore(itemId, currentStore){
+  editStoreItemId=itemId;
+  // Highlight current store
+  document.querySelectorAll('.store-pick-btn').forEach(b=>{
+    b.classList.toggle('selected',b.dataset.store===currentStore);
+  });
+  openModal('modal-edit-store');
+}
+
+async function confirmEditStore(newStore){
+  if(!editStoreItemId) return;
+  await db.from('shopping_list_items')
+    .update({store_key:newStore||null})
+    .eq('id',editStoreItemId);
+  const item=shoppingItems.find(i=>i.id===editStoreItemId);
+  if(item) item.store_key=newStore||null;
+  closeModal('modal-edit-store');
+  editStoreItemId=null;
+  renderShoppingList();
+  showToast('\u2713 Store updated');
+}
 
 async function toggleListItem(id,checked){
   await db.from('shopping_list_items').update({is_checked:checked==='true'}).eq('id',id);
@@ -1378,11 +1450,13 @@ async function saveIngredientSelection(){
   if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
   const ws=basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
 
+  const ingStore=document.getElementById('ing-store-select')?.value||null;
   const rows=selected.map(item=>({
     user_id:currentUser.id,
     name:item.name,
     amount:item.amount||null,
     category:'misc',
+    store_key:ingStore,
     week_start:ws,
     quantity:1,
     is_checked:false,

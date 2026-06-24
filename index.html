@@ -208,18 +208,7 @@
     </div>
 
     <!-- Shopping list content — freq bought + cat filters + 3-col grid injected by JS -->
-    <!-- Category filter pills — below frequently bought, above product grid -->
-    <div id="list-cat-filters" style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
-      <button class="filter-pill filter-active" id="list-cat-all" onclick="setListCatFilter('all')">All</button>
-      <button class="filter-pill" id="list-cat-dairy" onclick="setListCatFilter('Dairy')">&#129371; Dairy</button>
-      <button class="filter-pill" id="list-cat-meat" onclick="setListCatFilter('Meat &amp; Fish')">&#129385; Meat</button>
-      <button class="filter-pill" id="list-cat-veg" onclick="setListCatFilter('Fruit &amp; Veg')">&#129382; Veg</button>
-      <button class="filter-pill" id="list-cat-dry" onclick="setListCatFilter('Dry Goods')">&#127807; Dry</button>
-      <button class="filter-pill" id="list-cat-cleaning" onclick="setListCatFilter('Cleaning')">&#129529; Cleaning</button>
-      <button class="filter-pill" id="list-cat-bakery" onclick="setListCatFilter('Bakery')">&#129360; Bakery</button>
-      <button class="filter-pill" id="list-cat-frozen" onclick="setListCatFilter('Frozen')">&#10052; Frozen</button>
-      <button class="filter-pill" id="list-cat-drinks" onclick="setListCatFilter('Beverages')">&#129381; Drinks</button>
-    </div>
+
     <div id="shopping-list-content"><div class="spinner"></div></div>
 
     <!-- Floating + Add button -->
@@ -876,6 +865,15 @@
       Tap to deselect anything you already have. Only selected items will be added.
     </div>
     <div id="ingredient-selector-list" style="max-height:52vh;overflow-y:auto;margin-bottom:16px"></div>
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Store</div>
+    <select id="ing-store-select" style="width:100%;padding:11px 14px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:#fff;margin-bottom:14px">
+      <option value="">No store assigned</option>
+      <option value="woolworths">Woolworths</option>
+      <option value="checkers">Checkers</option>
+      <option value="pnp">Pick n Pay</option>
+      <option value="spar">Spar</option>
+      <option value="walmart">Walmart</option>
+    </select>
     <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Add to basket</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
       <div class="basket-tab active" id="ing-tab-this" onclick="setIngBasket('this_week')" style="flex:1;cursor:pointer;text-align:center">This week</div>
@@ -886,6 +884,49 @@
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-ingredient-selector')">Cancel</button>
       <button class="btn btn-accent flex-1" id="ingredient-add-btn" onclick="saveIngredientSelection()">Add items to list</button>
     </div>
+  </div>
+</div>
+
+
+<!-- EDIT ITEM STORE MODAL -->
+<div id="modal-edit-store" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Move to store</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select which store this item belongs to</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <button class="store-pick-btn" data-store="woolworths" onclick="confirmEditStore('woolworths')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/woolworths.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Woolworths</span>
+      </button>
+      <button class="store-pick-btn" data-store="checkers" onclick="confirmEditStore('checkers')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/checkers.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Checkers</span>
+      </button>
+      <button class="store-pick-btn" data-store="pnp" onclick="confirmEditStore('pnp')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/pnp.jpg" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Pick n Pay</span>
+      </button>
+      <button class="store-pick-btn" data-store="spar" onclick="confirmEditStore('spar')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/spar.jpg" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Spar</span>
+      </button>
+      <button class="store-pick-btn" data-store="walmart" onclick="confirmEditStore('walmart')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/walmart.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Walmart</span>
+      </button>
+      <button class="store-pick-btn" data-store="" onclick="confirmEditStore('')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <span style="width:32px;height:32px;border-radius:6px;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:16px">&#128230;</span>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">No store assigned</span>
+      </button>
+    </div>
+    <button class="btn btn-outline btn-full" onclick="closeModal('modal-edit-store')">Cancel</button>
   </div>
 </div>
 
