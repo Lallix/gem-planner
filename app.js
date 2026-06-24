@@ -1367,7 +1367,7 @@ function setIngBasket(b){
   const activeEl=document.getElementById(map[b]);
   if(activeEl) activeEl.classList.add('active');
 }
-function saveIngredientSelection(){
+async function saveIngredientSelection(){
   const selected=ingredientSelectorItems.filter(i=>i.selected);
   if(!selected.length){ showToast('Nothing selected'); return; }
   if(!currentUser) return;
