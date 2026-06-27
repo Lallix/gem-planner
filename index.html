@@ -201,26 +201,23 @@
     <div id="list-hero-card"></div>
 
     <!-- Basket tabs — This week / Next week / Monthly -->
-    <div class="basket-tabs" id="basket-tabs-row">
-      <div id="list-tab-this"    class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
-      <div id="list-tab-next"    class="basket-tab"        onclick="switchListBasket('next_week')">Next week</div>
-      <div id="list-tab-monthly" class="basket-tab"        onclick="switchListBasket('monthly')">Monthly</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 16px 12px">
+      <div id="basket-tabs-row" style="display:flex;gap:8px;flex:1">
+        <div id="list-tab-this"    class="basket-tab active" onclick="switchListBasket('this_week')">This week</div>
+        <div id="list-tab-next"    class="basket-tab"        onclick="switchListBasket('next_week')">Next week</div>
+        <div id="list-tab-monthly" class="basket-tab"        onclick="switchListBasket('monthly')">Monthly</div>
+      </div>
+      <button onclick="clearBasket()" title="Clear basket"
+        style="flex-shrink:0;background:transparent;border:1.5px solid rgba(255,79,139,.4);
+          border-radius:10px;padding:7px 10px;font-size:11px;font-weight:700;
+          color:var(--pink);cursor:pointer;white-space:nowrap;font-family:var(--font)">
+        &#128465; Clear
+      </button>
     </div>
 
     <!-- Shopping list content — freq bought + cat filters + 3-col grid injected by JS -->
-    <!-- Category filter pills — below frequently bought, above product grid -->
-    <div id="list-cat-filters" style="display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">
-      <button class="filter-pill filter-active" id="list-cat-all" onclick="setListCatFilter('all')">All</button>
-      <button class="filter-pill" id="list-cat-dairy" onclick="setListCatFilter('Dairy')">&#129371; Dairy</button>
-      <button class="filter-pill" id="list-cat-meat" onclick="setListCatFilter('Meat &amp; Fish')">&#129385; Meat</button>
-      <button class="filter-pill" id="list-cat-veg" onclick="setListCatFilter('Fruit &amp; Veg')">&#129382; Veg</button>
-      <button class="filter-pill" id="list-cat-dry" onclick="setListCatFilter('Dry Goods')">&#127807; Dry</button>
-      <button class="filter-pill" id="list-cat-cleaning" onclick="setListCatFilter('Cleaning')">&#129529; Cleaning</button>
-      <button class="filter-pill" id="list-cat-bakery" onclick="setListCatFilter('Bakery')">&#129360; Bakery</button>
-      <button class="filter-pill" id="list-cat-frozen" onclick="setListCatFilter('Frozen')">&#10052; Frozen</button>
-      <button class="filter-pill" id="list-cat-drinks" onclick="setListCatFilter('Beverages')">&#129381; Drinks</button>
-    </div>
-    <div id="shopping-list-content"><div class="spinner"></div></div>
+
+    <div id="shopping-list-content" style="padding-bottom:80px"><div class="spinner"></div></div>
 
     <!-- Floating + Add button -->
     <button class="btn btn-accent" onclick="openAddListItem()"
@@ -800,6 +797,144 @@
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-delete-receipt')">Cancel</button>
       <button class="btn btn-accent flex-1" onclick="deleteReceipt()">Delete receipt</button>
     </div>
+  </div>
+</div>
+
+
+<!-- ADD MEAL MODAL -->
+<div id="modal-add-meal" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+
+    <!-- Step 1: Meal type -->
+    <div id="add-meal-type-step">
+      <div class="modal-title">Add meal</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">What type of meal is this?</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+        <button id="meal-type-btn-breakfast" class="meal-type-btn" onclick="selectMealType('breakfast')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--yellow-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#9749;</div>
+          <div style="font-size:12px;font-weight:700;color:#8B6B00">Breakfast</div>
+        </button>
+        <button id="meal-type-btn-lunch" class="meal-type-btn" onclick="selectMealType('lunch')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--blue-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#129365;</div>
+          <div style="font-size:12px;font-weight:700;color:var(--blue-dark)">Lunch</div>
+        </button>
+        <button id="meal-type-btn-dinner" class="meal-type-btn" onclick="selectMealType('dinner')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--orange-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#127869;&#65039;</div>
+          <div style="font-size:12px;font-weight:700;color:#8B3A00">Dinner</div>
+        </button>
+        <button id="meal-type-btn-baking" class="meal-type-btn" onclick="selectMealType('baking')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--pink-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#129360;</div>
+          <div style="font-size:12px;font-weight:700;color:#8B0038">Baking</div>
+        </button>
+        <button id="meal-type-btn-snack" class="meal-type-btn" onclick="selectMealType('snack')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--green-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#127822;</div>
+          <div style="font-size:12px;font-weight:700;color:var(--green-deeper)">Snack</div>
+        </button>
+        <button id="meal-type-btn-other" class="meal-type-btn" onclick="selectMealType('other')"
+          style="padding:14px 8px;border-radius:var(--r-lg);border:2px solid var(--line);background:var(--purple-pale);cursor:pointer;text-align:center;font-family:var(--font)">
+          <div style="font-size:24px;margin-bottom:4px">&#9998;&#65039;</div>
+          <div style="font-size:12px;font-weight:700;color:var(--purple)">Other</div>
+        </button>
+      </div>
+      <div id="add-meal-other-wrap" class="hidden" style="margin-bottom:14px">
+        <input class="modal-input" type="text" id="add-meal-other-input" placeholder="e.g. Afternoon tea, Braai..."/>
+      </div>
+      <div class="modal-row">
+        <button class="btn btn-outline flex-1" onclick="closeModal('modal-add-meal')">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="goToMealRecipePicker()">Choose recipe &#8250;</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Recipe picker -->
+    <div id="add-meal-recipe-step" class="hidden">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button onclick="document.getElementById('add-meal-type-step').classList.remove('hidden');document.getElementById('add-meal-recipe-step').classList.add('hidden')"
+          style="background:transparent;border:none;cursor:pointer;font-size:20px;color:var(--muted)">&#8249;</button>
+        <div class="modal-title" style="margin:0">Choose a recipe</div>
+      </div>
+      <div id="add-meal-recipe-list" style="max-height:60vh;overflow-y:auto"></div>
+      <button class="btn btn-outline btn-full" style="margin-top:10px" onclick="closeModal('modal-add-meal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- INGREDIENT SELECTOR MODAL -->
+<div id="modal-ingredient-selector" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add ingredients to list</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+      Tap to deselect anything you already have. Only selected items will be added.
+    </div>
+    <div id="ingredient-selector-list" style="max-height:52vh;overflow-y:auto;margin-bottom:16px"></div>
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Store</div>
+    <select id="ing-store-select" style="width:100%;padding:11px 14px;border-radius:var(--r-md);border:1.5px solid var(--line);font-size:14px;font-family:var(--font);color:var(--text);background:#fff;margin-bottom:14px">
+      <option value="">No store assigned</option>
+      <option value="woolworths">Woolworths</option>
+      <option value="checkers">Checkers</option>
+      <option value="pnp">Pick n Pay</option>
+      <option value="spar">Spar</option>
+      <option value="walmart">Walmart</option>
+    </select>
+    <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px">Add to basket</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div class="basket-tab active" id="ing-tab-this" onclick="setIngBasket('this_week')" style="flex:1;cursor:pointer;text-align:center">This week</div>
+      <div class="basket-tab" id="ing-tab-next" onclick="setIngBasket('next_week')" style="flex:1;cursor:pointer;text-align:center">Next week</div>
+      <div class="basket-tab" id="ing-tab-monthly" onclick="setIngBasket('monthly')" style="flex:1;cursor:pointer;text-align:center">Monthly</div>
+    </div>
+    <div class="modal-row">
+      <button class="btn btn-outline flex-1" onclick="closeModal('modal-ingredient-selector')">Cancel</button>
+      <button class="btn btn-accent flex-1" id="ingredient-add-btn" onclick="saveIngredientSelection()">Add items to list</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- EDIT ITEM STORE MODAL -->
+<div id="modal-edit-store" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Move to store</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select which store this item belongs to</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <button class="store-pick-btn" data-store="woolworths" onclick="confirmEditStore('woolworths')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/woolworths.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Woolworths</span>
+      </button>
+      <button class="store-pick-btn" data-store="checkers" onclick="confirmEditStore('checkers')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/checkers.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Checkers</span>
+      </button>
+      <button class="store-pick-btn" data-store="pnp" onclick="confirmEditStore('pnp')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/pnp.jpg" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Pick n Pay</span>
+      </button>
+      <button class="store-pick-btn" data-store="spar" onclick="confirmEditStore('spar')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/spar.jpg" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Spar</span>
+      </button>
+      <button class="store-pick-btn" data-store="walmart" onclick="confirmEditStore('walmart')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <img src="logos/walmart.png" style="width:32px;height:32px;object-fit:contain;border-radius:6px" onerror="this.style.display='none'"/>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">Walmart</span>
+      </button>
+      <button class="store-pick-btn" data-store="" onclick="confirmEditStore('')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">
+        <span style="width:32px;height:32px;border-radius:6px;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:16px">&#128230;</span>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">No store assigned</span>
+      </button>
+    </div>
+    <button class="btn btn-outline btn-full" onclick="closeModal('modal-edit-store')">Cancel</button>
   </div>
 </div>
 

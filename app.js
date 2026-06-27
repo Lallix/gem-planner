@@ -79,6 +79,250 @@ async function loadUnsplashInto(elId, query, fallbackEmoji){
   img.src=url;
 }
 
+
+// ══ SVG ITEM ILLUSTRATIONS ══
+// Returns an inline SVG for common grocery items and categories
+// Falls back to emoji if no match
+
+function getItemSVG(name, size=46){
+  const n=name.toLowerCase().trim();
+  const s=size;
+
+  // ── Common items ──
+  if(n.includes('milk')||n.includes('dairy'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="8" width="20" height="32" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <rect x="18" y="4" width="12" height="7" rx="3" fill="#3B9EFF"/>
+      <ellipse cx="24" cy="28" rx="7" ry="5" fill="#3B9EFF" opacity=".18"/>
+      <text x="24" y="26" text-anchor="middle" font-size="9" fill="#3B9EFF" font-weight="700" font-family="DM Sans,sans-serif">MILK</text>
+    </svg>`;
+
+  if(n.includes('egg'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="26" rx="10" ry="13" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <ellipse cx="24" cy="27" rx="5" ry="6" fill="#FFB347" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('bread')||n.includes('loaf'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="20" width="32" height="20" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <ellipse cx="24" cy="20" rx="16" ry="8" fill="#FFD0A8" stroke="#FF8C42" stroke-width="1.8"/>
+      <line x1="16" y1="28" x2="32" y2="28" stroke="#FF8C42" stroke-width="1.2" stroke-dasharray="3 2" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('butter'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="18" width="28" height="16" rx="4" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <rect x="14" y="22" width="20" height="8" rx="2" fill="#F5C400" opacity=".3"/>
+      <text x="24" y="28" text-anchor="middle" font-size="7" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">BUTTER</text>
+    </svg>`;
+
+  if(n.includes('cheese'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="8,36 40,36 32,14" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <circle cx="20" cy="28" r="2.5" fill="#F5C400" opacity=".6"/>
+      <circle cx="28" cy="24" r="1.8" fill="#F5C400" opacity=".5"/>
+      <circle cx="25" cy="31" r="2" fill="#F5C400" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('yoghurt')||n.includes('yogurt'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="13" y="14" width="22" height="26" rx="6" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <rect x="16" y="10" width="16" height="8" rx="3" fill="#FF4F8B" opacity=".5"/>
+      <path d="M17 26 Q24 22 31 26" stroke="#FF4F8B" stroke-width="1.5" fill="none"/>
+    </svg>`;
+
+  if(n.includes('chicken')||n.includes('poultry'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="14" ry="10" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <ellipse cx="24" cy="18" rx="8" ry="7" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <circle cx="20" cy="16" r="1.5" fill="#FF4F8B" opacity=".6"/>
+    </svg>`;
+
+  if(n.includes('beef')||n.includes('mince')||n.includes('steak'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="14" ry="9" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <path d="M12 26 Q18 20 24 24 Q30 20 36 26" stroke="#FF4F8B" stroke-width="1.5" fill="none" opacity=".5"/>
+    </svg>`;
+
+  if(n.includes('tomato'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="27" r="13" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <path d="M24 14 Q26 10 30 11" stroke="#D4F5E9" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 Q22 10 18 11" stroke="#D4F5E9" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 L24 17" stroke="#009A5C" stroke-width="2"/>
+    </svg>`;
+
+  if(n.includes('potato'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="26" rx="13" ry="10" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <circle cx="18" cy="24" r="1.5" fill="#B8860B" opacity=".4"/>
+      <circle cx="28" cy="22" r="1.5" fill="#B8860B" opacity=".4"/>
+      <circle cx="23" cy="30" r="1.5" fill="#B8860B" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('onion'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="24" cy="28" rx="12" ry="10" fill="#E8DFFF" stroke="#8B5CF6" stroke-width="1.8"/>
+      <path d="M20 18 Q24 10 28 18" stroke="#8B5CF6" stroke-width="1.5" fill="none"/>
+      <path d="M24 28 Q28 22 32 26" stroke="#8B5CF6" stroke-width="1" fill="none" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('apple'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 26 Q12 14 24 14 Q36 14 36 26 Q36 38 24 38 Q12 38 12 26Z" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <path d="M24 14 Q26 8 30 9" stroke="#009A5C" stroke-width="2" stroke-linecap="round"/>
+      <path d="M24 14 L24 17" stroke="#009A5C" stroke-width="2"/>
+    </svg>`;
+
+  if(n.includes('banana'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 32 Q14 16 28 12 Q36 10 38 16 Q32 14 22 22 Q14 30 16 38 Q10 38 10 32Z" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+    </svg>`;
+
+  if(n.includes('coffee'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="14" width="20" height="26" rx="5" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <rect x="15" y="17" width="14" height="8" rx="2" fill="#FF8C42" opacity=".25"/>
+      <text x="22" y="34" text-anchor="middle" font-size="7" fill="#8B3A00" font-weight="700" font-family="DM Sans,sans-serif">COFFEE</text>
+      <path d="M32 22 Q38 22 38 28 Q38 32 32 32" stroke="#FF8C42" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    </svg>`;
+
+  if(n.includes('tea'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="20" width="20" height="18" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <path d="M32 24 Q38 24 38 30 Q38 34 32 34" stroke="#009A5C" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M18 20 Q20 14 22 20" stroke="#009A5C" stroke-width="1.5" fill="none"/>
+      <path d="M23 20 Q25 12 27 20" stroke="#009A5C" stroke-width="1.5" fill="none"/>
+    </svg>`;
+
+  if(n.includes('sugar'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="14" width="26" height="26" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="30" text-anchor="middle" font-size="8" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">SUGAR</text>
+      <circle cx="18" cy="20" r="1.5" fill="#F5C400" opacity=".5"/>
+      <circle cx="30" cy="22" r="1" fill="#F5C400" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('rice'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="12" width="26" height="28" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <text x="24" y="29" text-anchor="middle" font-size="8" fill="#006B3C" font-weight="700" font-family="DM Sans,sans-serif">RICE</text>
+      <ellipse cx="24" cy="20" rx="8" ry="3" fill="#009A5C" opacity=".15"/>
+    </svg>`;
+
+  if(n.includes('pasta')||n.includes('noodle')||n.includes('spaghetti'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14 38 Q14 14 20 14 Q20 38 24 14 Q28 38 28 14 Q34 14 34 38" stroke="#FFE4CC" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M14 38 Q14 14 20 14 Q20 38 24 14 Q28 38 28 14 Q34 14 34 38" stroke="#FF8C42" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </svg>`;
+
+  if(n.includes('oil')||n.includes('sunflower'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="10" width="16" height="30" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <rect x="19" y="6" width="10" height="8" rx="3" fill="#F5C400" opacity=".5"/>
+      <text x="24" y="30" text-anchor="middle" font-size="6" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">OIL</text>
+    </svg>`;
+
+  if(n.includes('soap')||n.includes('detergent')||n.includes('dishwash'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="14" width="20" height="26" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <rect x="18" y="10" width="12" height="8" rx="3" fill="#009A5C" opacity=".5"/>
+      <circle cx="22" cy="22" r="2" fill="#009A5C" opacity=".3"/>
+      <circle cx="28" cy="26" r="1.5" fill="#009A5C" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('water')||n.includes('still water'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="17" y="8" width="14" height="32" rx="6" fill="#D6EEFF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <path d="M20 20 Q24 16 28 20 Q24 24 20 20Z" fill="#3B9EFF" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('juice'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="14" y="10" width="20" height="30" rx="5" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/>
+      <rect x="17" y="6" width="14" height="8" rx="3" fill="#FF8C42" opacity=".4"/>
+      <ellipse cx="24" cy="28" rx="6" ry="5" fill="#FF8C42" opacity=".2"/>
+    </svg>`;
+
+  if(n.includes('flour'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="12" y="14" width="24" height="24" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="29" text-anchor="middle" font-size="7" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">FLOUR</text>
+    </svg>`;
+
+  if(n.includes('salt'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="12" width="16" height="26" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/>
+      <circle cx="22" cy="22" r="1.5" fill="#3B9EFF" opacity=".4"/>
+      <circle cx="26" cy="26" r="1.5" fill="#3B9EFF" opacity=".4"/>
+      <circle cx="22" cy="30" r="1.5" fill="#3B9EFF" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('pepper'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="16" y="12" width="16" height="26" rx="5" fill="#2C2C3E" stroke="#555" stroke-width="1.8" opacity=".85"/>
+      <circle cx="22" cy="22" r="1.5" fill="#fff" opacity=".3"/>
+      <circle cx="26" cy="28" r="1.5" fill="#fff" opacity=".3"/>
+    </svg>`;
+
+  if(n.includes('avocado')||n.includes('avo'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 8 Q36 16 36 28 Q36 40 24 40 Q12 40 12 28 Q12 16 24 8Z" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/>
+      <ellipse cx="24" cy="30" rx="6" ry="7" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.2"/>
+    </svg>`;
+
+  if(n.includes('sauce')||n.includes('ketchup'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="15" y="16" width="18" height="22" rx="5" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/>
+      <rect x="18" y="10" width="12" height="9" rx="3" fill="#FF4F8B" opacity=".4"/>
+    </svg>`;
+
+  if(n.includes('cereal')||n.includes('oat'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="11" y="10" width="26" height="30" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/>
+      <text x="24" y="28" text-anchor="middle" font-size="6.5" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">CEREAL</text>
+    </svg>`;
+
+  // ── Category fallbacks ──
+  return getCatSVG(name, size);
+}
+
+function getCatSVG(cat, size=46){
+  const s=size;
+  const c=cat.toLowerCase();
+
+  if(c.includes('dairy'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="14" y="8" width="20" height="32" rx="5" fill="#EEF6FF" stroke="#3B9EFF" stroke-width="1.8"/><rect x="18" y="4" width="12" height="7" rx="3" fill="#3B9EFF"/><text x="24" y="28" text-anchor="middle" font-size="8" fill="#3B9EFF" font-weight="700" font-family="DM Sans,sans-serif">DAIRY</text></svg>`;
+
+  if(c.includes('meat')||c.includes('fish'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="26" rx="14" ry="10" fill="#FFE0EE" stroke="#FF4F8B" stroke-width="1.8"/><path d="M14 24 Q20 18 26 22 Q32 18 38 24" stroke="#FF4F8B" stroke-width="1.5" fill="none" opacity=".5"/></svg>`;
+
+  if(c.includes('fruit')||c.includes('veg'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="27" r="13" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/><path d="M24 14 Q28 8 32 10" stroke="#009A5C" stroke-width="2" stroke-linecap="round"/><path d="M24 14 L24 18" stroke="#009A5C" stroke-width="2"/></svg>`;
+
+  if(c.includes('dry')||c.includes('grain'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="11" y="12" width="26" height="28" rx="5" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/><text x="24" y="29" text-anchor="middle" font-size="8" fill="#B8860B" font-weight="700" font-family="DM Sans,sans-serif">DRY</text></svg>`;
+
+  if(c.includes('bak'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="8" y="20" width="32" height="18" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/><ellipse cx="24" cy="20" rx="16" ry="7" fill="#FFD0A8" stroke="#FF8C42" stroke-width="1.8"/></svg>`;
+
+  if(c.includes('frozen'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><path d="M24 8 L24 40M8 24 L40 24M13 13 L35 35M35 13 L13 35" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="24" r="5" fill="#E8DFFF" stroke="#8B5CF6" stroke-width="1.8"/></svg>`;
+
+  if(c.includes('clean'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="15" y="14" width="18" height="24" rx="5" fill="#D4F5E9" stroke="#009A5C" stroke-width="1.8"/><rect x="19" y="10" width="10" height="7" rx="2" fill="#009A5C" opacity=".5"/><circle cx="20" cy="24" r="2" fill="#009A5C" opacity=".3"/><circle cx="28" cy="28" r="1.5" fill="#009A5C" opacity=".3"/></svg>`;
+
+  if(c.includes('drink')||c.includes('bev'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><path d="M16 12 L18 38 Q18 40 24 40 Q30 40 30 38 L32 12Z" fill="#D6EEFF" stroke="#3B9EFF" stroke-width="1.8"/><path d="M16 18 L32 18" stroke="#3B9EFF" stroke-width="1.5" opacity=".4"/></svg>`;
+
+  if(c.includes('snack'))
+    return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="10" y="16" width="28" height="18" rx="6" fill="#FFE4CC" stroke="#FF8C42" stroke-width="1.8"/><circle cx="18" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/><circle cx="24" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/><circle cx="30" cy="25" r="2.5" fill="#FF8C42" opacity=".4"/></svg>`;
+
+  // Default misc
+  return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="12" y="12" width="24" height="24" rx="6" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/><circle cx="24" cy="24" r="6" fill="#F5C400" opacity=".2"/></svg>`;
+}
+
 // ══ STATE ══
 let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shoppingItems=[], currentFilter='all';
 
@@ -170,13 +414,15 @@ async function loadUser(user){
   const sNameSub=document.getElementById('setting-name-sub');
   if(sNameSub) sNameSub.textContent=name;
   // Load profile avatar from DB if saved
-  const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
-  if(pData?.avatar_emoji){
-    const avEl=document.getElementById('profile-avatar');
-    if(avEl) avEl.innerHTML=pData.avatar_emoji;
-    const homeAv=document.getElementById('home-avatar');
-    if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
-  }
+  try{
+    const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
+    if(pData?.avatar_emoji){
+      const avEl=document.getElementById('profile-avatar');
+      if(avEl) avEl.innerHTML=pData.avatar_emoji;
+      const homeAv=document.getElementById('home-avatar');
+      if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
+    }
+  }catch(e){ /* avatar_emoji column may not exist yet */ }
   loadProfileStats();
 }
 
@@ -547,22 +793,7 @@ function renderFrequentlyBought(){
         onclick="addFreqItemToList('${item.name.replace(/'/g,"\\'")}','${item.store_key||''}')">+</button>
     </div>`;
   }).join('');
-  // Defer image loading so DOM is ready
-  setTimeout(()=>{
-    freqItems.forEach(item=>{
-      const safeId='freq-img-'+item.name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
-      fetchUnsplashUrl(item.name+' food').then(url=>{
-        if(!url) return;
-        const el=document.getElementById(safeId);
-        if(!el) return;
-        el.style.backgroundImage=`url(${url})`;
-        el.style.backgroundSize='cover';
-        el.style.backgroundPosition='center';
-        el.style.borderRadius='12px';
-        el.textContent='';
-      });
-    });
-  },300);
+  // SVG illustrations used — no Unsplash for freq tiles
   return `<div style="padding:12px 0 0">
     <div class="freq-section-head">
       <span style="font-size:14px;font-weight:800;color:var(--text)">Frequently bought</span>
@@ -574,19 +805,8 @@ function renderFrequentlyBought(){
 }
 
 function getFreqEmoji(name){
-  const n=name.toLowerCase();
-  const map=[
-    ['milk','&#129371;'],['egg','&#129040;'],['bread','&#127838;'],['butter','&#129371;'],
-    ['cheese','&#129472;'],['chicken','&#129385;'],['beef','&#129385;'],['mince','&#129385;'],
-    ['tomato','&#127813;'],['potato','&#129479;'],['onion','&#129382;'],['carrot','&#129365;'],
-    ['apple','&#127822;'],['banana','&#127820;'],['orange','&#127818;'],['avocado','&#129361;'],
-    ['rice','&#127858;'],['pasta','&#127857;'],['flour','&#127807;'],['sugar','&#127807;'],
-    ['oil','&#127807;'],['coffee','&#9749;'],['tea','&#9749;'],['juice','&#129381;'],
-    ['soap','&#129532;'],['detergent','&#129532;'],['sauce','&#127798;'],['yoghurt','&#129371;'],
-    ['cream','&#129371;'],['bacon','&#129385;'],['fish','&#127957;'],['pork','&#129385;'],
-  ];
-  for(const [key,emoji] of map){ if(n.includes(key)) return emoji; }
-  return '&#128230;';
+  // Now returns SVG illustration — name kept for backward compat
+  return getItemSVG(name, 46);
 }
 
 async function addFreqItemToList(name,storeKey){
@@ -627,148 +847,271 @@ function setListCatFilter(cat){
   renderShoppingList();
 }
 
+// ══ COLLAPSED STORE STATE ══
+let collapsedStores=new Set();
+
+function toggleStoreCollapse(sk){
+  if(collapsedStores.has(sk)) collapsedStores.delete(sk);
+  else collapsedStores.add(sk);
+  renderShoppingList();
+}
+
 function renderShoppingList(){
   renderListHero();
   let items=shoppingItems;
-  if(currentListStoreFilter) items=items.filter(i=>i.store_key===currentListStoreFilter);
-  if(currentListCatFilter&&currentListCatFilter!=='all') items=items.filter(i=>(i.category||'misc')===currentListCatFilter);
 
   const listEl=document.getElementById('shopping-list-content');
   if(items.length===0){
     listEl.innerHTML=renderFrequentlyBought()+
-      `<div class="empty-state"><div class="empty-state-icon">&#128722;</div><div class="empty-title">List is empty</div><div class="empty-sub">Tap + Add or the basket icon to add items</div></div>`;
+      `<div class="empty-state">
+        <div class="empty-state-icon">&#128722;</div>
+        <div class="empty-title">List is empty</div>
+        <div class="empty-sub">Tap + Add to get started</div>
+      </div>`;
     return;
   }
 
-  // Category config — tinted backgrounds + coloured shadows
-  const catCfg={
-    'Dairy':       {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.3)',  dot:'var(--blue)'},
-    'Meat & Fish': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.3)',   dot:'var(--pink)'},
-    'Fruit & Veg': {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.3)',    dot:'var(--green)'},
-    'Dry Goods':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.3)',   dot:'var(--orange)'},
-    'Bakery':      {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
-    'Frozen':      {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.25)',  dot:'var(--purple)'},
-    'Cleaning':    {bg:'var(--green-pale)', shadow:'rgba(0,198,122,.2)',    dot:'var(--green-dark)'},
-    'Beverages':   {bg:'var(--blue-pale)',  shadow:'rgba(59,158,255,.25)',  dot:'var(--blue)'},
-    'Snacks':      {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
-    'Personal Care':{bg:'var(--pink-pale)', shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
-    'Household':   {bg:'var(--purple-pale)',shadow:'rgba(139,92,246,.2)',   dot:'var(--purple)'},
-    'Baby & Kids': {bg:'var(--pink-pale)',  shadow:'rgba(255,79,139,.2)',   dot:'var(--pink)'},
-    'meal_plan':   {bg:'var(--orange-pale)',shadow:'rgba(255,140,66,.25)',  dot:'var(--orange)'},
-    'misc':        {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',   dot:'var(--yellow)'},
-    'Other':       {bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.2)',    dot:'var(--yellow)'},
+  // Store order + config
+  const STORE_ORDER=['woolworths','checkers','pnp','spar','walmart','other',''];
+  const STORE_COLORS={
+    woolworths:{bg:'#1A1A1A',text:'#fff',badge:'rgba(255,255,255,.12)'},
+    checkers:  {bg:'#00B5AD',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    pnp:       {bg:'#004F9F',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    spar:      {bg:'#007A3D',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    walmart:   {bg:'#0071CE',text:'#fff',badge:'rgba(255,255,255,.15)'},
+    other:     {bg:'#6B7280',text:'#fff',badge:'rgba(255,255,255,.12)'},
+    '':        {bg:'#9CA3AF',text:'#fff',badge:'rgba(255,255,255,.12)'},
   };
 
-  // Category emoji map
-  const catEmoji={'Dairy':'&#129371;','Meat & Fish':'&#129385;','Fruit & Veg':'&#129382;','Dry Goods':'&#127807;','Bakery':'&#127838;','Frozen':'&#10052;&#65039;','Cleaning':'&#129532;','Beverages':'&#129381;','Snacks':'&#127839;','Personal Care':'&#129532;','Household':'&#127968;','Baby & Kids':'&#128118;','meal_plan':'&#127869;&#65039;','misc':'&#128230;','Other':'&#128230;'};
+  // Category dot colours
+  const catDot={
+    'Dairy':'#3B9EFF','Meat & Fish':'#FF4F8B','Fruit & Veg':'#00C67A',
+    'Dry Goods':'#FF8C42','Bakery':'#FF8C42','Frozen':'#8B5CF6',
+    'Cleaning':'#009A5C','Beverages':'#3B9EFF','Snacks':'#F5C400',
+    'meal_plan':'#FF8C42','misc':'#9CA3AF','Other':'#9CA3AF',
+  };
 
-  // Group by category
-  const grouped={};
-  items.forEach(i=>{
-    const cat=i.category||'misc';
-    if(!grouped[cat]) grouped[cat]=[];
-    grouped[cat].push(i);
+  // Build store groups
+  const storeGroups={};
+  items.forEach(item=>{
+    const sk=item.store_key||'';
+    if(!storeGroups[sk]) storeGroups[sk]=[];
+    storeGroups[sk].push(item);
   });
 
   let html=renderFrequentlyBought();
-  Object.entries(grouped).forEach(([cat,catItems])=>{
-    const cfg=catCfg[cat]||{bg:'var(--yellow-pale)',shadow:'rgba(245,196,0,.25)',dot:'var(--yellow)'};
-    const emoji=catEmoji[cat]||'&#128230;';
-    const catLabel=CATEGORY_LABELS[cat]||cat;
 
-    // Frequently bought row for this category (from grocery items)
-    const freq=groceryItems.filter(g=>g.category===cat).slice(0,8);
+  STORE_ORDER.forEach(sk=>{
+    const storeItems=storeGroups[sk];
+    if(!storeItems||!storeItems.length) return;
+    const cfg=STORE_COLORS[sk]||STORE_COLORS[''];
+    const storeCfg=STORES[sk]||STORES.other;
+    const storeLabel=sk?storeCfg.label:'No store assigned';
+    const doneCount=storeItems.filter(i=>i.is_checked).length;
+    const total=storeItems.reduce((s,i)=>s+(i.quantity||1)*(parseFloat(i.normal_price)||0),0);
+    const collapsed=collapsedStores.has(sk);
 
-    if(freq.length>0){
-      html+=`<div style="padding:10px 16px 0">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
+    // Store header
+    html+=`<div style="margin:8px 16px 0">
+      <div onclick="toggleStoreCollapse('${sk}')"
+        style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+          background:${cfg.bg};border-radius:${collapsed?'14px':'14px 14px 0 0'};cursor:pointer;
+          user-select:none">
+        <div style="width:36px;height:36px;border-radius:9px;overflow:hidden;
+          background:rgba(255,255,255,.15);display:flex;align-items:center;
+          justify-content:center;flex-shrink:0">
+          ${sk?`<img src="logos/${sk==='pnp'?'pnp.jpg':sk==='spar'?'spar.jpg':sk+'.png'}"
+            style="width:100%;height:100%;object-fit:contain"
+            onerror="this.parentNode.innerHTML='<span style=font-size:13px;font-weight:800;color:white>${storeLabel.charAt(0)}</span>'"
+            alt="${storeLabel}"/>`
+            :`<span style="font-size:18px">&#128230;</span>`}
         </div>
-      </div>`;
-    } else {
-      html+=`<div style="padding:10px 16px 0">
-        <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${cfg.dot};display:inline-block"></span>${catLabel}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:${cfg.text}">${storeLabel}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:1px">
+            ${doneCount} of ${storeItems.length} done${total>0?' &middot; ~'+fmtR(total):''}
+          </div>
         </div>
-      </div>`;
-    }
-
-    // 3-column tile grid
-    html+=`<div class="prod-grid">`;
-    catItems.forEach(item=>{
-      const price=item.normal_price?`<div class="prod-price">R${parseFloat(item.normal_price).toFixed(2)}</div>`:'';
-      const qty=item.quantity||1;
-      const prodImgId='prod-img-'+item.id;
-      html+=`<div class="prod-card ${item.is_checked?'opacity-50':''}" style="background:${cfg.bg};box-shadow:0 4px 16px ${cfg.shadow}">
-        <div class="prod-thumb" id="${prodImgId}" style="transition:all .3s">${emoji}</div>
-        <div class="prod-name ${item.is_checked?'checked':''}">${item.name}</div>
-        ${item.amount?`<div class="prod-unit">${item.amount}</div>`:''}
-        ${price}
-        <div class="qty-stepper" onclick="event.stopPropagation()">
-          <button class="qty-btn" onclick="changeItemQty('${item.id}',${qty-1})">&#8722;</button>
-          <div class="qty-num">${qty}</div>
-          <button class="qty-btn plus" onclick="changeItemQty('${item.id}',${qty+1})">+</button>
-        </div>
-        <button onclick="deleteListItem('${item.id}')" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:2px;margin-top:4px;width:100%;text-align:right">&#10005;</button>
-      </div>`;
-    });
-    // Empty add tile
-    html+=`<div class="prod-card-empty" onclick="openAddListItem()" style="min-height:100px">
-      <div style="text-align:center;color:var(--muted)">
-        <div style="font-size:24px;font-weight:800;color:var(--green)">+</div>
-        <div style="font-size:11px;font-weight:700;margin-top:2px">Add</div>
+        <span style="color:rgba(255,255,255,.7);font-size:18px;transition:transform .2s;
+          transform:rotate(${collapsed?'-90':'0'}deg)">&#8964;</span>
       </div>
     </div>`;
-    html+=`</div>`;
+
+    if(collapsed) return;
+
+    // Group by category within store
+    const catGroups={};
+    storeItems.forEach(item=>{
+      const cat=item.category||'misc';
+      if(!catGroups[cat]) catGroups[cat]=[];
+      catGroups[cat].push(item);
+    });
+
+    html+=`<div style="margin:0 16px 16px;background:rgba(255,255,255,.85);
+      border-radius:0 0 14px 14px;overflow:hidden">`;
+
+    Object.entries(catGroups).forEach(([cat,catItems])=>{
+      const dot=catDot[cat]||'#9CA3AF';
+      const catLabel=CATEGORY_LABELS[cat]||cat;
+      // Category sub-header
+      html+=`<div style="display:flex;align-items:center;gap:6px;padding:8px 14px 4px;
+        background:rgba(0,0,0,.03)">
+        <span style="width:7px;height:7px;border-radius:50%;background:${dot};
+          display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:10px;font-weight:800;color:var(--muted);
+          text-transform:uppercase;letter-spacing:.7px">${catLabel}</span>
+      </div>`;
+
+      catItems.forEach((item,idx)=>{
+        const qty=item.quantity||1;
+        const checked=item.is_checked;
+        const isLast=idx===catItems.length-1;
+        html+=`<div class="swipe-row" style="position:relative;overflow:hidden;
+          border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,.06)'}">
+          <!-- Red delete zone — revealed by swipe -->
+          <button class="swipe-delete-btn" onclick="deleteListItem('${item.id}')"
+            style="position:absolute;right:0;top:0;bottom:0;width:72px;
+              background:#FF3B5C;color:#fff;border:none;cursor:pointer;
+              display:flex;flex-direction:column;align-items:center;justify-content:center;
+              gap:2px;opacity:0;pointer-events:none;transition:opacity .15s;font-family:var(--font)">
+            <span style="font-size:18px">&#128465;</span>
+            <span style="font-size:10px;font-weight:700">Remove</span>
+          </button>
+          <!-- Row content — slides left on swipe -->
+          <div class="swipe-row-inner" style="display:flex;align-items:center;gap:10px;
+            padding:11px 14px;background:${checked?'rgba(0,0,0,.03)':'transparent'};
+            opacity:${checked?'.5':'1'};transition:opacity .2s;
+            transform:translateX(0);will-change:transform">
+            <!-- SVG icon -->
+            <div style="width:36px;height:36px;border-radius:10px;
+              background:rgba(0,0,0,.04);display:flex;align-items:center;
+              justify-content:center;flex-shrink:0">
+              ${getItemSVG(item.name,28)}
+            </div>
+            <!-- Name + unit -->
+            <div style="flex:1;min-width:0;cursor:pointer"
+              onclick="toggleListItem('${item.id}','${!checked}')">
+              <div style="font-size:14px;font-weight:600;color:var(--text);
+                ${checked?'text-decoration:line-through;':''}
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.name}</div>
+              ${item.amount?`<div style="font-size:11px;color:var(--muted);margin-top:1px">${item.amount}</div>`:''}
+            </div>
+            <!-- Edit store pencil -->
+            <button onclick="openEditItemStore('${item.id}','${item.store_key||''}')"
+              style="background:none;border:none;cursor:pointer;padding:4px;
+                color:var(--muted);font-size:14px;flex-shrink:0">&#9998;&#65039;</button>
+            <!-- Qty stepper -->
+            <div style="display:flex;align-items:center;border-radius:8px;
+              border:1.5px solid var(--line);overflow:hidden;background:#fff;
+              flex-shrink:0" onclick="event.stopPropagation()">
+              <button onclick="changeItemQty('${item.id}',${qty-1})"
+                style="width:26px;height:26px;border:none;background:transparent;
+                  font-size:16px;font-weight:800;cursor:pointer;color:var(--text)">&#8722;</button>
+              <div style="width:22px;text-align:center;font-size:12px;
+                font-weight:700;color:var(--text)">${qty}</div>
+              <button onclick="changeItemQty('${item.id}',${qty+1})"
+                style="width:26px;height:26px;border:none;background:transparent;
+                  font-size:18px;font-weight:800;cursor:pointer;color:var(--green-dark)">+</button>
+            </div>
+            <!-- Tick circle -->
+            <div onclick="toggleListItem('${item.id}','${!checked}')"
+              style="width:26px;height:26px;border-radius:50%;flex-shrink:0;cursor:pointer;
+                display:flex;align-items:center;justify-content:center;
+                background:${checked?'var(--green-dark)':'#fff'};
+                border:2px solid ${checked?'var(--green-dark)':'var(--line)'};
+                transition:all .2s">
+              ${checked?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+            </div>
+          </div>
+        </div>`;
+      });
+
+      html+='';
+    });
+
+    html+='</div>';
   });
 
   listEl.innerHTML=html;
-  // Load Unsplash images for product tiles after DOM renders
-  setTimeout(()=>{
-    items.forEach(item=>{
-      const el=document.getElementById('prod-img-'+item.id);
-      if(!el) return;
-      fetchUnsplashUrl(item.name+' food').then(url=>{
-        if(!url) return;
-        el.style.backgroundImage=`url(${url})`;
-        el.style.backgroundSize='cover';
-        el.style.backgroundPosition='center';
-        el.style.borderRadius='10px';
-        el.textContent='';
-      });
+  setTimeout(()=>initSwipeToDelete(),50);
+}
+
+// ══ SWIPE TO DELETE ══
+let activeSwipeRow=null;
+
+function initSwipeToDelete(){
+  document.querySelectorAll('.swipe-row').forEach(row=>{
+    let startX=0,startY=0,currentX=0,swiping=false;
+    const inner=row.querySelector('.swipe-row-inner');
+    const del=row.querySelector('.swipe-delete-btn');
+    if(!inner) return;
+
+    row.addEventListener('touchstart',e=>{
+      if(activeSwipeRow&&activeSwipeRow!==row) resetSwipe(activeSwipeRow);
+      startX=e.touches[0].clientX;
+      startY=e.touches[0].clientY;
+      currentX=0; swiping=true;
+    },{passive:true});
+
+    row.addEventListener('touchmove',e=>{
+      if(!swiping) return;
+      const dx=e.touches[0].clientX-startX;
+      const dy=e.touches[0].clientY-startY;
+      if(Math.abs(dy)>Math.abs(dx)&&Math.abs(currentX)<5){ swiping=false; return; }
+      if(dx>0&&currentX>=0) return;
+      currentX=Math.max(dx,-80);
+      inner.style.transform=`translateX(${currentX}px)`;
+      inner.style.transition='none';
+      if(del) del.style.opacity=Math.min(1,Math.abs(currentX)/60)+'';
+    },{passive:true});
+
+    row.addEventListener('touchend',()=>{
+      if(!swiping) return; swiping=false;
+      if(currentX<-50){
+        inner.style.transition='transform .2s';
+        inner.style.transform='translateX(-72px)';
+        if(del){del.style.opacity='1';del.style.pointerEvents='auto';}
+        activeSwipeRow=row;
+      } else {
+        resetSwipe(row);
+      }
     });
-  },400);
+  });
 }
 
-
-// ══ RECIPE QUICK ACTIONS ══
-function openPlanPickerFromRecipe(recipeId){
-  const r=allRecipes.find(x=>x.id===recipeId);
-  if(!r) return;
-  planPickerRecipe=r;
-  planPickerWeek=0;
-  pendingDayOfWeek=null;
-  document.getElementById('plan-picker-recipe-name').textContent=r.title;
-  document.getElementById('plan-picker-error').textContent='';
-  setPlanPickerWeek(0);
-  renderPlanDayPicker();
-  document.getElementById('plan-step-recipe').classList.add('hidden');
-  document.getElementById('plan-step-day').classList.remove('hidden');
-  openModal('modal-plan-picker');
+function resetSwipe(row){
+  const inner=row?.querySelector('.swipe-row-inner');
+  const del=row?.querySelector('.swipe-delete-btn');
+  if(inner){inner.style.transition='transform .2s';inner.style.transform='translateX(0)';}
+  if(del){del.style.opacity='0';del.style.pointerEvents='none';}
+  if(activeSwipeRow===row) activeSwipeRow=null;
 }
 
-function viewRecipeAndAddToList(recipeId){
-  viewRecipe(recipeId);
-  // After modal opens, trigger pantry check automatically
-  setTimeout(()=>checkPantry(),400);
+// ══ EDIT ITEM STORE ══
+let editStoreItemId=null;
+
+function openEditItemStore(itemId, currentStore){
+  editStoreItemId=itemId;
+  // Highlight current store
+  document.querySelectorAll('.store-pick-btn').forEach(b=>{
+    b.classList.toggle('selected',b.dataset.store===currentStore);
+  });
+  openModal('modal-edit-store');
 }
 
-async function changeItemQty(id,newQty){
-  if(newQty<1){ deleteListItem(id); return; }
-  await db.from('shopping_list_items').update({quantity:newQty}).eq('id',id);
-  const item=shoppingItems.find(i=>i.id===id);
-  if(item){ item.quantity=newQty; renderShoppingList(); }
+async function confirmEditStore(newStore){
+  if(!editStoreItemId) return;
+  await db.from('shopping_list_items')
+    .update({store_key:newStore||null})
+    .eq('id',editStoreItemId);
+  const item=shoppingItems.find(i=>i.id===editStoreItemId);
+  if(item) item.store_key=newStore||null;
+  closeModal('modal-edit-store');
+  editStoreItemId=null;
+  renderShoppingList();
+  showToast('\u2713 Store updated');
 }
+
 async function toggleListItem(id,checked){
   await db.from('shopping_list_items').update({is_checked:checked==='true'}).eq('id',id);
   const item=shoppingItems.find(i=>i.id===id);
@@ -812,9 +1155,10 @@ function openAddListItem(){
 
 function setQABasket(basket){
   qaBasket=basket;
-  document.getElementById('qa-basket-this').classList.toggle('filter-active',basket==='this_week');
-  document.getElementById('qa-basket-next').classList.toggle('filter-active',basket==='next_week');
-  document.getElementById('qa-basket-monthly').classList.toggle('filter-active',basket==='monthly');
+  document.querySelectorAll('[id^="qa-basket-"]').forEach(b=>b.classList.remove('filter-active','active'));
+  const map={'this_week':'qa-basket-this','next_week':'qa-basket-next','monthly':'qa-basket-monthly'};
+  const el=document.getElementById(map[basket]);
+  if(el) el.classList.add('filter-active');
 }
 
 const QA_CAT_ID_MAP={
@@ -846,8 +1190,8 @@ function toggleQAItem(id){
   const el=document.getElementById('qa-item-'+id);
   if(el){
     const selected=quickAddSelected.has(id);
-    el.style.background=selected?'var(--primary-pale)':'var(--card)';
-    el.style.borderColor=selected?'var(--primary)':'var(--line)';
+    el.style.background=selected?'var(--green-pale)':'var(--card)';
+    el.style.borderColor=selected?'var(--green-dark)':'var(--line)';
     const tick=el.querySelector('.qa-tick');
     if(tick) tick.style.display=selected?'flex':'none';
   }
@@ -951,81 +1295,341 @@ async function saveListItem(){ await saveAllQuickItems(); }
 
 
 
-function generateShoppingList(){showToast('Meal plan → shopping list coming soon!');showScreen('list');}
+// generateShoppingList — see new async version above
 
 // ══ MEAL PLAN ══
 let currentPlanWeekOffset=0;
 
+
+// ══ MEAL PLANNER — ADD MEAL FLOW ══
+let addMealDay=null;
+let addMealWeek=null;
+let addMealType=null;
+
+function openAddMealForDay(dayOfWeek, weekOffset){
+  addMealDay=dayOfWeek;
+  addMealWeek=weekOffset;
+  addMealType=null;
+  // Reset modal state
+  document.getElementById('add-meal-type-step').classList.remove('hidden');
+  document.getElementById('add-meal-recipe-step').classList.add('hidden');
+  document.getElementById('add-meal-other-wrap').classList.add('hidden');
+  document.getElementById('add-meal-other-input').value='';
+  document.querySelectorAll('.meal-type-btn').forEach(b=>b.classList.remove('selected'));
+  openModal('modal-add-meal');
+}
+
+function selectMealType(type){
+  addMealType=type;
+  document.querySelectorAll('.meal-type-btn').forEach(b=>b.classList.remove('selected'));
+  const btn=document.getElementById('meal-type-btn-'+type);
+  if(btn) btn.classList.add('selected');
+  // Show other input if 'other' selected
+  const otherWrap=document.getElementById('add-meal-other-wrap');
+  if(type==='other'){
+    otherWrap.classList.remove('hidden');
+    document.getElementById('add-meal-other-input').focus();
+  } else {
+    otherWrap.classList.add('hidden');
+  }
+}
+
+function goToMealRecipePicker(){
+  if(!addMealType){ showToast('Please select a meal type first'); return; }
+  if(addMealType==='other'){
+    const custom=document.getElementById('add-meal-other-input').value.trim();
+    if(!custom){ showToast('Please enter a meal type'); return; }
+    addMealType=custom;
+  }
+  // Show recipe picker step
+  document.getElementById('add-meal-type-step').classList.add('hidden');
+  document.getElementById('add-meal-recipe-step').classList.remove('hidden');
+  renderAddMealRecipePicker();
+}
+
+function renderAddMealRecipePicker(){
+  const list=allRecipes.filter(r=>r.visibility!=='archived');
+  const el=document.getElementById('add-meal-recipe-list');
+  if(!el) return;
+  const catBg={dinner:'var(--orange-pale)',baking:'var(--pink-pale)',lunch:'var(--blue-pale)',other:'var(--green-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)'};
+  const catCol={dinner:'#8B3A00',baking:'#8B0038',lunch:'var(--blue-dark)',other:'var(--green-deeper)',breakfast:'#8B6B00',snack:'var(--green-deeper)'};
+  el.innerHTML=list.length===0
+    ?'<div style="text-align:center;padding:20px;color:var(--muted)">No recipes yet — add recipes first</div>'
+    :list.map(r=>{
+      const bg=catBg[r.category]||catBg.other;
+      const col=catCol[r.category]||catCol.other;
+      return `<div onclick="confirmAddMealEntry('${r.id}','${r.title.replace(/'/g,"\\'")}','${r.category}')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--white);border-radius:var(--r-md);margin-bottom:6px;cursor:pointer;border:1.5px solid var(--line-light)">
+        <span style="font-size:24px">${r.category==='baking'?'&#129360;':r.category==='lunch'?'&#129365;':'&#127869;&#65039;'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${r.title}</div>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${bg};color:${col}">${r.category}</span>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+async function confirmAddMealEntry(recipeId, recipeTitle, recipeCategory){
+  if(!currentUser||addMealDay===null) return;
+  // Ensure meal_plans row exists for this week
+  const now=new Date();
+  const thisMonday=new Date(now);
+  thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
+  thisMonday.setHours(0,0,0,0);
+  const weekStart=new Date(thisMonday);
+  weekStart.setDate(thisMonday.getDate()+(addMealWeek*7));
+  const ws=weekStart.toISOString().split('T')[0];
+
+  // Get or create meal plan for this week
+  let planId=null;
+  const {data:existing}=await db.from('meal_plans').select('id').eq('user_id',currentUser.id).eq('week_start',ws).limit(1);
+  if(existing&&existing.length>0){
+    planId=existing[0].id;
+  } else {
+    const {data:newPlan}=await db.from('meal_plans').insert({user_id:currentUser.id,week_start:ws}).select('id').single();
+    planId=newPlan?.id;
+  }
+  if(!planId){ showToast('Error creating meal plan'); return; }
+
+  // Insert meal entry — allow multiple per day
+  const {error}=await db.from('meal_plan_entries').insert({
+    user_id:currentUser.id,
+    plan_id:planId,
+    week_offset:addMealWeek,
+    day_of_week:addMealDay,
+    meal_type:addMealType||'dinner',
+    recipe_id:recipeId,
+  });
+
+  if(error){ console.error(error); showToast('Error saving meal'); return; }
+  closeModal('modal-add-meal');
+  showToast('\u2713 '+recipeTitle+' added to plan');
+  loadMealPlan();
+}
+
+// ══ ADD RECIPE TO LIST FROM PLAN (single meal) ══
+async function addRecipeToListFromPlan(recipeId, recipeTitle){
+  if(!recipeId) return;
+  // Set up ingredient selector for this recipe
+  const {data:recipe}=await db.from('recipes').select('*,recipe_ingredients(*)').eq('id',recipeId).single();
+  if(!recipe){ showToast('Recipe not found'); return; }
+  openIngredientSelector([recipe]);
+}
+
+// ══ GENERATE SHOPPING LIST FROM FULL WEEK ══
+async function generateShoppingList(){
+  if(!currentUser) return;
+  // Load all entries for current week
+  const {data:entries}=await db.from('meal_plan_entries')
+    .select('recipe_id,recipes(title,recipe_ingredients(name,amount,unit))')
+    .eq('user_id',currentUser.id)
+    .eq('week_offset',currentPlanWeekOffset);
+
+  if(!entries||entries.length===0){
+    showToast('No meals planned for this week');
+    return;
+  }
+
+  // Collect all recipes
+  const recipes=entries.map(e=>e.recipes).filter(Boolean);
+  if(recipes.length===0){ showToast('No recipe details found'); return; }
+  openIngredientSelector(recipes);
+}
+
+// ══ INGREDIENT SELECTOR MODAL ══
+let ingredientSelectorItems=[];
+
+function openIngredientSelector(recipes){
+  // Collect + deduplicate ingredients across all recipes
+  const allIngredients=[];
+  const seen=new Set();
+  recipes.forEach(recipe=>{
+    (recipe.recipe_ingredients||[]).forEach(ing=>{
+      const key=ing.name.toLowerCase().trim();
+      if(!seen.has(key)){
+        seen.add(key);
+        allIngredients.push({name:ing.name,amount:ing.amount||'',unit:ing.unit||'',selected:true});
+      }
+    });
+  });
+
+  if(allIngredients.length===0){
+    showToast('No ingredients found — add ingredients to your recipes first');
+    return;
+  }
+
+  ingredientSelectorItems=allIngredients;
+  renderIngredientSelector();
+  openModal('modal-ingredient-selector');
+}
+
+function renderIngredientSelector(){
+  const el=document.getElementById('ingredient-selector-list');
+  if(!el) return;
+  el.innerHTML=ingredientSelectorItems.map((item,i)=>`
+    <div onclick="toggleIngredient(${i})"
+      style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--r-md);cursor:pointer;margin-bottom:6px;
+        background:${item.selected?'var(--green-pale)':'#F5F5F5'};transition:background .2s">
+      <div style="width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+        background:${item.selected?'var(--green-dark)':'#E0E0E0'};border:2.5px solid ${item.selected?'var(--green-dark)':'#CCC'};transition:all .2s">
+        ${item.selected?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:${item.selected?'var(--text)':'var(--muted)'}">${item.name}</div>
+        ${item.amount||item.unit?`<div style="font-size:11px;color:var(--muted)">${[item.amount,item.unit].filter(Boolean).join(' ')}</div>`:''}
+      </div>
+    </div>`).join('');
+
+  // Update button count
+  const count=ingredientSelectorItems.filter(i=>i.selected).length;
+  const btn=document.getElementById('ingredient-add-btn');
+  if(btn) btn.textContent=`Add ${count} item${count!==1?'s':''} to list`;
+}
+
+function toggleIngredient(i){
+  ingredientSelectorItems[i].selected=!ingredientSelectorItems[i].selected;
+  renderIngredientSelector();
+}
+
+// ══ INGREDIENT SELECTOR BASKET TOGGLE ══
+let ingBasket='this_week';
+function setIngBasket(b){
+  ingBasket=b;
+  const map={'this_week':'ing-tab-this','next_week':'ing-tab-next','monthly':'ing-tab-monthly'};
+  document.querySelectorAll('[id^="ing-tab-"]').forEach(t=>t.classList.remove('active'));
+  const activeEl=document.getElementById(map[b]);
+  if(activeEl) activeEl.classList.add('active');
+}
+async function saveIngredientSelection(){
+  const selected=ingredientSelectorItems.filter(i=>i.selected);
+  if(!selected.length){ showToast('Nothing selected'); return; }
+  if(!currentUser) return;
+
+  // Get basket week_start from ingredient selector's own basket choice
+  const basket=typeof ingBasket!=='undefined'?ingBasket:currentListBasket;
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const ws=basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+
+  const ingStore=document.getElementById('ing-store-select')?.value||null;
+  const rows=selected.map(item=>({
+    user_id:currentUser.id,
+    name:item.name,
+    amount:item.amount||null,
+    category:'misc',
+    store_key:ingStore,
+    week_start:ws,
+    quantity:1,
+    is_checked:false,
+  }));
+
+  const {error}=await db.from('shopping_list_items').insert(rows);
+  if(error){ console.error(error); showToast('Error adding items'); return; }
+  closeModal('modal-ingredient-selector');
+  showToast('\u2713 '+selected.length+' item'+( selected.length!==1?'s':'')+' added to list');
+  showScreen('list');
+}
+
 function switchPlanWeek(offset){
   currentPlanWeekOffset=offset;
-  // Update tab active state
-  document.getElementById('plan-tab-this').classList.toggle('filter-active', offset===0);
-  document.getElementById('plan-tab-next').classList.toggle('filter-active', offset===1);
+  document.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));
+  const activeTab=offset===0?'plan-tab-this':'plan-tab-next';
+  const el=document.getElementById(activeTab);
+  if(el) el.classList.add('active');
   loadMealPlan();
 }
 
 async function loadMealPlan(){
   const now=new Date();
-  // Calculate start of current week (Monday)
   const thisMonday=new Date(now);
   thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
   thisMonday.setHours(0,0,0,0);
-  // Apply week offset
   const weekStart=new Date(thisMonday);
   weekStart.setDate(thisMonday.getDate()+(currentPlanWeekOffset*7));
-
   const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
   const startStr=weekStart.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
   const endStr=weekEnd.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-  document.getElementById('plan-week-label').textContent=`${startStr} — ${endStr}`;
+  const labelEl=document.getElementById('plan-week-label');
+  if(labelEl) labelEl.textContent=`${startStr} — ${endStr}`;
 
-  // Load meal plan for this week — join via meal_plans table
   const ws=weekStart.toISOString().split('T')[0];
 
-  // First get the meal plan ID for this week
-  const {data:planArr}=await db.from('meal_plans')
-    .select('id')
+  // Load entries directly using week_offset column (no join through meal_plans)
+  const {data:entries}=await db.from('meal_plan_entries')
+    .select('*,recipes(id,title,category,prep_time,cook_time)')
     .eq('user_id',currentUser.id)
-    .eq('week_start',ws)
-    .limit(1);
+    .eq('week_offset',currentPlanWeekOffset)
+    .order('day_of_week');
 
-  let entries=[];
-  if(planArr&&planArr.length>0){
-    const {data:entryData}=await db.from('meal_plan_entries')
-      .select('*,recipes(title,category)')
-      .eq('plan_id',planArr[0].id)
-      .order('day_of_week');
-    entries=entryData||[];
+  const allEntries=entries||[];
+
+  // Week summary
+  const mealCounts={};
+  allEntries.forEach(e=>{
+    const t=e.meal_type||'dinner';
+    mealCounts[t]=(mealCounts[t]||0)+1;
+  });
+  const summaryEl=document.getElementById('week-summary-label');
+  if(summaryEl) summaryEl.textContent=`${allEntries.length} of 7 days have meals`;
+  const pillsEl=document.getElementById('week-summary-pills');
+  if(pillsEl){
+    const mealColors={dinner:'var(--orange-pale)',lunch:'var(--blue-pale)',baking:'var(--pink-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)',other:'var(--purple-pale)'};
+    const mealText={dinner:'#8B3A00',lunch:'var(--blue-dark)',baking:'#8B0038',breakfast:'#8B6B00',snack:'var(--green-deeper)',other:'var(--purple)'};
+    pillsEl.innerHTML=Object.entries(mealCounts).map(([t,n])=>
+      `<span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;background:${mealColors[t]||'var(--purple-pale)'};color:${mealText[t]||'var(--purple)'}">${n} ${t.charAt(0).toUpperCase()+t.slice(1)}</span>`
+    ).join('');
   }
 
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const today=new Date(); today.setHours(0,0,0,0);
+  const mealEmoji={dinner:'&#127869;&#65039;',lunch:'&#129365;',baking:'&#129360;',breakfast:'&#9749;',snack:'&#127822;',other:'&#127869;&#65039;'};
+  const mealBg={dinner:'var(--orange-pale)',lunch:'var(--blue-pale)',baking:'var(--pink-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)',other:'var(--purple-pale)'};
+  const mealCol={dinner:'#8B3A00',lunch:'var(--blue-dark)',baking:'#8B0038',breakfast:'#8B6B00',snack:'var(--green-deeper)',other:'var(--purple)'};
 
   document.getElementById('plan-grid').innerHTML=days.map((day,i)=>{
     const date=new Date(weekStart); date.setDate(weekStart.getDate()+i);
     const dateStr=date.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
     const isToday=date.getTime()===today.getTime();
     const isPast=date<today;
-    const dayEntry=entries?.find(e=>e.day_of_week===i);
+    const dayEntries=allEntries.filter(e=>e.day_of_week===i);
 
-    return `<div class="plan-day" style="${isToday?'border-color:var(--primary);border-width:2px;':''}${isPast?'opacity:0.6;':''}">
-      <div class="plan-day-header">
-        <div class="plan-day-name" style="${isToday?'color:var(--primary);font-weight:800;':''}">${day}${isToday?' <span style="font-size:10px;background:var(--primary);color:white;padding:1px 7px;border-radius:10px;font-weight:700;vertical-align:middle">Today</span>':''}</div>
+    const mealsHtml=dayEntries.map(e=>{
+      const mt=e.meal_type||'dinner';
+      const bg=mealBg[mt]||mealBg.other;
+      const col=mealCol[mt]||mealCol.other;
+      const emoji=mealEmoji[mt]||mealEmoji.other;
+      return `<div class="plan-slot plan-slot-filled" style="border-top:.5px solid var(--line-light)">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <span style="font-size:18px">${emoji}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:${col}">${mt}</div>
+            <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)">${e.recipes?.title||'Unknown recipe'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="addRecipeToListFromPlan('${e.recipe_id}','${e.recipes?.title||''}')" 
+            style="font-size:10px;font-weight:700;padding:4px 8px;border-radius:8px;background:${bg};color:${col};border:none;cursor:pointer">+ List</button>
+          <button onclick="removeMealEntry('${e.id}')" 
+            style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">&#10005;</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="plan-day-card${isToday?' today':''}${isPast?' past':''}">
+      <div class="plan-day-hdr${isToday?' today-hdr':''}">
+        <div class="plan-day-name">${day}${isToday?` <span class="today-badge">Today</span>`:''}${isPast?` <span class="past-label">passed</span>`:''}</div>
         <div class="plan-day-date">${dateStr}</div>
       </div>
-      ${dayEntry?.recipes
-        ?`<div class="plan-slot plan-slot-filled" style="justify-content:space-between">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-              <span style="font-size:16px">${dayEntry.recipes.category==='baking'?'🥐':'🍽️'}</span>
-              <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${dayEntry.recipes.title}</span>
-            </div>
-            <button onclick="removeMealEntry('${dayEntry.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0" title="Remove">✕</button>
-          </div>`
-        :`<div class="plan-slot plan-slot-empty" onclick="openPlanPickerForDay(${i},${currentPlanWeekOffset})">
-            <span style="font-size:16px">+</span><span>Add dinner</span>
-          </div>`
-      }
-    </div>`;}).join('');
+      ${mealsHtml}
+      <div class="plan-slot" style="border-top:.5px dashed var(--line);cursor:pointer;background:rgba(255,255,255,.3)" 
+        onclick="openAddMealForDay(${i},${currentPlanWeekOffset})">
+        <div class="plan-empty-icon"><span style="font-size:18px;color:var(--muted)">+</span></div>
+        <span style="font-size:13px;color:var(--muted);font-weight:500">Add meal</span>
+        <div class="plan-empty-plus"><span style="font-size:16px;color:#fff">+</span></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ══ ADMIN — USERS ══
@@ -1540,7 +2144,7 @@ async function assignRecipeToPlan(dayOfWeek){
 }
 
 // ══ SHOPPING LIST BASKET ══
-let currentListBasket='this_week';
+var currentListBasket='this_week'; // var for hoisting — used before let block
 
 function switchListBasket(basket){
   currentListBasket=basket;
@@ -1550,6 +2154,33 @@ function switchListBasket(basket){
   const el=document.getElementById(activeTab);
   if(el) el.classList.add('active');
   loadShoppingList();
+}
+
+
+// ══ CLEAR BASKET ══
+async function clearBasket(){
+  if(!currentUser) return;
+  const basketLabel=currentListBasket==='monthly'?'Monthly basket':currentListBasket==='next_week'?'Next week':'This week';
+  if(!confirm('Clear all items from '+basketLabel+'? This cannot be undone.')) return;
+
+  const now=new Date();
+  let weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(currentListBasket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+6);
+  const ws=weekStart.toISOString().split('T')[0];
+  const we=weekEnd.toISOString().split('T')[0];
+
+  let query=db.from('shopping_list_items').delete().eq('user_id',currentUser.id);
+  if(currentListBasket==='monthly'){
+    query=query.eq('week_start','monthly');
+  } else {
+    query=query.gte('week_start',ws).lte('week_start',we);
+  }
+  const {error}=await query;
+  if(error){ showToast('Error clearing basket'); return; }
+  shoppingItems=[];
+  renderShoppingList();
+  showToast('\u2713 '+basketLabel+' cleared');
 }
 
 // ══ GROCERY MASTER LIST ══
@@ -2310,11 +2941,26 @@ async function importRecipeFromUrl(){
   if(btn){btn.textContent='Importing...';btn.disabled=true;}
 
   try{
-    // Use allorigins CORS proxy to fetch the page
-    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    const res=await fetch(proxy);
-    const data=await res.json();
-    const html=data.contents||'';
+    // Try multiple CORS proxies in order — allorigins is unreliable
+    let html='';
+    const proxies=[
+      async()=>{
+        const r=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        return r.ok?await r.text():'';
+      },
+      async()=>{
+        const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        const d=await r.json(); return d.contents||'';
+      },
+      async()=>{
+        const r=await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+        return r.ok?await r.text():'';
+      },
+    ];
+    for(const proxy of proxies){
+      try{ html=await proxy(); if(html.length>500) break; }catch(e){ continue; }
+    }
+    if(!html) throw new Error('All proxies failed — check your internet connection');
 
     // Try to parse schema.org/Recipe JSON-LD first
     const recipe=parseSchemaRecipe(html)||parseOpenGraph(html,url);
