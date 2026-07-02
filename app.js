@@ -323,8 +323,30 @@ function getCatSVG(cat, size=46){
   return `<svg width="${s}" height="${s}" viewBox="0 0 48 48" fill="none"><rect x="12" y="12" width="24" height="24" rx="6" fill="#FFF5CC" stroke="#F5C400" stroke-width="1.8"/><circle cx="24" cy="24" r="6" fill="#F5C400" opacity=".2"/></svg>`;
 }
 
+
+// ══ CYCLE DATE HELPERS ══
+function getCycleDates(startDay=1){
+  const now=new Date();
+  const today=now.getDate();
+  let cycleStart=new Date(now.getFullYear(),now.getMonth(),startDay);
+  // If today is before the start day, cycle started last month
+  if(today<startDay){
+    cycleStart=new Date(now.getFullYear(),now.getMonth()-1,startDay);
+  }
+  const cycleEnd=new Date(cycleStart);
+  cycleEnd.setDate(cycleStart.getDate()+30);
+  cycleEnd.setDate(cycleEnd.getDate()-1); // 30 days inclusive
+  return {cycleStart,cycleEnd};
+}
+
+function formatCycleLabel(startDay=1){
+  const {cycleStart,cycleEnd}=getCycleDates(startDay);
+  const fmt=d=>d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+  return fmt(cycleStart)+' — '+fmt(cycleEnd);
+}
+
 // ══ STATE ══
-let currentUser=null, isAdmin=false, receipts=[], budget=0, allRecipes=[], shoppingItems=[], currentFilter='all';
+let currentUser=null, isAdmin=false, receipts=[], budget=0, cycleStartDay=1, allRecipes=[], shoppingItems=[], currentFilter='all';
 
 // ══ INIT ══
 document.addEventListener('DOMContentLoaded', async()=>{
@@ -415,14 +437,15 @@ async function loadUser(user){
   if(sNameSub) sNameSub.textContent=name;
   // Load profile avatar from DB if saved
   try{
-    const {data:pData}=await db.from('profiles').select('avatar_emoji').eq('id',user.id).single();
+    const {data:pData}=await db.from('profiles').select('avatar_emoji,cycle_start_day').eq('id',user.id).single();
     if(pData?.avatar_emoji){
       const avEl=document.getElementById('profile-avatar');
       if(avEl) avEl.innerHTML=pData.avatar_emoji;
       const homeAv=document.getElementById('home-avatar');
       if(homeAv) homeAv.innerHTML=pData.avatar_emoji;
     }
-  }catch(e){ /* avatar_emoji column may not exist yet */ }
+    if(pData?.cycle_start_day) cycleStartDay=pData.cycle_start_day;
+  }catch(e){ /* columns may not exist yet */ }
   loadProfileStats();
 }
 
@@ -452,13 +475,19 @@ function fmt(n){ return Number(n).toLocaleString('en-ZA',{minimumFractionDigits:
 function fmtR(n){ return `R ${fmt(n)}`; }
 
 function renderDashboard(now,monthName){
-  const totalSpent=receipts.reduce((s,r)=>s+(r.total||0),0);
+  // ── Cycle-aware budget calculation ──
+  const {cycleStart,cycleEnd}=getCycleDates(cycleStartDay);
+  const cycleReceipts=receipts.filter(r=>{
+    const d=new Date(r.receipt_date);
+    return d>=cycleStart&&d<=cycleEnd;
+  });
+  const totalSpent=cycleReceipts.reduce((s,r)=>s+(r.total||0),0);
   const pct=budget>0?Math.min(Math.round((totalSpent/budget)*100),100):0;
   const remaining=Math.max(0,budget-totalSpent);
   const ss=(id,val,prop='textContent')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
 
-  // ── NEW home screen budget card ──
-  ss('home-budget-month',monthName+' budget');
+  // ── Budget card ──
+  ss('home-budget-month',formatCycleLabel(cycleStartDay));
   ss('home-budget-spent',fmtR(totalSpent));
   ss('home-budget-of','of '+fmtR(budget||0));
   ss('home-budget-pct',pct+'%');
@@ -471,15 +500,15 @@ function renderDashboard(now,monthName){
   const greet=hr<12?'Good morning':hr<17?'Good afternoon':hr<21?'Good evening':'Good night';
   ss('home-greeting-time',greet);
 
-  // ── Stats ──
+  // ── Stats — cycle-aware ──
   const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7));
   weekStart.setHours(0,0,0,0);
-  const weekRx=receipts.filter(r=>new Date(r.receipt_date)>=weekStart);
+  const weekRx=cycleReceipts.filter(r=>new Date(r.receipt_date)>=weekStart);
   const weekTotal=weekRx.reduce((s,r)=>s+(r.total||0),0);
-  const weeksIn=Math.max(1,Math.ceil(now.getDate()/7));
+  const daysSinceCycleStart=Math.max(1,Math.floor((now-cycleStart)/(1000*60*60*24)));
+  const weeksIn=Math.max(1,daysSinceCycleStart/7);
   const avgWeek=totalSpent/weeksIn;
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  const daysLeft=daysInMonth-now.getDate();
+  const daysLeft=Math.max(0,Math.floor((cycleEnd-now)/(1000*60*60*24)));
   const predicted=totalSpent+(avgWeek/7)*daysLeft;
   ss('home-stat-week','R '+Math.round(weekTotal).toLocaleString());
   ss('home-stat-avg','R '+Math.round(avgWeek).toLocaleString());
@@ -1746,7 +1775,36 @@ async function saveName(){
 }
 
 // ══ BUDGET ══
-function openBudgetModal(){ document.getElementById('budget-input').value=budget||''; openModal('modal-budget'); }
+
+// ══ CYCLE DAY PICKER ══
+function selectCycleDay(day){
+  document.querySelectorAll('.cycle-day-btn').forEach(b=>{
+    const active=parseInt(b.dataset.day)===day;
+    b.classList.toggle('active',active);
+    b.style.background=active?'var(--green-dark)':'#fff';
+    b.style.color=active?'#fff':'var(--text)';
+    b.style.borderColor=active?'var(--green-dark)':'var(--line)';
+  });
+  // Update preview label
+  const now=new Date();
+  const today=now.getDate();
+  let cycleStart=new Date(now.getFullYear(),now.getMonth(),day);
+  if(today<day) cycleStart=new Date(now.getFullYear(),now.getMonth()-1,day);
+  const cycleEnd=new Date(cycleStart);
+  cycleEnd.setDate(cycleStart.getDate()+29);
+  const fmt=d=>d.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+  const preview=document.getElementById('cycle-preview');
+  if(preview) preview.textContent=`Your cycle: ${fmt(cycleStart)} — ${fmt(cycleEnd)}`;
+}
+
+function openBudgetModal(){
+  document.getElementById('budget-input').value=budget||'';
+  // Highlight current cycle start day in picker
+  document.querySelectorAll('.cycle-day-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.dataset.day)===cycleStartDay);
+  });
+  openModal('modal-budget');
+}
 async function saveBudget(){
   const amount=parseFloat(document.getElementById('budget-input').value);
   if(!amount||amount<=0){showToast('Enter a valid amount');return;}
@@ -1754,9 +1812,13 @@ async function saveBudget(){
   const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const {error}=await db.from('budgets').upsert({user_id:currentUser.id,month:monthKey,amount},{onConflict:'user_id,month'});
   if(error){showToast('Error saving budget');return;}
+  // Save cycle start day
+  const selectedDay=parseInt(document.querySelector('.cycle-day-btn.active')?.dataset.day||cycleStartDay);
+  cycleStartDay=selectedDay;
+  await db.from('profiles').update({cycle_start_day:selectedDay}).eq('id',currentUser.id);
   budget=amount; closeModal('modal-budget');
   renderDashboard(new Date(),new Date().toLocaleString('default',{month:'long'}));
-  showToast('Budget saved ✓');
+  showToast('\u2713 Budget saved');
 }
 
 // ══ RECEIPTS ══
