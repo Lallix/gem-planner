@@ -465,8 +465,14 @@ async function loadDashboard(){
   ss('chart-month-label',monthName);
   const {data:bd}=await db.from('budgets').select('amount').eq('user_id',currentUser.id).eq('month',monthKey).single();
   budget=bd?.amount||0;
-  const monthStart=`${monthKey}-01`;
-  const {data:rx}=await db.from('receipts').select('*').eq('user_id',currentUser.id).gte('receipt_date',monthStart).order('receipt_date',{ascending:false});
+  // Use cycle dates — cycle may span two calendar months (e.g. 25 Jun - 24 Jul)
+  const {cycleStart:cStart,cycleEnd:cEnd}=getCycleDates(cycleStartDay);
+  const cycleStartStr=cStart.toISOString().split('T')[0];
+  const cycleEndStr=cEnd.toISOString().split('T')[0];
+  const {data:rx}=await db.from('receipts').select('*').eq('user_id',currentUser.id)
+    .gte('receipt_date',cycleStartStr)
+    .lte('receipt_date',cycleEndStr)
+    .order('receipt_date',{ascending:false});
   receipts=rx||[];
   renderDashboard(now,monthName);
 }
@@ -2512,65 +2518,76 @@ function showScanModal(title){
 
 // ══ CLAUDE OCR — Receipt Scanner ══
 async function callClaudeOCR(base64Image, mediaType='image/jpeg'){
-  const compressed=await compressImage(base64Image);
-  const isPDF=mediaType==='application/pdf';
-
-  const prompt=`You are scanning a South African grocery till slip / receipt.
-Extract ALL line items and return ONLY valid JSON — no explanation, no markdown.
-
-Return this exact structure:
-{
-  "store": "store name or null",
-  "date": "YYYY-MM-DD or null",
-  "total": number or null,
-  "items": [
-    {"name": "item name", "price": number, "isSpecial": false}
-  ]
+  // NOTE: Direct Anthropic API calls are blocked by CORS from browser.
+  // Falling back to Google Vision API which works correctly from the browser.
+  const text=await callVisionAPI(base64Image, mediaType==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION');
+  if(!text) return null;
+  // Parse the raw OCR text into structured receipt data
+  return parseReceiptToJSON(text);
 }
 
-Rules:
-- Include every product line item with a price
-- Skip subtotals, VAT, totals, loyalty points, change, tender lines
-- isSpecial = true only if the item shows a promotion/special price
-- Prices should be numbers without currency symbols
-- Item names should be clean and readable (remove codes/barcodes)
-- If you cannot read a value clearly, omit it rather than guess`;
-
-  const body={
-    model:'claude-sonnet-4-6',
-    max_tokens:2000,
-    messages:[{
-      role:'user',
-      content:[
-        isPDF
-          ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:compressed}}
-          :{type:'image',source:{type:'base64',media_type:mediaType,data:compressed}},
-        {type:'text',text:prompt}
-      ]
-    }]
-  };
-
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+// ══ GOOGLE VISION API (restored as primary OCR) ══
+async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
+  const compressed=await compressImage(base64Image);
+  const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+VISION_KEY,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
+    body:JSON.stringify({requests:[{image:{content:compressed},features:[{type:feature,maxResults:1}]}]})
   });
-
-  if(!res.ok){
-    const err=await res.json().catch(()=>({}));
-    throw new Error(err.error?.message||'Claude API error '+res.status);
-  }
-
   const data=await res.json();
-  const text=data.content?.[0]?.text||'';
-  try{
-    // Strip any markdown fences just in case
-    const clean=text.replace(/\`\`\`json|\`\`\`/g,'').trim();
-    return JSON.parse(clean);
-  }catch(e){
-    console.error('Claude OCR parse error:',text);
-    throw new Error('Could not parse receipt data');
+  if(!res.ok) throw new Error(data.error?.message||'Vision API error '+res.status);
+  const result=data.responses?.[0];
+  if(result?.error) throw new Error(result.error.message);
+  return result?.fullTextAnnotation?.text||result?.textAnnotations?.[0]?.description||null;
+}
+
+// Parse raw Vision OCR text into structured JSON (same as Claude would return)
+function parseReceiptToJSON(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const result={store:null,date:null,total:null,items:[]};
+
+  // Detect store from first few lines
+  const headerText=lines.slice(0,5).join(' ').toLowerCase();
+  if(headerText.includes('pick n pay')||headerText.includes('picknpay')) result.store='Pick n Pay';
+  else if(headerText.includes('woolworth')) result.store='Woolworths';
+  else if(headerText.includes('checkers')) result.store='Checkers';
+  else if(headerText.includes('spar')) result.store='Spar';
+  else if(headerText.includes('walmart')||headerText.includes('game')) result.store='Walmart';
+
+  // Detect date — look for DD.MM.YY or DD/MM/YYYY patterns
+  for(const line of lines){
+    const m=line.match(/(\d{2})[./](\d{2})[./](\d{2,4})/);
+    if(m){
+      const y=m[3].length===2?'20'+m[3]:m[3];
+      result.date=`${y}-${m[2]}-${m[1]}`;
+      break;
+    }
   }
+
+  // Detect total
+  for(const line of lines){
+    if(/total/i.test(line)&&!/sub|vat|sav/i.test(line)){
+      const m=line.match(/(\d+[.,]\d{2})/);
+      if(m) result.total=parseFloat(m[1].replace(',','.'));
+    }
+  }
+
+  // Extract item lines — look for lines with a price at the end
+  const priceRe=/^(.+?)\s+(\d+[.,]\d{2})\s*$/;
+  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|savings|smart|shopper|loyalty|rands|earned|discount.*-|less.*-/i;
+  for(const line of lines){
+    if(skipWords.test(line)) continue;
+    const m=line.match(priceRe);
+    if(m){
+      const name=m[1].trim();
+      const price=parseFloat(m[2].replace(',','.'));
+      if(name.length>2&&price>0&&price<5000){
+        result.items.push({name,price,isSpecial:false});
+      }
+    }
+  }
+
+  return result.items.length>0?result:null;
 }
 
 function applyClaudeReceiptResult(result){
