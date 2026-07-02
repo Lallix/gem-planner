@@ -948,7 +948,7 @@ function renderShoppingList(){
     });
 
     html+=`<div style="margin:0 16px 16px;background:rgba(255,255,255,.85);
-      border-radius:0 0 14px 14px;overflow:hidden">`;
+      border-radius:0 0 14px 14px;overflow:visible">`;
 
     Object.entries(catGroups).forEach(([cat,catItems])=>{
       const dot=catDot[cat]||'#9CA3AF';
@@ -1057,13 +1057,16 @@ function initSwipeToDelete(){
       if(!swiping) return;
       const dx=e.touches[0].clientX-startX;
       const dy=e.touches[0].clientY-startY;
+      // If moving more vertically than horizontally, treat as scroll
       if(Math.abs(dy)>Math.abs(dx)&&Math.abs(currentX)<5){ swiping=false; return; }
-      if(dx>0&&currentX>=0) return;
+      if(dx>0&&currentX>=0) return; // block right swipe
+      // Prevent page scroll while swiping
+      e.preventDefault();
       currentX=Math.max(dx,-80);
       inner.style.transform=`translateX(${currentX}px)`;
       inner.style.transition='none';
       if(del) del.style.opacity=Math.min(1,Math.abs(currentX)/60)+'';
-    },{passive:true});
+    },{passive:false});
 
     row.addEventListener('touchend',()=>{
       if(!swiping) return; swiping=false;
@@ -2378,7 +2381,6 @@ function checkVisionKey(){ return true; }
 
 // ══ PHOTO SCAN ══
 function openPhotoScan(){
-  if(!checkVisionKey()) return;
   document.getElementById('photo-input').click();
 }
 
@@ -2387,27 +2389,24 @@ async function handlePhotoScan(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📸 Review scanned receipt');
-  document.getElementById('scan-status').textContent='Scanning receipt... please wait';
+  document.getElementById('scan-status').textContent='Reading receipt with AI...';
   try {
-    document.getElementById('scan-status').textContent='Reading image...';
     const b64=await fileToBase64(file);
-    document.getElementById('scan-status').textContent='Sending to Google Vision...';
-    const text=await callVisionAPI(b64.split(',')[1]);
-    if(text){
-      parseReceiptText(text);
+    const result=await callClaudeOCR(b64.split(',')[1],file.type||'image/jpeg');
+    if(result){
+      applyClaudeReceiptResult(result);
       document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
     } else {
-      document.getElementById('scan-status').textContent='⚠️ No text detected — please fill in manually. Try a clearer photo with good lighting.';
+      document.getElementById('scan-status').textContent='⚠️ Could not read receipt — please fill in manually';
     }
   } catch(e) {
     console.error('Photo scan error:',e);
-    document.getElementById('scan-status').textContent='❌ Scan failed: '+e.message+'. Please fill in manually or check your Google Vision API is enabled.';
+    document.getElementById('scan-status').textContent='❌ Scan failed: '+e.message;
   }
 }
 
 // ══ EMAIL / DOC IMPORT ══
 function openEmailImport(){
-  if(!checkVisionKey()) return;
   document.getElementById('email-input').click();
 }
 
@@ -2416,13 +2415,17 @@ async function handleEmailImport(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📄 Review imported receipt');
-  document.getElementById('scan-status').textContent='Reading document... please wait';
+  document.getElementById('scan-status').textContent='Reading document with AI...';
   try {
     const b64=await fileToBase64(file);
-    const feature=file.type==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION';
-    const text=await callVisionAPI(b64.split(',')[1],feature);
-    if(text){ parseReceiptText(text); document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed'; }
-    else { document.getElementById('scan-status').textContent='Could not read file — fill in manually'; }
+    const mediaType=file.type==='application/pdf'?'application/pdf':(file.type||'image/jpeg');
+    const result=await callClaudeOCR(b64.split(',')[1],mediaType);
+    if(result){
+      applyClaudeReceiptResult(result);
+      document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed';
+    } else {
+      document.getElementById('scan-status').textContent='Could not read file — fill in manually';
+    }
   } catch(e) {
     document.getElementById('scan-status').textContent='Read failed: '+e.message;
   }
@@ -2445,24 +2448,92 @@ function showScanModal(title){
   openModal('modal-scan-review');
 }
 
-// ══ GOOGLE VISION API ══
-async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
-  // Compress image to reduce payload — Vision API works best under 4MB
+// ══ CLAUDE OCR — Receipt Scanner ══
+async function callClaudeOCR(base64Image, mediaType='image/jpeg'){
   const compressed=await compressImage(base64Image);
-  const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+VISION_KEY,{
+  const isPDF=mediaType==='application/pdf';
+
+  const prompt=`You are scanning a South African grocery till slip / receipt.
+Extract ALL line items and return ONLY valid JSON — no explanation, no markdown.
+
+Return this exact structure:
+{
+  "store": "store name or null",
+  "date": "YYYY-MM-DD or null",
+  "total": number or null,
+  "items": [
+    {"name": "item name", "price": number, "isSpecial": false}
+  ]
+}
+
+Rules:
+- Include every product line item with a price
+- Skip subtotals, VAT, totals, loyalty points, change, tender lines
+- isSpecial = true only if the item shows a promotion/special price
+- Prices should be numbers without currency symbols
+- Item names should be clean and readable (remove codes/barcodes)
+- If you cannot read a value clearly, omit it rather than guess`;
+
+  const body={
+    model:'claude-sonnet-4-6',
+    max_tokens:2000,
+    messages:[{
+      role:'user',
+      content:[
+        isPDF
+          ?{type:'document',source:{type:'base64',media_type:'application/pdf',data:compressed}}
+          :{type:'image',source:{type:'base64',media_type:mediaType,data:compressed}},
+        {type:'text',text:prompt}
+      ]
+    }]
+  };
+
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({requests:[{image:{content:compressed},features:[{type:feature,maxResults:1},{type:'TEXT_DETECTION',maxResults:1}]}]})
+    body:JSON.stringify(body)
   });
-  const data=await res.json();
+
   if(!res.ok){
-    const msg=data.error?.message||'Vision API error '+res.status;
-    console.error('Vision API error:',data);
-    throw new Error(msg);
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err.error?.message||'Claude API error '+res.status);
   }
-  const result=data.responses?.[0];
-  if(result?.error){throw new Error(result.error.message||'Vision processing error');}
-  return result?.fullTextAnnotation?.text||result?.textAnnotations?.[0]?.description||null;
+
+  const data=await res.json();
+  const text=data.content?.[0]?.text||'';
+  try{
+    // Strip any markdown fences just in case
+    const clean=text.replace(/\`\`\`json|\`\`\`/g,'').trim();
+    return JSON.parse(clean);
+  }catch(e){
+    console.error('Claude OCR parse error:',text);
+    throw new Error('Could not parse receipt data');
+  }
+}
+
+function applyClaudeReceiptResult(result){
+  // Populate scan modal fields from Claude's structured response
+  const ss=(id,val,prop='value')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
+
+  // Auto-detect store
+  if(result.store){
+    const storeLower=result.store.toLowerCase();
+    const storeMatch=Object.keys(STORES).find(k=>storeLower.includes(k)||storeLower.includes(STORES[k].label.toLowerCase()));
+    if(storeMatch) ss('scan-store',storeMatch);
+  }
+  // Date
+  if(result.date) ss('scan-date',result.date);
+  // Total
+  if(result.total) ss('scan-total',result.total);
+
+  // Populate item list
+  scanItems=(result.items||[]).map(i=>({
+    name:i.name||'',
+    price:i.price?String(i.price):'',
+    isSpecial:i.isSpecial||false,
+    normalPrice:'',
+  }));
+  renderScanItems();
 }
 
 // Compress image before sending to Vision API
