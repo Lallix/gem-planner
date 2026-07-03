@@ -23,16 +23,15 @@ const CATEGORY_LABELS = {
 };
 
 function storeLogo(key, size=36) {
-  const cfg = STORES[key]||STORES.other;
-  if(cfg.logo) {
-    const s=size+'px';
-    return `<div style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
-      <img src="${cfg.logo}" alt="${cfg.label}" width="${size}" height="${size}"
-        style="width:${s};height:${s};object-fit:contain;display:block;flex-shrink:0"
-        onerror="this.parentNode.outerHTML='<div style=\"width:${s};height:${s};border-radius:8px;background:${cfg.brand};display:flex;align-items:center;justify-content:center;flex-shrink:0\"><span style=\"font-size:${Math.round(size*.4)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span></div>'"/>
-    </div>`;
-  }
-  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
+  const cfg=STORES[key]||STORES.other;
+  const s=size+'px';
+  const fallback=`<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
+  if(!cfg.logo) return fallback;
+  // Use img with simple onerror that swaps to branded initial — no nested quotes
+  const errFn=`this.style.display='none';this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style="font-size:${Math.round(size*.4)}px;font-weight:800;color:white">${cfg.label.charAt(0)}</span>'`;
+  return `<div style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
+    <img src="${cfg.logo}" alt="${cfg.label}" width="${size}" height="${size}" style="width:${s};height:${s};object-fit:contain" onerror="${errFn}"/>
+  </div>`;
 }
 
 
@@ -495,8 +494,12 @@ function showApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'instant'});
-  // Delay so DOM fully renders before populating — 400ms reliable on slow devices
-  setTimeout(()=>loadDashboard(), 400);
+  // Use requestAnimationFrame to wait for DOM paint, then load
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      loadDashboard();
+    });
+  });
 }
 function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
@@ -572,11 +575,8 @@ async function loadUser(user){
 
 // ══ DASHBOARD ══
 async function loadDashboard(){
-  // Guard — if home screen elements not in DOM yet, retry once
-  if(!document.getElementById('home-budget-spent')){
-    setTimeout(()=>loadDashboard(), 300);
-    return;
-  }
+  // Guard — if home screen not active yet, skip silently
+  if(!document.getElementById('home-budget-spent')) return;
   const now=new Date();
   const monthKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const monthName=now.toLocaleString('default',{month:'long'});
