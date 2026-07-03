@@ -8,8 +8,8 @@ const db = supabase.createClient(SURL, SKEY);
 const STORES = {
   woolworths:{label:'Woolworths',brand:'#1A1A1A',bar:'#6CC2C0',logo:'logos/woolworths.png'},
   checkers:  {label:'Checkers',  brand:'#00B5AD',bar:'#FFB6C8',logo:'logos/checkers.png'},
-  pnp:       {label:'Pick n Pay',brand:'#004F9F',bar:'#B8D8F0',logo:'logos/pnp.jpg'},
-  spar:      {label:'Spar',      brand:'#007A3D',bar:'#C2DFC2',logo:'logos/spar.jpg'},
+  pnp:       {label:'Pick n Pay',brand:'#004F9F',bar:'#B8D8F0',logo:'logos/pnp.png'},
+  spar:      {label:'Spar',      brand:'#007A3D',bar:'#C2DFC2',logo:'logos/spar.png'},
   walmart:   {label:'Walmart',   brand:'#0071CE',bar:'#B8D8F0',logo:'logos/walmart.png'},
   other:     {label:'Other',     brand:'#8FA8A6',bar:'#ACD9D9',logo:null},
 };
@@ -25,12 +25,16 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg=STORES[key]||STORES.other;
   const s=size+'px';
-  const fallback=`<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
-  if(!cfg.logo) return fallback;
-  // Use img with simple onerror that swaps to branded initial — no nested quotes
-  const errFn=`this.style.display='none';this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style="font-size:${Math.round(size*.4)}px;font-weight:800;color:white">${cfg.label.charAt(0)}</span>'`;
-  return `<div style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
-    <img src="${cfg.logo}" alt="${cfg.label}" width="${size}" height="${size}" style="width:${s};height:${s};object-fit:contain" onerror="${errFn}"/>
+  if(!cfg.logo){
+    return `<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
+  }
+  // Unique ID for each logo instance so onerror can target it
+  const uid='sl'+Math.random().toString(36).slice(2,7);
+  return `<div id="${uid}" style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
+    <img src="${cfg.logo}" width="${size}" height="${size}"
+      style="width:${s};height:${s};object-fit:contain;display:block"
+      onerror="var p=document.getElementById('${uid}');if(p){p.style.background='${cfg.brand}';p.style.border='none';p.innerHTML='<span style=font-size:${Math.round(size*.4)}px;font-weight:800;color:white>${cfg.label.charAt(0)}</span>';}"
+    />
   </div>`;
 }
 
@@ -1103,14 +1107,17 @@ function renderShoppingList(){
         html+=`<div class="swipe-row" style="position:relative;overflow:hidden;
           border-bottom:${isLast?'none':'0.5px solid rgba(0,0,0,.06)'}">
           <!-- Red delete zone — revealed by swipe -->
-          <button class="swipe-delete-btn" onclick="deleteListItem('${item.id}')"
+          <div class="swipe-delete-btn"
+            ontouchend="event.preventDefault();deleteListItem('${item.id}')"
+            onclick="deleteListItem('${item.id}')"
             style="position:absolute;right:0;top:0;bottom:0;width:72px;
               background:#FF3B5C;color:#fff;border:none;cursor:pointer;
               display:flex;flex-direction:column;align-items:center;justify-content:center;
-              gap:2px;opacity:0;pointer-events:none;transition:opacity .15s;font-family:var(--font)">
+              gap:2px;opacity:0;pointer-events:none;transition:opacity .15s;font-family:var(--font);
+              -webkit-tap-highlight-color:transparent;user-select:none">
             <span style="font-size:18px">&#128465;</span>
             <span style="font-size:10px;font-weight:700">Remove</span>
-          </button>
+          </div>
           <!-- Row content — slides left on swipe -->
           <div class="swipe-row-inner" style="display:flex;align-items:center;gap:10px;
             padding:11px 14px;background:${checked?'rgba(0,0,0,.03)':'transparent'};
