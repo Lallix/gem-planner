@@ -25,11 +25,19 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg = STORES[key]||STORES.other;
   if(cfg.logo) {
-    return `<div style="width:${size}px;height:${size}px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f5f5f5;flex-shrink:0">
-      <img src="${cfg.logo}" alt="${cfg.label}" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.innerHTML='<span style=\"font-size:${Math.round(size*.35)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span>'"/>
+    return `<div style="width:${size}px;height:${size}px;border-radius:8px;background:#fff;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
+      box-sizing:border-box;border:1px solid rgba(0,0,0,.08)">
+      <img src="${cfg.logo}" alt="${cfg.label}"
+        style="width:${size}px;height:${size}px;object-fit:contain;display:block"
+        onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.style.border='none';this.parentNode.innerHTML='<span style=\"font-size:${Math.round(size*.4)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span>'"/>
     </div>`;
   }
-  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.35)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
+  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">
+    ${cfg.label.charAt(0)}
+  </div>`;
 }
 
 
@@ -955,11 +963,7 @@ function renderShoppingList(){
         <div style="width:36px;height:36px;border-radius:9px;overflow:hidden;
           background:rgba(255,255,255,.15);display:flex;align-items:center;
           justify-content:center;flex-shrink:0">
-          ${sk?`<img src="logos/${sk==='pnp'?'pnp.jpg':sk==='spar'?'spar.jpg':sk+'.png'}"
-            style="width:100%;height:100%;object-fit:contain"
-            onerror="this.parentNode.innerHTML='<span style=font-size:13px;font-weight:800;color:white>${storeLabel.charAt(0)}</span>'"
-            alt="${storeLabel}"/>`
-            :`<span style="font-size:18px">&#128230;</span>`}
+          ${sk?storeLogo(sk,36):`<span style="font-size:18px">&#128230;</span>`}
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:800;color:${cfg.text}">${storeLabel}</div>
@@ -3252,10 +3256,8 @@ function renderHomeReceipts(){
   el.innerHTML=recent.map(r=>{
     const cfg=STORES[r.store_key]||STORES.other;
     const d=new Date(r.receipt_date).toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
-    const init=initials[r.store_key]||'?';
-    const col=colors[r.store_key]||colors.other;
     return `<div class="receipt-strip-row">
-      <div class="store-initials" style="background:${col}">${init}</div>
+      ${storeLogo(r.store_key,40)}
       <div style="flex:1;min-width:0">
         <div class="receipt-store-name">${cfg.label}</div>
         <div class="receipt-meta">${d} &middot; ${r.item_count||'?'} items</div>
