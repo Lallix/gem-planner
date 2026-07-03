@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="app.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 </head>
 <body>
@@ -327,6 +328,11 @@
       </div>
       <div class="setting-group" id="admin-panel" style="display:none">
         <div class="sec-label">Admin</div>
+        <div class="setting-row" onclick="openGroceryUpload()">
+          <div class="setting-icon" style="background:var(--yellow-pale)">&#128203;</div>
+          <div style="flex:1"><div class="setting-label">Upload grocery list</div><div class="setting-sub">Import from Excel template</div></div>
+          <span style="color:var(--muted);font-size:18px">&#8250;</span>
+        </div>
         <div class="setting-row" onclick="openCreateUser()">
           <div class="setting-icon" style="background:var(--pink-pale)">&#128100;+</div>
           <div style="flex:1"><div class="setting-label">Create user</div><div class="setting-sub">Add a new family member</div></div>
@@ -942,6 +948,51 @@
       </button>
     </div>
     <button class="btn btn-outline btn-full" onclick="closeModal('modal-edit-store')">Cancel</button>
+  </div>
+</div>
+
+
+<!-- GROCERY UPLOAD MODAL -->
+<div id="modal-grocery-upload" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">&#128203; Upload grocery list</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Download the template, add your items and prices in Excel, then upload it back.
+      New items will be added and existing items will have their prices updated.
+    </div>
+
+    <!-- Step 1 — Download template -->
+    <button onclick="downloadGroceryTemplate()"
+      style="width:100%;padding:13px;border-radius:var(--r-md);border:2px solid var(--green-dark);
+        background:var(--green-pale);color:var(--green-dark);font-size:14px;font-weight:700;
+        cursor:pointer;font-family:var(--font);margin-bottom:10px;display:flex;align-items:center;
+        justify-content:center;gap:8px">
+      &#8595; Download template (50 SA items included)
+    </button>
+
+    <!-- Step 2 — Upload file -->
+    <label style="width:100%;display:block">
+      <div style="width:100%;padding:13px;border-radius:var(--r-md);border:2px dashed var(--line);
+        background:var(--bg);color:var(--muted);font-size:14px;font-weight:700;
+        cursor:pointer;text-align:center;box-sizing:border-box">
+        &#128193; Choose your Excel file to upload
+      </div>
+      <input type="file" accept=".xlsx,.xls" style="display:none"
+        onchange="handleGroceryUpload(this)"/>
+    </label>
+
+    <div id="grocery-upload-status" style="font-size:13px;color:var(--green-dark);margin-top:10px;font-weight:600;min-height:20px"></div>
+    <div id="grocery-upload-preview" style="margin-top:8px"></div>
+
+    <div id="grocery-upload-confirm" style="display:none;margin-top:12px">
+      <div class="modal-row">
+        <button class="btn btn-outline flex-1" onclick="closeModal('modal-grocery-upload')">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="confirmGroceryUpload()">&#8593; Import to app</button>
+      </div>
+    </div>
+
+    <button class="btn btn-outline btn-full" style="margin-top:10px" onclick="closeModal('modal-grocery-upload')">Close</button>
   </div>
 </div>
 

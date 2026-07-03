@@ -25,19 +25,14 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg = STORES[key]||STORES.other;
   if(cfg.logo) {
-    return `<div style="width:${size}px;height:${size}px;border-radius:8px;background:#fff;
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
-      box-sizing:border-box;border:1px solid rgba(0,0,0,.08)">
-      <img src="${cfg.logo}" alt="${cfg.label}"
-        style="width:${size}px;height:${size}px;object-fit:contain;display:block"
-        onerror="this.parentNode.style.background='${cfg.brand}';this.parentNode.style.border='none';this.parentNode.innerHTML='<span style=\"font-size:${Math.round(size*.4)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span>'"/>
+    const s=size+'px';
+    return `<div style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
+      <img src="${cfg.logo}" alt="${cfg.label}" width="${size}" height="${size}"
+        style="width:${s};height:${s};object-fit:contain;display:block;flex-shrink:0"
+        onerror="this.parentNode.outerHTML='<div style=\"width:${s};height:${s};border-radius:8px;background:${cfg.brand};display:flex;align-items:center;justify-content:center;flex-shrink:0\"><span style=\"font-size:${Math.round(size*.4)}px;font-weight:800;color:white\">${cfg.label.charAt(0)}</span></div>'"/>
     </div>`;
   }
-  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;
-    display:flex;align-items:center;justify-content:center;
-    font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">
-    ${cfg.label.charAt(0)}
-  </div>`;
+  return `<div style="background:${cfg.brand};width:${size}px;height:${size}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
 }
 
 
@@ -91,6 +86,124 @@ async function loadUnsplashInto(elId, query, fallbackEmoji){
 // ══ SVG ITEM ILLUSTRATIONS ══
 // Returns an inline SVG for common grocery items and categories
 // Falls back to emoji if no match
+
+
+// ══ ITEM EMOJI MAP — SA grocery focused ══
+function getItemEmoji(name){
+  const n=name.toLowerCase().trim();
+  const map=[
+    // Dairy
+    ['full cream milk','🥛'],['low fat milk','🥛'],['skim milk','🥛'],['clover','🥛'],
+    ['milk','🥛'],['butter','🧈'],['rama','🧈'],['margarine','🧈'],
+    ['cheese','🧀'],['cheddar','🧀'],['gouda','🧀'],['cream cheese','🧀'],
+    ['yoghurt','🫙'],['yogurt','🫙'],['amasi','🫙'],
+    ['egg','🥚'],['eggs','🥚'],
+    ['cream','🥛'],['sour cream','🥛'],
+    // Meat & Fish
+    ['chicken breast','🍗'],['chicken','🍗'],['drumstick','🍗'],
+    ['beef','🥩'],['mince','🥩'],['steak','🥩'],['lamb','🥩'],['pork','🥩'],
+    ['boerewors','🌭'],['wors','🌭'],['sausage','🌭'],
+    ['bacon','🥓'],['ham','🥓'],
+    ['fish','🐟'],['salmon','🐟'],['tuna','🐟'],['hake','🐟'],
+    ['prawn','🦐'],['shrimp','🦐'],
+    // Fruit
+    ['apple','🍎'],['banana','🍌'],['orange','🍊'],['lemon','🍋'],
+    ['grape','🍇'],['strawberry','🍓'],['watermelon','🍉'],
+    ['mango','🥭'],['avocado','🥑'],['avo','🥑'],
+    ['pear','🍐'],['peach','🍑'],['pineapple','🍍'],
+    ['tomato','🍅'],['cherry','🍒'],
+    // Vegetables
+    ['potato','🥔'],['sweet potato','🍠'],['onion','🧅'],['garlic','🧄'],
+    ['carrot','🥕'],['broccoli','🥦'],['spinach','🥬'],['lettuce','🥬'],
+    ['cabbage','🥬'],['mushroom','🍄'],['corn','🌽'],['peas','🫛'],
+    ['pepper','🌶️'],['capsicum','🫑'],['cucumber','🥒'],['courgette','🥒'],
+    ['butternut','🎃'],['pumpkin','🎃'],['beetroot','🫚'],
+    // Bakery
+    ['bread','🍞'],['brown bread','🍞'],['white bread','🍞'],['albany','🍞'],
+    ['toast','🍞'],['roll','🥐'],['croissant','🥐'],['bun','🥐'],
+    ['pita','🫓'],['wrap','🫓'],['tortilla','🫓'],
+    ['cake','🎂'],['muffin','🧁'],['cookie','🍪'],['biscuit','🍪'],
+    ['cracker','🫙'],
+    // Dry goods & pantry
+    ['rice','🍚'],['pasta','🍝'],['spaghetti','🍝'],['noodle','🍜'],
+    ['flour','🌾'],['sugar','🍬'],['brown sugar','🍬'],['salt','🧂'],
+    ['oil','🫙'],['sunflower oil','🫙'],['olive oil','🫙'],
+    ['sauce','🥫'],['all gold','🥫'],['koo','🥫'],['beans','🥫'],
+    ['tomato sauce','🥫'],['tomato paste','🥫'],
+    ['cereal','🥣'],['jungle oats','🥣'],['oats','🥣'],['cornflakes','🥣'],
+    ['honey','🍯'],['jam','🍯'],['peanut butter','🥜'],
+    ['chocolate','🍫'],['beacon','🍫'],['cadbury','🍫'],
+    ['chips','🥔'],['simba','🥔'],['crisps','🥔'],
+    ['popcorn','🍿'],
+    // Drinks
+    ['water','💧'],['still water','💧'],['sparkling water','💧'],
+    ['juice','🧃'],['coke','🥤'],['cola','🥤'],['soda','🥤'],['cooldrink','🥤'],
+    ['coffee','☕'],['nescafe','☕'],['ricoffy','☕'],
+    ['tea','🍵'],['rooibos','🍵'],['lipton','🍵'],
+    ['beer','🍺'],['wine','🍷'],['spirit','🥃'],
+    ['milk shake','🥤'],['smoothie','🥤'],
+    // Cleaning & household
+    ['soap','🧼'],['sunlight','🧼'],['dishwash','🧼'],
+    ['detergent','🧺'],['omo','🧺'],['surf','🧺'],['skip','🧺'],
+    ['bleach','🧴'],['handy andy','🧴'],['toilet cleaner','🧴'],
+    ['toilet paper','🧻'],['tissue','🧻'],['paper towel','🧻'],
+    ['dishcloth','🧹'],['sponge','🧹'],
+    // Personal care
+    ['shampoo','🧴'],['conditioner','🧴'],['body wash','🧴'],
+    ['deodorant','🧴'],['toothpaste','🪥'],['toothbrush','🪥'],
+    ['lotion','🧴'],['sunscreen','🧴'],['exo','🧴'],
+    ['pad','🩹'],['tampon','🩹'],['nappy','👶'],['diaper','👶'],
+    // Baby
+    ['baby food','👶'],['formula','👶'],['pampers','👶'],
+    // Frozen
+    ['ice cream','🍦'],['frozen','🧊'],['pizza','🍕'],
+    ['frozen veg','🧊'],['chips frozen','🧊'],
+  ];
+  for(const [key,emoji] of map){
+    if(n===key||n.includes(key)) return emoji;
+  }
+  return '🛒'; // default
+}
+
+// Category emoji for recipes
+function getRecipeEmoji(category){
+  const map={
+    dinner:'🍽️',lunch:'🥗',baking:'🥐',breakfast:'☕',snack:'🍎',other:'🍴'
+  };
+  return map[category]||'🍽️';
+}
+
+// Category gradient for recipe cards
+function getRecipeGradient(category){
+  const map={
+    dinner:'linear-gradient(135deg,#FFE4CC,#FFD0A8)',
+    lunch:'linear-gradient(135deg,#D6EEFF,#BED8F8)',
+    baking:'linear-gradient(135deg,#FFE0EE,#FFCCE4)',
+    breakfast:'linear-gradient(135deg,#FFF5CC,#FFE8A0)',
+    snack:'linear-gradient(135deg,#D4F5E9,#B8EDD5)',
+    other:'linear-gradient(135deg,#E8DFFF,#D4C8FF)',
+  };
+  return map[category]||map.dinner;
+}
+
+// Item gradient based on category
+function getItemGradient(category){
+  const map={
+    'Dairy':'linear-gradient(135deg,#D6EEFF,#BED8F8)',
+    'Meat & Fish':'linear-gradient(135deg,#FFE0EE,#FFCCE4)',
+    'Fruit & Veg':'linear-gradient(135deg,#D4F5E9,#B8EDD5)',
+    'Dry Goods':'linear-gradient(135deg,#FFF5CC,#FFE8A0)',
+    'Bakery':'linear-gradient(135deg,#FFE4CC,#FFD0A8)',
+    'Frozen':'linear-gradient(135deg,#E8DFFF,#D4C8FF)',
+    'Cleaning':'linear-gradient(135deg,#D4F5E9,#C0EDDF)',
+    'Beverages':'linear-gradient(135deg,#D6EEFF,#C2E4FF)',
+    'Snacks':'linear-gradient(135deg,#FFF5CC,#FFE8A0)',
+    'meal_plan':'linear-gradient(135deg,#FFE4CC,#FFD0A8)',
+    'misc':'linear-gradient(135deg,#F0F0F0,#E0E0E0)',
+    'Other':'linear-gradient(135deg,#F0F0F0,#E0E0E0)',
+  };
+  return map[category]||map['Other'];
+}
 
 function getItemSVG(name, size=46){
   const n=name.toLowerCase().trim();
@@ -382,8 +495,8 @@ function showApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   window.scrollTo({top:0,behavior:'instant'});
-  // Small delay so DOM renders before we try to populate elements
-  setTimeout(()=>loadDashboard(), 150);
+  // Delay so DOM fully renders before populating — 400ms reliable on slow devices
+  setTimeout(()=>loadDashboard(), 400);
 }
 function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
@@ -668,14 +781,14 @@ function renderRecipes(){
       </div>`
     :list.map(r=>{
       const tc=tagColors[r.category]||tagColors.other;
-      const bg=thumbBgs[r.category]||thumbBgs.other;
-      const emoji=thumbEmoji[r.category]||thumbEmoji.other;
+      const recipeBg=getRecipeGradient(r.category);
+      const recipeEmoji=getRecipeEmoji(r.category);
       const meta=[r.prep_time?`&#9201; ${r.prep_time}min prep`:'',r.cook_time?`&#128293; ${r.cook_time}min cook`:'',r.servings?`&#127869; Serves ${r.servings}`:''].filter(Boolean).join(' &middot; ');
       const sharedBadge=r.visibility==='everyone'?`<div class="recipe-shared-badge">Shared</div>`:'';
       const archivedBadge=r.visibility==='archived'?`<div class="recipe-shared-badge" style="color:var(--muted)">Archived</div>`:'';
       return `<div class="recipe-card" onclick="viewRecipe('${r.id}')">
-        <div class="recipe-thumb" id="rimg-${r.id}" style="background:${bg}">
-          <span class="recipe-thumb-emoji" style="transition:font-size .3s">${emoji}</span>
+        <div class="recipe-thumb" style="background:${recipeBg};display:flex;align-items:center;justify-content:center">
+          <span style="font-size:64px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.15))">${recipeEmoji}</span>
           <div class="recipe-cat-tag" style="background:${tc.bg};color:${tc.col}">${CATEGORY_LABELS[r.category]||r.category}</div>
           ${sharedBadge}${archivedBadge}
         </div>
@@ -689,23 +802,7 @@ function renderRecipes(){
           </div>
         </div>
       </div>`;}).join('');
-  // Load Unsplash images after render
-  list.forEach(r=>{
-    fetchUnsplashUrl(r.title+' food recipe').then(url=>{
-      if(!url) return;
-      const el=document.getElementById('rimg-'+r.id);
-      if(!el) return;
-      const img=new Image();
-      img.onload=()=>{
-        el.style.backgroundImage=`url(${url})`;
-        el.style.backgroundSize='cover';
-        el.style.backgroundPosition='center';
-        const emoji=el.querySelector('.recipe-thumb-emoji');
-        if(emoji) emoji.style.fontSize='0';
-      };
-      img.src=url;
-    });
-  });
+  // Emoji + gradient used — no Unsplash needed
 }
 
 // viewRecipe defined below
@@ -825,11 +922,10 @@ function renderFrequentlyBought(){
   ];
   const tiles=freqItems.map((item,i)=>{
     const pal=palettes[i%palettes.length];
-    const emoji=getFreqEmoji(item.name);
+    const emoji=getItemEmoji(item.name);
     const btnText=pal.btnText||'#fff';
-    const safeId='freq-img-'+item.name.replace(/[^a-z0-9]/gi,'_').toLowerCase();
     return `<div class="freq-tile" style="background:${pal.bg};box-shadow:0 4px 14px rgba(0,0,0,.1)">
-      <div class="freq-thumb" id="${safeId}">${emoji}</div>
+      <div class="freq-thumb" style="font-size:32px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))">${emoji}</div>
       <div class="freq-name">${item.name}</div>
       ${item.price?`<div class="freq-price">R${parseFloat(item.price).toFixed(2)}</div>`:'<div class="freq-price" style="opacity:0">—</div>'}
       <button class="freq-add-btn" style="background:${pal.btn};color:${btnText}"
@@ -848,8 +944,7 @@ function renderFrequentlyBought(){
 }
 
 function getFreqEmoji(name){
-  // Now returns SVG illustration — name kept for backward compat
-  return getItemSVG(name, 46);
+  return getItemEmoji(name);
 }
 
 async function addFreqItemToList(name,storeKey){
@@ -1021,11 +1116,12 @@ function renderShoppingList(){
             padding:11px 14px;background:${checked?'rgba(0,0,0,.03)':'transparent'};
             opacity:${checked?'.5':'1'};transition:opacity .2s;
             transform:translateX(0);will-change:transform">
-            <!-- SVG icon -->
+            <!-- Emoji icon -->
             <div style="width:36px;height:36px;border-radius:10px;
               background:rgba(0,0,0,.04);display:flex;align-items:center;
-              justify-content:center;flex-shrink:0">
-              ${getItemSVG(item.name,28)}
+              justify-content:center;flex-shrink:0;font-size:22px;
+              filter:drop-shadow(0 1px 2px rgba(0,0,0,.1))">
+              ${getItemEmoji(item.name)}
             </div>
             <!-- Name + unit -->
             <div style="flex:1;min-width:0;cursor:pointer"
@@ -1663,6 +1759,7 @@ async function loadMealPlan(){
         <div class="plan-day-name">${day}${isToday?` <span class="today-badge">Today</span>`:''}${isPast?` <span class="past-label">passed</span>`:''}</div>
         <div class="plan-day-date">${dateStr}</div>
       </div>
+      <div style="height:6px"></div>
       ${mealsHtml}
       <div class="plan-slot" style="border-top:.5px dashed var(--line);cursor:pointer;background:rgba(255,255,255,.3)" 
         onclick="openAddMealForDay(${i},${currentPlanWeekOffset})">
@@ -2677,6 +2774,121 @@ function parseReceiptText(text){
 }
 
 
+
+
+// ══ GROCERY LIST UPLOAD ══
+function openGroceryUpload(){
+  document.getElementById('grocery-upload-status').textContent='';
+  document.getElementById('grocery-upload-preview').innerHTML='';
+  document.getElementById('grocery-upload-confirm').style.display='none';
+  window._uploadRows=[];
+  openModal('modal-grocery-upload');
+}
+
+async function downloadGroceryTemplate(){
+  // Fetch the pre-built template file
+  try{
+    const res=await fetch('grocery-template.xlsx');
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='GEM-Grocery-Template.xlsx';
+    a.click(); URL.revokeObjectURL(url);
+  }catch(e){
+    showToast('Could not download template');
+  }
+}
+
+async function handleGroceryUpload(input){
+  if(!input.files||!input.files[0]) return;
+  const file=input.files[0];
+  input.value='';
+  const statusEl=document.getElementById('grocery-upload-status');
+  const previewEl=document.getElementById('grocery-upload-preview');
+  const confirmEl=document.getElementById('grocery-upload-confirm');
+  statusEl.textContent='Reading file...';
+  previewEl.innerHTML='';
+  confirmEl.style.display='none';
+
+  try{
+    // Use SheetJS to read the Excel file
+    const XLSX=window.XLSX;
+    if(!XLSX){ statusEl.textContent='❌ SheetJS not loaded'; return; }
+    const data=await file.arrayBuffer();
+    const wb=XLSX.read(data,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+
+    if(!rows.length){ statusEl.textContent='No data found in file'; return; }
+
+    // Map columns — flexible header matching
+    const mapped=rows.map(row=>{
+      const name=row['Name']||row['name']||row['ITEM']||'';
+      const category=row['Category']||row['category']||'Other';
+      const unit=row['Unit']||row['unit']||row['SIZE']||'';
+      const price=parseFloat(String(row['Price (R)']||row['Price']||row['price']||'').replace(/[^0-9.]/g,''))||null;
+      const store=String(row['Store']||row['store']||'').toLowerCase().trim();
+      const storeKey=store.includes('woolworths')?'woolworths':
+        store.includes('checkers')?'checkers':
+        store.includes('pick')||store.includes('pnp')?'pnp':
+        store.includes('spar')?'spar':
+        store.includes('walmart')?'walmart':null;
+      return {name:name.trim(),category,unit,price,store_key:storeKey};
+    }).filter(r=>r.name.length>1);
+
+    window._uploadRows=mapped;
+    statusEl.textContent=`✅ Found ${mapped.length} items`;
+
+    // Show preview of first 5
+    previewEl.innerHTML=`<div style="font-size:12px;font-weight:800;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview (first 5 items)</div>`+
+      mapped.slice(0,5).map(r=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#F8FAF9;border-radius:10px;margin-bottom:4px">
+          <span style="font-size:18px">${getItemEmoji(r.name)}</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600">${r.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${r.category}${r.unit?' · '+r.unit:''}${r.price?' · R'+r.price:''}</div>
+          </div>
+        </div>`).join('');
+
+    confirmEl.style.display='block';
+  }catch(e){
+    statusEl.textContent='❌ Error reading file: '+e.message;
+  }
+}
+
+async function confirmGroceryUpload(){
+  const rows=window._uploadRows||[];
+  if(!rows.length||!currentUser) return;
+  const statusEl=document.getElementById('grocery-upload-status');
+  statusEl.textContent='Uploading...';
+
+  // Upsert rows — match on name+user_id
+  const toUpsert=rows.map(r=>({
+    user_id:currentUser.id,
+    name:r.name,
+    category:r.category||'Other',
+    unit:r.unit||null,
+    normal_price:r.price||null,
+    store_key:r.store_key||null,
+    is_shared:false,
+  }));
+
+  const {error}=await db.from('grocery_items')
+    .upsert(toUpsert,{onConflict:'user_id,name',ignoreDuplicates:false});
+
+  if(error){
+    statusEl.textContent='❌ Upload failed: '+error.message;
+    return;
+  }
+  statusEl.textContent='✅ '+rows.length+' items saved to your grocery list!';
+  document.getElementById('grocery-upload-confirm').style.display='none';
+  document.getElementById('grocery-upload-preview').innerHTML='';
+  window._uploadRows=[];
+  showToast('\u2713 Grocery list updated');
+  // Reload grocery items
+  if(typeof loadGroceryItems==='function') loadGroceryItems();
+  setTimeout(()=>closeModal('modal-grocery-upload'),1500);
+}
 
 // ══ AVATAR PICKER ══
 const AVATARS=[
