@@ -1296,6 +1296,30 @@ function renderShoppingList(){
   setTimeout(()=>{ initSwipeToDelete(); initBulkSelect(); },50);
 }
 
+
+// ══ RECIPE CARD ACTION BUTTONS ══
+function viewRecipeAndAddToList(recipeId){
+  // Load recipe and open ingredient selector
+  db.from('recipes').select('*,recipe_ingredients(*)').eq('id',recipeId).single().then(({data:recipe})=>{
+    if(!recipe){ showToast('Recipe not found'); return; }
+    openIngredientSelector([recipe]);
+  });
+}
+
+function openPlanPickerFromRecipe(recipeId){
+  // Find the recipe and open add meal modal with it pre-selected
+  const recipe=allRecipes.find(r=>r.id===recipeId);
+  if(!recipe){ showToast('Recipe not found'); return; }
+  // Open day picker — default to today
+  const now=new Date();
+  const dayOfWeek=(now.getDay()+6)%7; // 0=Mon
+  addMealDay=dayOfWeek;
+  addMealWeek=currentPlanWeekOffset||0;
+  addMealType=recipe.category||'dinner';
+  // Directly confirm without going through the full picker
+  confirmAddMealEntry(recipe.id, recipe.title, recipe.category);
+}
+
 // ══ SWIPE TO DELETE ══
 let activeSwipeRow=null;
 
