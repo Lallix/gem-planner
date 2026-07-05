@@ -2649,54 +2649,85 @@ async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
   return result?.fullTextAnnotation?.text||result?.textAnnotations?.[0]?.description||null;
 }
 
-// Parse raw Vision OCR text into structured JSON (same as Claude would return)
+// ══ PARSE VISION OCR TEXT INTO STRUCTURED JSON ══
+// Handles multiple Vision API output formats:
+// Format A: item and price on same line "MILK 2L    28.99"
+// Format B: item name then price on next line "MILK 2L\n28.99"  
+// Format C: price with R prefix "MILK 2L R28.99"
 function parseReceiptToJSON(text){
   const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
   const result={store:null,date:null,total:null,items:[]};
 
-  // Detect store from first few lines
-  const headerText=lines.slice(0,5).join(' ').toLowerCase();
+  // Detect store from first 6 lines
+  const headerText=lines.slice(0,6).join(' ').toLowerCase();
   if(headerText.includes('pick n pay')||headerText.includes('picknpay')) result.store='Pick n Pay';
   else if(headerText.includes('woolworth')) result.store='Woolworths';
   else if(headerText.includes('checkers')) result.store='Checkers';
   else if(headerText.includes('spar')) result.store='Spar';
   else if(headerText.includes('walmart')||headerText.includes('game')) result.store='Walmart';
 
-  // Detect date — look for DD.MM.YY or DD/MM/YYYY patterns
+  // Detect date — DD.MM.YY or DD/MM/YYYY
   for(const line of lines){
-    const m=line.match(/(\d{2})[./](\d{2})[./](\d{2,4})/);
+    const m=line.match(/(\d{1,2})[.\/](\d{2})[.\/](\d{2,4})/);
     if(m){
       const y=m[3].length===2?'20'+m[3]:m[3];
-      result.date=`${y}-${m[2]}-${m[1]}`;
+      result.date=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
       break;
     }
   }
 
   // Detect total
   for(const line of lines){
-    if(/total/i.test(line)&&!/sub|vat|sav/i.test(line)){
-      const m=line.match(/(\d+[.,]\d{2})/);
+    if(/\btotal\b/i.test(line)&&!/sub|vat|sav|year|today/i.test(line)){
+      const m=line.match(/R?\s*(\d+[.,]\d{2})/);
       if(m) result.total=parseFloat(m[1].replace(',','.'));
     }
   }
 
-  // Extract item lines — look for lines with a price at the end
-  const priceRe=/^(.+?)\s+(\d+[.,]\d{2})\s*$/;
-  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|savings|smart|shopper|loyalty|rands|earned|discount.*-|less.*-/i;
-  for(const line of lines){
-    if(skipWords.test(line)) continue;
-    const m=line.match(priceRe);
-    if(m){
-      const name=m[1].trim();
-      const price=parseFloat(m[2].replace(',','.'));
-      if(name.length>2&&price>0&&price<5000){
-        result.items.push({name,price,isSpecial:false});
+  // Skip lines that are clearly not product items
+  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|saving|smart shopper|loyalty|rands earned|rands to spend|today you|this year|you missed|served by|customer|keep your|store cash|till |date |time |txn|rate|gross|net\b|hi |checkout|liquor|cnr |oakfield|northmead|ext\d|lic\.|vat no/i;
+  const standalonePrice=/^R?\s*(\d+[.,]\d{2})\s*$/;
+
+  let pendingName=null;
+
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    if(skipWords.test(line)){ pendingName=null; continue; }
+
+    // Format B: standalone price line follows item name line
+    const soloMatch=line.match(standalonePrice);
+    if(soloMatch&&pendingName){
+      const price=parseFloat(soloMatch[1].replace(',','.'));
+      if(price>0&&price<5000){
+        result.items.push({name:pendingName,price,isSpecial:false});
       }
+      pendingName=null;
+      continue;
+    }
+
+    // Format A/C: item + price on same line (with optional R prefix)
+    const inlineMatch=line.match(/^(.+?)\s+R?\s*(\d+[.,]\d{2})\s*$/);
+    if(inlineMatch){
+      const name=inlineMatch[1].trim();
+      const price=parseFloat(inlineMatch[2].replace(',','.'));
+      if(name.length>2&&price>0&&price<5000&&!skipWords.test(name)){
+        result.items.push({name,price,isSpecial:false});
+        pendingName=null;
+        continue;
+      }
+    }
+
+    // Possible item name — hold it in case next line is price
+    if(line.length>3&&!/^\d/.test(line)&&!skipWords.test(line)&&!/^[-=*]{3,}/.test(line)){
+      pendingName=line;
+    } else {
+      pendingName=null;
     }
   }
 
   return result.items.length>0?result:null;
 }
+
 
 function applyClaudeReceiptResult(result){
   // Populate scan modal fields from Claude's structured response
