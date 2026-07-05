@@ -1404,21 +1404,32 @@ let bulkSelected=new Set();
 let longPressTimer=null;
 
 function initBulkSelect(){
-  // Called after renderShoppingList — wire long press on rows
-  document.querySelectorAll('.swipe-row-inner').forEach(row=>{
-    row.addEventListener('touchstart',()=>{
-      longPressTimer=setTimeout(()=>enterBulkMode(row),600);
+  document.querySelectorAll('.swipe-row').forEach(row=>{
+    const inner=row.querySelector('.swipe-row-inner');
+    if(!inner) return;
+    const itemId=inner.getAttribute('data-item-id');
+    if(!itemId) return;
+    let startX=0,startY=0;
+    inner.addEventListener('touchstart',e=>{
+      startX=e.touches[0].clientX;
+      startY=e.touches[0].clientY;
+      longPressTimer=setTimeout(()=>{
+        navigator.vibrate&&navigator.vibrate(40);
+        enterBulkMode(itemId);
+      },600);
     },{passive:true});
-    row.addEventListener('touchend',()=>clearTimeout(longPressTimer),{passive:true});
-    row.addEventListener('touchmove',()=>clearTimeout(longPressTimer),{passive:true});
+    inner.addEventListener('touchend',()=>clearTimeout(longPressTimer),{passive:true});
+    inner.addEventListener('touchmove',e=>{
+      const dx=Math.abs(e.touches[0].clientX-startX);
+      const dy=Math.abs(e.touches[0].clientY-startY);
+      if(dx>10||dy>10) clearTimeout(longPressTimer);
+    },{passive:true});
   });
 }
 
-function enterBulkMode(triggerRow){
+function enterBulkMode(itemId){
   bulkSelectMode=true;
   bulkSelected.clear();
-  // Find item id from the row
-  const itemId=triggerRow.getAttribute('data-item-id');
   if(itemId) bulkSelected.add(itemId);
   renderShoppingList();
   showBulkBar();
@@ -2006,11 +2017,16 @@ async function loadMealPlan(){
       </div>
       <div style="height:6px"></div>
       ${mealsHtml}
-      <div class="plan-slot" style="border-top:.5px dashed var(--line);cursor:pointer;background:rgba(255,255,255,.3)" 
-        onclick="openAddMealForDay(${i},${currentPlanWeekOffset})">
-        <div class="plan-empty-icon"><span style="font-size:18px;color:var(--muted)">+</span></div>
-        <span style="font-size:13px;color:var(--muted);font-weight:500">Add meal</span>
-        <div class="plan-empty-plus"><span style="font-size:16px;color:#fff">+</span></div>
+      <div onclick="openAddMealForDay(${i},${currentPlanWeekOffset})"
+        style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+          cursor:pointer;border-top:.5px dashed rgba(0,0,0,.08);
+          background:rgba(255,255,255,.3);border-radius:0 0 var(--r-lg) var(--r-lg)">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--pink);
+          display:flex;align-items:center;justify-content:center;flex-shrink:0;
+          box-shadow:0 2px 6px rgba(255,79,139,.35)">
+          <span style="font-size:18px;color:#fff;line-height:1">+</span>
+        </div>
+        <span style="font-size:13px;color:var(--muted);font-weight:600">Add meal</span>
       </div>
     </div>`;
   }).join('');
@@ -2803,15 +2819,20 @@ async function handlePhotoScan(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📸 Review scanned receipt');
-  document.getElementById('scan-status').textContent='Reading receipt with AI...';
+  document.getElementById('scan-status').textContent='Scanning receipt...';
   try {
     const b64=await fileToBase64(file);
-    const result=await callClaudeOCR(b64.split(',')[1],file.type||'image/jpeg');
-    if(result){
-      applyClaudeReceiptResult(result);
-      document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
+    const rawText=await callVisionAPI(b64.split(',')[1]);
+    if(rawText){
+      const result=parseReceiptToJSON(rawText);
+      if(result){
+        applyClaudeReceiptResult(result);
+        document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
+      } else {
+        document.getElementById('scan-status').textContent='⚠️ Could not read items — please fill in manually';
+      }
     } else {
-      document.getElementById('scan-status').textContent='⚠️ Could not read receipt — please fill in manually';
+      document.getElementById('scan-status').textContent='⚠️ No text detected — try better lighting';
     }
   } catch(e) {
     console.error('Photo scan error:',e);
@@ -2829,14 +2850,19 @@ async function handleEmailImport(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📄 Review imported receipt');
-  document.getElementById('scan-status').textContent='Reading document with AI...';
+  document.getElementById('scan-status').textContent='Reading document...';
   try {
     const b64=await fileToBase64(file);
-    const mediaType=file.type==='application/pdf'?'application/pdf':(file.type||'image/jpeg');
-    const result=await callClaudeOCR(b64.split(',')[1],mediaType);
-    if(result){
-      applyClaudeReceiptResult(result);
-      document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed';
+    const feature=file.type==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION';
+    const rawText=await callVisionAPI(b64.split(',')[1],feature);
+    if(rawText){
+      const result=parseReceiptToJSON(rawText);
+      if(result){
+        applyClaudeReceiptResult(result);
+        document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed';
+      } else {
+        document.getElementById('scan-status').textContent='Could not read items — fill in manually';
+      }
     } else {
       document.getElementById('scan-status').textContent='Could not read file — fill in manually';
     }
@@ -3282,7 +3308,9 @@ function openRecipeImport(){
   const urlEl=document.getElementById('recipe-import-url');
   const errEl=document.getElementById('recipe-import-error');
   if(urlEl) urlEl.value='';
-
+  if(errEl) errEl.textContent='';
+  openModal('modal-recipe-import');
+}
 
 // ══ SCAN ITEM STATE ══
 let scanItems=[];
@@ -3715,10 +3743,6 @@ function parseDuration(iso){
   const m=iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
   if(!m) return null;
   return ((parseInt(m[1])||0)*60)+(parseInt(m[2])||0);
-}
-
-  if(errEl) errEl.textContent='';
-  openModal('modal-recipe-import');
 }
 
 // ══ HOME MEALS STRIP ══
