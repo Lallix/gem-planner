@@ -25,16 +25,16 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg=STORES[key]||STORES.other;
   const s=size+'px';
-  if(!cfg.logo){
-    return `<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
-  }
-  // Unique ID for each logo instance so onerror can target it
-  const uid='sl'+Math.random().toString(36).slice(2,7);
-  return `<div id="${uid}" style="width:${s};height:${s};border-radius:8px;background:#fff;flex-shrink:0;overflow:hidden;border:1px solid rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center">
+  const fallback=`<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0;line-height:1">${cfg.label.charAt(0)}</div>`;
+  if(!cfg.logo) return fallback;
+  // Test if logo loads — use onload/onerror approach
+  return `<div style="width:${s};height:${s};border-radius:8px;background:${cfg.brand};flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white">
     <img src="${cfg.logo}" width="${size}" height="${size}"
       style="width:${s};height:${s};object-fit:contain;display:block"
-      onerror="var p=document.getElementById('${uid}');if(p){p.style.background='${cfg.brand}';p.style.border='none';p.innerHTML='<span style=font-size:${Math.round(size*.4)}px;font-weight:800;color:white>${cfg.label.charAt(0)}</span>';}"
+      onload="this.parentNode.style.background='#fff';this.parentNode.style.color='transparent'"
+      onerror="this.style.display='none'"
     />
+    ${cfg.label.charAt(0)}
   </div>`;
 }
 
@@ -1721,12 +1721,16 @@ function selectMealType(type){
 
 function goToMealRecipePicker(){
   if(!addMealType){ showToast('Please select a meal type first'); return; }
+  // "Other" with free text — save directly, no recipe needed
   if(addMealType==='other'){
     const custom=document.getElementById('add-meal-other-input').value.trim();
     if(!custom){ showToast('Please enter a meal type'); return; }
     addMealType=custom;
+    // Save directly without recipe
+    confirmAddMealEntry(null, custom, 'other');
+    return;
   }
-  // Show recipe picker step
+  // All other types go to recipe picker
   document.getElementById('add-meal-type-step').classList.add('hidden');
   document.getElementById('add-meal-recipe-step').classList.remove('hidden');
   renderAddMealRecipePicker();
@@ -1785,19 +1789,19 @@ async function confirmAddMealEntry(recipeId, recipeTitle, recipeCategory){
   }
   if(!planId){ showToast('Error creating meal plan'); return; }
 
-  // Insert meal entry — allow multiple per day
+  // Insert meal entry — allow multiple per day (recipe_id may be null for free-text meals)
   const {error}=await db.from('meal_plan_entries').insert({
     user_id:currentUser.id,
     plan_id:planId,
     week_offset:addMealWeek,
     day_of_week:addMealDay,
     meal_type:addMealType||'dinner',
-    recipe_id:recipeId,
+    recipe_id:recipeId||null,
   });
 
   if(error){ console.error(error); showToast('Error saving meal'); return; }
   closeModal('modal-add-meal');
-  showToast('\u2713 '+recipeTitle+' added to plan');
+  showToast('\u2713 '+(recipeTitle||addMealType)+' added to plan');
   loadMealPlan();
 }
 
@@ -2002,8 +2006,8 @@ async function loadMealPlan(){
           </div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="addRecipeToListFromPlan('${e.recipe_id}','${e.recipes?.title||''}')" 
-            style="font-size:10px;font-weight:700;padding:4px 8px;border-radius:8px;background:${bg};color:${col};border:none;cursor:pointer">+ List</button>
+          ${e.recipe_id?`<button onclick="addRecipeToListFromPlan('${e.recipe_id}','${e.recipes?.title||''}')" 
+            style="font-size:10px;font-weight:700;padding:4px 8px;border-radius:8px;background:${bg};color:${col};border:none;cursor:pointer">+ List</button>`:''}
           <button onclick="removeMealEntry('${e.id}')" 
             style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">&#10005;</button>
         </div>
@@ -3630,6 +3634,52 @@ async function addMissingToList(){
 // ══ RECIPE LINK IMPORT ══
 // Fetches a URL via a CORS proxy, parses title/ingredients/instructions
 // from common recipe schema (schema.org/Recipe JSON-LD or Open Graph)
+
+// ══ INGREDIENT PARSER — split amount from name ══
+function parseIngredient(raw){
+  const s=raw.trim();
+  if(!s) return {amount:'',name:''};
+
+  // Units list
+  const units='cups?|tbsp|tablespoons?|tsp|teaspoons?|g|kg|ml|l|liter|litre|oz|lb|lbs|pounds?|litres?|liters?|handful|pinch|dash|can|cans|tin|tins|cloves?|slices?|pieces?|bunch|bunches|stalks?|sprigs?';
+  const toTaste=/^(to taste|salt and pepper|seasoning|a pinch)/i;
+
+  if(toTaste.test(s)){
+    const m=s.match(/^([^,]+)(,.*)?$/);
+    return {amount:'to taste',name:(m?m[1].trim():s).replace(/^to taste\s*/i,'').trim()||s};
+  }
+
+  // Match: number (fraction/decimal) + optional unit + rest
+  // e.g. "2 cups flour", "500g chicken breast", "1/2 tsp salt", "3 large eggs"
+  const re=new RegExp(
+    `^(\\d+(?:[\\s\\/]\\d+)?(?:\\.\\d+)?(?:\\s*-\\s*\\d+(?:\\.\\d+)?)?)` + // number (incl fractions/ranges)
+    `(?:\\s+(${units}))?` + // optional unit
+    `(?:\\s+(.*?))?$`, // rest = ingredient name
+    'i'
+  );
+
+  const m=s.match(re);
+  if(m){
+    const num=m[1]?.trim()||'';
+    const unit=m[2]?.trim()||'';
+    const name=m[3]?.trim()||'';
+    if(num&&name){
+      return {amount:unit?`${num} ${unit}`:num, name:name};
+    }
+  }
+
+  // No number found — whole thing is the name
+  return {amount:'',name:s};
+}
+
+// Split imported ingredients and populate textarea with amount | name format
+function splitImportedIngredients(lines){
+  return lines.map(line=>{
+    const {amount,name}=parseIngredient(line);
+    return amount?`${amount} | ${name}`:name;
+  });
+}
+
 async function importRecipeFromUrl(){
   const urlInput=document.getElementById('recipe-import-url');
   const errEl=document.getElementById('recipe-import-error');
@@ -3673,7 +3723,9 @@ async function importRecipeFromUrl(){
     // Populate the add recipe modal
     document.getElementById('recipe-title').value=recipe.title||'';
     document.getElementById('recipe-desc').value=recipe.description||'';
-    document.getElementById('recipe-ingredients').value=(recipe.ingredients||[]).join('\n');
+    // Split amount from ingredient name where possible
+    const splitIngs=splitImportedIngredients(recipe.ingredients||[]);
+    document.getElementById('recipe-ingredients').value=splitIngs.join('\n');
     document.getElementById('recipe-instructions').value=recipe.instructions||'';
     if(recipe.prepTime) document.getElementById('recipe-prep').value=recipe.prepTime;
     if(recipe.cookTime) document.getElementById('recipe-cook').value=recipe.cookTime;
