@@ -1234,9 +1234,12 @@ function renderShoppingList(){
             <span style="font-size:10px;font-weight:700">Remove</span>
           </div>
           <!-- Row content — slides left on swipe -->
-          <div class="swipe-row-inner" style="display:flex;align-items:center;gap:10px;
-            padding:11px 14px;background:${checked?'rgba(0,0,0,.03)':'transparent'};
-            opacity:${checked?'.5':'1'};transition:opacity .2s;
+          <div class="swipe-row-inner" data-item-id="${item.id}"
+            onclick="${bulkSelectMode?`toggleBulkItem('${item.id}')`:''}"
+            style="display:flex;align-items:center;gap:10px;
+            padding:11px 14px;
+            background:${bulkSelectMode&&bulkSelected.has(item.id)?'var(--green-pale)':checked?'rgba(0,0,0,.03)':'transparent'};
+            opacity:${!bulkSelectMode&&checked?'.5':'1'};transition:all .2s;
             transform:translateX(0);will-change:transform">
             <!-- Emoji icon -->
             <div style="width:36px;height:36px;border-radius:10px;
@@ -1290,7 +1293,7 @@ function renderShoppingList(){
   });
 
   listEl.innerHTML=html;
-  setTimeout(()=>initSwipeToDelete(),50);
+  setTimeout(()=>{ initSwipeToDelete(); initBulkSelect(); },50);
 }
 
 // ══ SWIPE TO DELETE ══
@@ -1361,15 +1364,127 @@ function openEditItemStore(itemId, currentStore){
 
 async function confirmEditStore(newStore){
   if(!editStoreItemId) return;
-  await db.from('shopping_list_items')
-    .update({store_key:newStore||null})
-    .eq('id',editStoreItemId);
+  const updates={store_key:newStore||null};
+  // Also update basket if changed
+  const basketSel=document.getElementById('edit-item-basket')?.value;
+  if(basketSel){
+    const now=new Date();
+    const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+    if(basketSel==='next_week') weekStart.setDate(weekStart.getDate()+7);
+    updates.week_start=basketSel==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+  }
+  await db.from('shopping_list_items').update(updates).eq('id',editStoreItemId);
   const item=shoppingItems.find(i=>i.id===editStoreItemId);
-  if(item) item.store_key=newStore||null;
+  if(item){
+    item.store_key=newStore||null;
+    if(updates.week_start) item.week_start=updates.week_start;
+  }
   closeModal('modal-edit-store');
   editStoreItemId=null;
   renderShoppingList();
-  showToast('\u2713 Store updated');
+  showToast('\u2713 Item updated');
+}
+
+
+// ══ CHANGE ITEM QUANTITY ══
+async function changeItemQty(id,newQty){
+  if(newQty<1){ 
+    if(confirm('Remove this item from the list?')) await deleteListItem(id);
+    return;
+  }
+  await db.from('shopping_list_items').update({quantity:newQty}).eq('id',id).eq('user_id',currentUser.id);
+  const item=shoppingItems.find(i=>i.id===id);
+  if(item){ item.quantity=newQty; renderShoppingList(); }
+}
+
+
+// ══ BULK EDIT — LONG PRESS SELECTION MODE ══
+let bulkSelectMode=false;
+let bulkSelected=new Set();
+let longPressTimer=null;
+
+function initBulkSelect(){
+  // Called after renderShoppingList — wire long press on rows
+  document.querySelectorAll('.swipe-row-inner').forEach(row=>{
+    row.addEventListener('touchstart',()=>{
+      longPressTimer=setTimeout(()=>enterBulkMode(row),600);
+    },{passive:true});
+    row.addEventListener('touchend',()=>clearTimeout(longPressTimer),{passive:true});
+    row.addEventListener('touchmove',()=>clearTimeout(longPressTimer),{passive:true});
+  });
+}
+
+function enterBulkMode(triggerRow){
+  bulkSelectMode=true;
+  bulkSelected.clear();
+  // Find item id from the row
+  const itemId=triggerRow.getAttribute('data-item-id');
+  if(itemId) bulkSelected.add(itemId);
+  renderShoppingList();
+  showBulkBar();
+}
+
+function exitBulkMode(){
+  bulkSelectMode=false;
+  bulkSelected.clear();
+  renderShoppingList();
+  const bar=document.getElementById('bulk-action-bar');
+  if(bar) bar.style.transform='translateY(100%)';
+}
+
+function toggleBulkItem(id){
+  if(!bulkSelectMode) return;
+  if(bulkSelected.has(id)) bulkSelected.delete(id);
+  else bulkSelected.add(id);
+  // Update visual
+  const row=document.querySelector(`[data-item-id="${id}"]`);
+  if(row){
+    const isSelected=bulkSelected.has(id);
+    row.style.background=isSelected?'var(--green-pale)':'transparent';
+  }
+  updateBulkBar();
+}
+
+function showBulkBar(){
+  const bar=document.getElementById('bulk-action-bar');
+  if(bar){ bar.style.transform='translateY(0)'; updateBulkBar(); }
+}
+
+function updateBulkBar(){
+  const countEl=document.getElementById('bulk-count');
+  if(countEl) countEl.textContent=bulkSelected.size+' item'+(bulkSelected.size!==1?'s':'')+' selected';
+}
+
+async function bulkMoveStore(storeKey){
+  if(!bulkSelected.size) return;
+  const ids=[...bulkSelected];
+  await db.from('shopping_list_items').update({store_key:storeKey||null}).in('id',ids);
+  ids.forEach(id=>{const item=shoppingItems.find(i=>i.id===id);if(item)item.store_key=storeKey||null;});
+  exitBulkMode();
+  showToast('\u2713 '+ids.length+' items moved to '+(STORES[storeKey]?.label||'No store'));
+}
+
+async function bulkMoveBasket(basket){
+  if(!bulkSelected.size) return;
+  const ids=[...bulkSelected];
+  const now=new Date();
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-((now.getDay()+6)%7)); weekStart.setHours(0,0,0,0);
+  if(basket==='next_week') weekStart.setDate(weekStart.getDate()+7);
+  const ws=basket==='monthly'?'monthly':weekStart.toISOString().split('T')[0];
+  await db.from('shopping_list_items').update({week_start:ws}).in('id',ids);
+  ids.forEach(id=>{const item=shoppingItems.find(i=>i.id===id);if(item)item.week_start=ws;});
+  exitBulkMode();
+  showToast('\u2713 '+ids.length+' items moved to '+basket.replace('_',' '));
+}
+
+async function bulkDelete(){
+  if(!bulkSelected.size) return;
+  if(!confirm('Delete '+bulkSelected.size+' items?')) return;
+  const ids=[...bulkSelected];
+  await db.from('shopping_list_items').delete().in('id',ids);
+  shoppingItems=shoppingItems.filter(i=>!ids.includes(i.id));
+  exitBulkMode();
+  showToast('\u2713 '+ids.length+' items removed');
 }
 
 async function toggleListItem(id,checked){
@@ -1490,20 +1605,19 @@ function renderQAItems(){
     html+=catItems.map(item=>{
       const sel=quickAddSelected.has(item.id);
       return `<div id="qa-item-${item.id}" onclick="toggleQAItem('${item.id}')"
-        style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:${sel?'var(--primary-pale)':'var(--card)'};border:1px solid ${sel?'var(--primary)':'var(--line)'};margin-bottom:5px;cursor:pointer;transition:all .15s">
-        <div class="qa-tick" style="display:${sel?'flex':'none'};width:22px;height:22px;border-radius:50%;background:var(--primary);align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:${sel?'var(--green-pale)':'var(--card)'};border:1px solid ${sel?'var(--green-dark)':'var(--line)'};margin-bottom:5px;cursor:pointer;transition:all .15s">
+        <div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+          background:${sel?'var(--green-dark)':'transparent'};border:2px solid ${sel?'var(--green-dark)':'var(--line)'}">
+          ${sel?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>':''}
         </div>
-        <div style="width:${sel?'0':'22px'};height:22px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:${sel?'none':'block'}"></div>
         <div style="flex:1;min-width:0">
           <div style="font-size:13px;font-weight:600;color:var(--text)">${item.name}</div>
           ${item.unit?`<div style="font-size:10px;color:var(--muted)">${item.unit}</div>`:''}
         </div>
         ${item.normal_price?`<div style="font-size:11px;color:var(--muted)">R${parseFloat(item.normal_price).toFixed(2)}</div>`:''}
-        ${item.last_price&&item.normal_price&&item.last_price<item.normal_price?'<div style="font-size:9px;font-weight:700;color:var(--emerald);background:var(--emerald-pale);padding:2px 6px;border-radius:8px">SPECIAL</div>':''}
       </div>`;
     }).join('');
-  });
+  });  // close forEach
 
   document.getElementById('qa-items-list').innerHTML=html;
 }
@@ -1613,8 +1727,17 @@ function renderAddMealRecipePicker(){
   if(!el) return;
   const catBg={dinner:'var(--orange-pale)',baking:'var(--pink-pale)',lunch:'var(--blue-pale)',other:'var(--green-pale)',breakfast:'var(--yellow-pale)',snack:'var(--green-pale)'};
   const catCol={dinner:'#8B3A00',baking:'#8B0038',lunch:'var(--blue-dark)',other:'var(--green-deeper)',breakfast:'#8B6B00',snack:'var(--green-deeper)'};
-  el.innerHTML=list.length===0
-    ?'<div style="text-align:center;padding:20px;color:var(--muted)">No recipes yet — add recipes first</div>'
+  const addNewBtn=`<div onclick="closeModal('modal-add-meal');setTimeout(()=>{showScreen('recipes');openAddRecipe();},300)"
+    style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--pink-pale);
+      border-radius:var(--r-md);margin-top:8px;cursor:pointer;border:2px dashed var(--pink)">
+    <span style="font-size:24px">➕</span>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--pink)">Add a new recipe</div>
+      <div style="font-size:11px;color:var(--muted)">Opens the Recipes tab</div>
+    </div>
+  </div>`;
+  el.innerHTML=(list.length===0
+    ?'<div style="text-align:center;padding:20px;color:var(--muted)">No recipes yet — tap below to add one</div>'
     :list.map(r=>{
       const bg=catBg[r.category]||catBg.other;
       const col=catCol[r.category]||catCol.other;
@@ -1626,7 +1749,7 @@ function renderAddMealRecipePicker(){
           <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;background:${bg};color:${col}">${r.category}</span>
         </div>
       </div>`;
-    }).join('');
+    }).join(''))+addNewBtn;
 }
 
 async function confirmAddMealEntry(recipeId, recipeTitle, recipeCategory){
@@ -2832,6 +2955,31 @@ function parseReceiptToJSON(text){
       }
     }
 
+    // Detect discount line — negative price or "less/discount/saving" keyword with amount
+    const discountMatch=line.match(/^(.*)(?:discount|saving|less|special|promo).*?-?R?\s*(\d+[.,]\d{2})\s*$/i)
+      || line.match(/^-R?\s*(\d+[.,]\d{2})\s*$/);
+    if(discountMatch&&result.items.length>0){
+      const discountAmt=parseFloat((discountMatch[2]||discountMatch[1]).replace(',','.'));
+      if(discountAmt>0&&discountAmt<500){
+        // Apply to last item — mark as special
+        const lastItem=result.items[result.items.length-1];
+        lastItem.normalPrice=lastItem.price;
+        lastItem.price=Math.max(0,parseFloat((lastItem.price-discountAmt).toFixed(2)));
+        lastItem.isSpecial=true;
+      }
+      pendingName=null;
+      continue;
+    }
+
+    // Detect variable weight items e.g. "BEEF RUMP 0.543kg" or "CHICKEN 0.432 kg"
+    const weightMatch=line.match(/(\d+[.,]\d{3})\s*kg/i);
+    if(weightMatch&&result.items.length>0){
+      const lastItem=result.items[result.items.length-1];
+      lastItem.isVariable=true;
+      lastItem.weight=weightMatch[1]+'kg';
+      lastItem.name=lastItem.name+' ⚖️';
+    }
+
     // Possible item name — hold it in case next line is price
     if(line.length>3&&!/^\d/.test(line)&&!skipWords.test(line)&&!/^[-=*]{3,}/.test(line)){
       pendingName=line;
@@ -3134,9 +3282,7 @@ function openRecipeImport(){
   const urlEl=document.getElementById('recipe-import-url');
   const errEl=document.getElementById('recipe-import-error');
   if(urlEl) urlEl.value='';
-  if(errEl) errEl.textContent='';
-  openModal('modal-recipe-import');
-}
+
 
 // ══ SCAN ITEM STATE ══
 let scanItems=[];
@@ -3173,17 +3319,24 @@ function renderScanItems(){
     return;
   }
   listEl.innerHTML=scanItems.map((item,i)=>`
-    <div style="display:flex;gap:6px;align-items:center;padding:6px;background:#F8FAF9;border-radius:10px;border:1px solid var(--line-light)">
-      <input style="flex:2;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12px;font-family:var(--font);outline:none"
-        value="${item.name}" onchange="scanItems[${i}].name=this.value" placeholder="Item name"/>
-      <input style="width:70px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12px;font-family:var(--font);outline:none"
-        value="${item.price}" onchange="scanItems[${i}].price=this.value" placeholder="Price"/>
-      <button onclick="toggleScanSpecial(${i})" title="Mark as special price"
-        style="padding:5px 8px;border-radius:8px;border:1.5px solid ${item.isSpecial?'var(--green-dark)':'var(--line)'};background:${item.isSpecial?'var(--green-pale)':'transparent'};font-size:13px;cursor:pointer">&#127991;&#65039;</button>
-      ${item.isSpecial?`<input style="width:70px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--green-dark);font-size:12px;font-family:var(--font);outline:none;background:var(--green-pale)"
-        value="${item.normalPrice}" onchange="scanItems[${i}].normalPrice=this.value" placeholder="Normal R"/>`:'' }
-      <button onclick="removeScanItem(${i})"
-        style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px">&#10005;</button>
+    <div style="display:flex;gap:6px;align-items:center;padding:6px;background:#F8FAF9;border-radius:10px;border:1px solid var(--line-light);flex-wrap:wrap">
+      <div style="display:flex;gap:6px;align-items:center;width:100%">
+        <input style="flex:2;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:12px;font-family:var(--font);outline:none"
+          value="${item.name}" onchange="scanItems[${i}].name=this.value" placeholder="Item name"/>
+        <input style="width:70px;padding:6px 8px;border-radius:8px;border:1.5px solid ${item.isSpecial?'var(--green-dark)':'var(--line)'};font-size:12px;font-family:var(--font);outline:none;background:${item.isSpecial?'var(--green-pale)':'#fff'}"
+          value="${item.price}" onchange="scanItems[${i}].price=this.value" placeholder="Price"/>
+        <button onclick="toggleScanSpecial(${i})" title="Mark as special"
+          style="padding:5px 8px;border-radius:8px;border:1.5px solid ${item.isSpecial?'var(--green-dark)':'var(--line)'};background:${item.isSpecial?'var(--green-pale)':'transparent'};font-size:13px;cursor:pointer">🏷️</button>
+        <button onclick="removeScanItem(${i})"
+          style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px">✕</button>
+      </div>
+      ${item.isSpecial?`<div style="display:flex;align-items:center;gap:6px;width:100%;padding-left:4px">
+        <span style="font-size:11px;color:var(--green-dark);font-weight:600">Normal price:</span>
+        <input style="width:80px;padding:5px 8px;border-radius:8px;border:1.5px solid var(--green-dark);font-size:12px;font-family:var(--font);outline:none;background:var(--green-pale)"
+          value="${item.normalPrice||''}" onchange="scanItems[${i}].normalPrice=this.value" placeholder="e.g. 15.99"/>
+        <span style="font-size:10px;color:var(--muted)">You saved R${item.normalPrice&&item.price?Math.max(0,parseFloat(item.normalPrice||0)-parseFloat(item.price||0)).toFixed(2):'?'}</span>
+      </div>`:''}
+      ${item.isVariable?`<div style="font-size:10px;color:var(--orange);font-weight:700;padding-left:4px">⚖️ Variable weight: ${item.weight||'check receipt'} — price may vary</div>`:''}
     </div>`).join('');
 }
 
@@ -3564,10 +3717,6 @@ function parseDuration(iso){
   return ((parseInt(m[1])||0)*60)+(parseInt(m[2])||0);
 }
 
-function openRecipeImport(){
-  const urlEl=document.getElementById('recipe-import-url');
-  const errEl=document.getElementById('recipe-import-error');
-  if(urlEl) urlEl.value='';
   if(errEl) errEl.textContent='';
   openModal('modal-recipe-import');
 }
