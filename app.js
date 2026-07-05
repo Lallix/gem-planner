@@ -727,10 +727,125 @@ async function loadAllReceipts(){
           </div>
           <div style="font-size:14px;font-weight:700;margin-right:8px">${fmtR(r.total||0)}</div>
         </div>
-        <button onclick="confirmDeleteReceipt('${r.id}','${cfg.label}','${d}',${r.total||0})"
-          style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:4px 6px;flex-shrink:0"
-          title="Delete receipt">🗑</button>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="openEditReceipt('${r.id}')"
+            style="background:transparent;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px 6px"
+            title="Edit receipt">✏️</button>
+          <button onclick="confirmDeleteReceipt('${r.id}','${cfg.label}','${d}',${r.total||0})"
+            style="background:transparent;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:4px 6px"
+            title="Delete receipt">🗑</button>
+        </div>
       </div>`;}).join('');
+}
+
+
+// ══ EDIT RECEIPT ══
+let editingReceiptId=null;
+let editingReceiptItems=[];
+
+async function openEditReceipt(receiptId){
+  editingReceiptId=receiptId;
+  editingReceiptItems=[];
+  const statusEl=document.getElementById('edit-receipt-status');
+  if(statusEl) statusEl.textContent='Loading...';
+  openModal('modal-edit-receipt');
+
+  // Load receipt + items
+  const {data:receipt}=await db.from('receipts').select('*').eq('id',receiptId).single();
+  const {data:items}=await db.from('receipt_items').select('*').eq('receipt_id',receiptId).order('id');
+
+  if(!receipt){ if(statusEl) statusEl.textContent='Error loading receipt'; return; }
+  if(statusEl) statusEl.textContent='';
+
+  // Populate fields
+  const ss=(id,val,prop='value')=>{const el=document.getElementById(id);if(el)el[prop]=val;};
+  ss('edit-receipt-store',receipt.store_key||'');
+  ss('edit-receipt-date',receipt.receipt_date||'');
+  ss('edit-receipt-total',receipt.total||'');
+
+  // Populate items
+  editingReceiptItems=(items||[]).map(i=>({
+    id:i.id,name:i.name||'',price:i.price||'',isSpecial:i.is_special||false
+  }));
+  renderEditReceiptItems();
+}
+
+function renderEditReceiptItems(){
+  const el=document.getElementById('edit-receipt-items');
+  if(!el) return;
+  el.innerHTML=editingReceiptItems.map((item,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;padding:6px;background:#F8FAF9;border-radius:10px;margin-bottom:6px">
+      <input value="${item.name}" onchange="editingReceiptItems[${i}].name=this.value"
+        style="flex:2;padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"/>
+      <input value="${item.price}" onchange="editingReceiptItems[${i}].price=this.value"
+        style="width:72px;padding:7px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"
+        placeholder="Price"/>
+      <button onclick="editingReceiptItems.splice(${i},1);renderEditReceiptItems()"
+        style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+function addEditReceiptItem(){
+  editingReceiptItems.push({id:null,name:'',price:'',isSpecial:false});
+  renderEditReceiptItems();
+  // Focus last name input
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('#edit-receipt-items input[type="text"], #edit-receipt-items input:not([type])');
+    if(inputs.length) inputs[inputs.length-2]?.focus();
+  },100);
+}
+
+async function saveEditReceipt(){
+  if(!editingReceiptId||!currentUser) return;
+  const statusEl=document.getElementById('edit-receipt-status');
+  if(statusEl) statusEl.textContent='Saving...';
+
+  const store=document.getElementById('edit-receipt-store')?.value||null;
+  const date=document.getElementById('edit-receipt-date')?.value||null;
+  const total=parseFloat(document.getElementById('edit-receipt-total')?.value||0);
+
+  // Update receipt row
+  const {error:rxErr}=await db.from('receipts').update({
+    store_key:store||null,
+    receipt_date:date,
+    total:total||null,
+    item_count:editingReceiptItems.length,
+  }).eq('id',editingReceiptId).eq('user_id',currentUser.id);
+
+  if(rxErr){ if(statusEl) statusEl.textContent='Error: '+rxErr.message; return; }
+
+  // Delete existing items and re-insert
+  await db.from('receipt_items').delete().eq('receipt_id',editingReceiptId);
+  await db.from('price_history').delete().eq('receipt_id',editingReceiptId);
+
+  const validItems=editingReceiptItems.filter(i=>i.name.trim()&&parseFloat(i.price)>0);
+  if(validItems.length>0){
+    await db.from('receipt_items').insert(validItems.map(i=>({
+      receipt_id:editingReceiptId,
+      user_id:currentUser.id,
+      name:i.name.trim(),
+      price:parseFloat(i.price),
+      is_special:i.isSpecial||false,
+    })));
+    // Re-insert price history
+    await db.from('price_history').insert(validItems.map(i=>({
+      user_id:currentUser.id,
+      receipt_id:editingReceiptId,
+      item_name:i.name.trim(),
+      store_key:store||null,
+      price:parseFloat(i.price),
+      is_special:i.isSpecial||false,
+      recorded_at:date,
+    })));
+  }
+
+  closeModal('modal-edit-receipt');
+  editingReceiptId=null;
+  editingReceiptItems=[];
+  showToast('\u2713 Receipt updated');
+  loadAllReceipts();
+  // Refresh dashboard to recalculate cycle totals
+  loadDashboard();
 }
 
 // ══ RECIPES ══
