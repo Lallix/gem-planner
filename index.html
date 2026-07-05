@@ -1030,32 +1030,46 @@
 </div>
 
 <!-- BULK ACTION BAR -->
-<div id="bulk-action-bar" style="position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);width:100%;max-width:430px;background:#2C2C3E;padding:16px 16px 32px;z-index:200;transition:transform .3s;box-shadow:0 -4px 20px rgba(0,0,0,.3)">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<div id="bulk-action-bar" style="position:fixed;bottom:0;left:0;right:0;width:100%;background:#2C2C3E;padding:14px 16px 36px;z-index:200;transform:translateY(100%);transition:transform .3s ease;box-shadow:0 -4px 20px rgba(0,0,0,.4)">
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <span id="bulk-count" style="font-size:14px;font-weight:700;color:#fff">0 items selected</span>
-    <button onclick="exitBulkMode()" style="background:transparent;border:none;color:rgba(255,255,255,.7);font-size:20px;cursor:pointer">&#10005;</button>
+    <button onclick="exitBulkMode()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center">&#10005;</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-    <button onclick="document.getElementById('bulk-store-sheet').style.display='block'" style="padding:10px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font)">&#127978; Move store</button>
-    <button onclick="document.getElementById('bulk-basket-sheet').style.display='block'" style="padding:10px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font)">&#128197; Move basket</button>
+  <!-- Action buttons -->
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button onclick="toggleBulkSheet('bulk-store-sheet')"
+      style="flex:1;padding:10px 8px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">
+      &#127978; Move store
+    </button>
+    <button onclick="toggleBulkSheet('bulk-basket-sheet')"
+      style="flex:1;padding:10px 8px;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">
+      &#128197; Move basket
+    </button>
+    <button onclick="bulkDelete()"
+      style="flex:1;padding:10px 8px;border-radius:12px;background:rgba(255,59,92,.35);color:#FF3B5C;border:1.5px solid rgba(255,59,92,.5);cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">
+      &#128465; Delete
+    </button>
   </div>
-  <button onclick="bulkDelete()" style="width:100%;padding:10px;border-radius:12px;background:rgba(255,59,92,.3);color:#FF3B5C;border:1.5px solid rgba(255,59,92,.5);cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font)">&#128465; Delete selected</button>
-  <div id="bulk-store-sheet" style="display:none;margin-top:12px;background:rgba(255,255,255,.1);border-radius:12px;padding:10px">
-    <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:8px">Move to store</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      <button onclick="bulkMoveStore('woolworths')" style="padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Woolworths</button>
-      <button onclick="bulkMoveStore('checkers')" style="padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Checkers</button>
-      <button onclick="bulkMoveStore('pnp')" style="padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Pick n Pay</button>
-      <button onclick="bulkMoveStore('spar')" style="padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Spar</button>
-      <button onclick="bulkMoveStore('')" style="padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">No store</button>
+  <!-- Store sub-sheet (hidden by default) -->
+  <div id="bulk-store-sheet" style="display:none;background:rgba(255,255,255,.08);border-radius:12px;padding:12px">
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Select store</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <button onclick="bulkMoveStore('woolworths')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#129361; Woolworths</button>
+      <button onclick="bulkMoveStore('checkers')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#127873; Checkers</button>
+      <button onclick="bulkMoveStore('pnp')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#128722; Pick n Pay</button>
+      <button onclick="bulkMoveStore('spar')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#127807; Spar</button>
+      <button onclick="bulkMoveStore('walmart')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#127970; Walmart</button>
+      <button onclick="bulkMoveStore('')" style="padding:9px;border-radius:10px;background:rgba(255,255,255,.12);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font);text-align:left">&#128230; No store</button>
     </div>
   </div>
-  <div id="bulk-basket-sheet" style="display:none;margin-top:12px;background:rgba(255,255,255,.1);border-radius:12px;padding:10px">
-    <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:8px">Move to basket</div>
+  <!-- Basket sub-sheet (hidden by default) -->
+  <div id="bulk-basket-sheet" style="display:none;background:rgba(255,255,255,.08);border-radius:12px;padding:12px">
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">Select basket</div>
     <div style="display:flex;gap:8px">
-      <button onclick="bulkMoveBasket('this_week')" style="flex:1;padding:8px;border-radius:10px;background:#009A5C;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">This week</button>
-      <button onclick="bulkMoveBasket('next_week')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Next week</button>
-      <button onclick="bulkMoveBasket('monthly')" style="flex:1;padding:8px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Monthly</button>
+      <button onclick="bulkMoveBasket('this_week')" style="flex:1;padding:9px;border-radius:10px;background:#009A5C;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">This week</button>
+      <button onclick="bulkMoveBasket('next_week')" style="flex:1;padding:9px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Next week</button>
+      <button onclick="bulkMoveBasket('monthly')" style="flex:1;padding:9px;border-radius:10px;background:rgba(255,255,255,.15);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:var(--font)">Monthly</button>
     </div>
   </div>
 </div>

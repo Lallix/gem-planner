@@ -1465,6 +1465,19 @@ function exitBulkMode(){
   renderShoppingList();
   const bar=document.getElementById('bulk-action-bar');
   if(bar) bar.style.transform='translateY(100%)';
+  ['bulk-store-sheet','bulk-basket-sheet'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+}
+
+function toggleBulkSheet(id){
+  const sheets=['bulk-store-sheet','bulk-basket-sheet'];
+  sheets.forEach(sid=>{
+    const el=document.getElementById(sid);
+    if(!el) return;
+    el.style.display=(sid===id&&el.style.display==='none')?'block':'none';
+  });
 }
 
 function toggleBulkItem(id){
