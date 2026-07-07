@@ -767,7 +767,15 @@
 <div id="modal-scan-review" class="modal-overlay hidden">
   <div class="modal-sheet" style="max-height:92vh">
     <div class="modal-title" id="scan-review-title">📸 Review scanned receipt</div>
-    <div id="scan-status" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px">
+      <div id="scan-status" style="font-size:12px;color:var(--muted);flex:1"></div>
+      <button onclick="cleanItemNames()"
+        style="font-size:12px;font-weight:700;color:var(--pink);background:var(--pink-pale);
+          border:none;border-radius:10px;padding:5px 10px;cursor:pointer;white-space:nowrap;
+          font-family:var(--font);flex-shrink:0">
+        &#10024; Clean names
+      </button>
+    </div>
     <!-- Parsed fields -->
     <div class="modal-section">Store</div>
     <select class="modal-input" id="scan-store">
@@ -913,8 +921,14 @@
 <div id="modal-edit-store" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">Move to store</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select which store this item belongs to</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="modal-title" style="margin:0">Move to store</div>
+      <button id="clean-btn-single" onclick="cleanListItemName(editStoreItemId)"
+        style="font-size:12px;font-weight:700;color:var(--pink);background:var(--pink-pale);
+          border:none;border-radius:10px;padding:5px 10px;cursor:pointer;
+          font-family:var(--font)">&#10024; Identify</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select store or identify the item name</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
       <button class="store-pick-btn" data-store="woolworths" onclick="confirmEditStore('woolworths')"
         style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r-md);border:2px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font)">

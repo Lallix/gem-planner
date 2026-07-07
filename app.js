@@ -1,7 +1,8 @@
 // ══ SUPABASE ══
 const SURL = 'https://mjaschvxhdupoemaezjt.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
-const VISION_KEY = 'AIzaSyCDHQOKG3e87WQ0fveIKR-v2S_3_2IgUhI';
+const VISION_KEY = 'AIzaSyCDHQOKG3e87WQ0fveIKR-v2S_3_2IgUhI'; // kept for fallback
+const GEM_OCR_URL = SURL+'/functions/v1/gem-ocr';
 const db = supabase.createClient(SURL, SKEY);
 
 // ══ STORE CONFIG ══
@@ -2860,20 +2861,16 @@ async function handlePhotoScan(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📸 Review scanned receipt');
-  document.getElementById('scan-status').textContent='Scanning receipt...';
+  document.getElementById('scan-status').textContent='Reading receipt with Claude AI...';
   try {
     const b64=await fileToBase64(file);
-    const rawText=await callVisionAPI(b64.split(',')[1]);
-    if(rawText){
-      const result=parseReceiptToJSON(rawText);
-      if(result){
-        applyClaudeReceiptResult(result);
-        document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
-      } else {
-        document.getElementById('scan-status').textContent='⚠️ Could not read items — please fill in manually';
-      }
+    const compressed=await compressImage(b64.split(',')[1]);
+    const result=await callGemOCR({mode:'scan',image:compressed,mediaType:file.type||'image/jpeg'});
+    if(result){
+      applyClaudeReceiptResult(result);
+      document.getElementById('scan-status').textContent='✓ Receipt scanned — review and correct if needed';
     } else {
-      document.getElementById('scan-status').textContent='⚠️ No text detected — try better lighting';
+      document.getElementById('scan-status').textContent='⚠️ Could not read receipt — please fill in manually';
     }
   } catch(e) {
     console.error('Photo scan error:',e);
@@ -2891,19 +2888,15 @@ async function handleEmailImport(input){
   const file=input.files[0];
   input.value='';
   showScanModal('📄 Review imported receipt');
-  document.getElementById('scan-status').textContent='Reading document...';
+  document.getElementById('scan-status').textContent='Reading document with Claude AI...';
   try {
     const b64=await fileToBase64(file);
-    const feature=file.type==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION';
-    const rawText=await callVisionAPI(b64.split(',')[1],feature);
-    if(rawText){
-      const result=parseReceiptToJSON(rawText);
-      if(result){
-        applyClaudeReceiptResult(result);
-        document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed';
-      } else {
-        document.getElementById('scan-status').textContent='Could not read items — fill in manually';
-      }
+    const compressed=await compressImage(b64.split(',')[1]);
+    const mediaType=file.type||'image/jpeg';
+    const result=await callGemOCR({mode:'scan',image:compressed,mediaType});
+    if(result){
+      applyClaudeReceiptResult(result);
+      document.getElementById('scan-status').textContent='✓ Document read — review and correct if needed';
     } else {
       document.getElementById('scan-status').textContent='Could not read file — fill in manually';
     }
@@ -2929,17 +2922,79 @@ function showScanModal(title){
   openModal('modal-scan-review');
 }
 
-// ══ CLAUDE OCR — Receipt Scanner ══
-async function callClaudeOCR(base64Image, mediaType='image/jpeg'){
-  // NOTE: Direct Anthropic API calls are blocked by CORS from browser.
-  // Falling back to Google Vision API which works correctly from the browser.
-  const text=await callVisionAPI(base64Image, mediaType==='application/pdf'?'DOCUMENT_TEXT_DETECTION':'TEXT_DETECTION');
-  if(!text) return null;
-  // Parse the raw OCR text into structured receipt data
-  return parseReceiptToJSON(text);
+// ══ GEM OCR — Supabase Edge Function (Claude AI) ══
+async function callGemOCR(payload){
+  const res=await fetch(GEM_OCR_URL,{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':'Bearer '+SKEY,
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err.error||'OCR service error '+res.status);
+  }
+  return res.json();
 }
 
-// ══ GOOGLE VISION API (restored as primary OCR) ══
+// ══ CLEAN ITEM NAMES via Edge Function ══
+async function cleanItemNames(){
+  const rawNames=scanItems.map(i=>i.name);
+  if(!rawNames.length){ showToast('No items to clean'); return; }
+  const statusEl=document.getElementById('scan-status');
+  if(statusEl) statusEl.textContent='✨ Cleaning names with Claude...';
+  try{
+    const result=await callGemOCR({mode:'clean',items:rawNames});
+    if(result?.items&&result.items.length===scanItems.length){
+      scanItems=scanItems.map((item,i)=>({...item,name:result.items[i]||item.name}));
+      renderScanItems();
+      if(statusEl) statusEl.textContent='✓ Names cleaned — review and correct if needed';
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent='Could not clean names: '+e.message;
+  }
+}
+
+// ══ CLEAN SINGLE NAME via Edge Function ══
+async function cleanSingleName(idx){
+  const item=scanItems[idx];
+  if(!item) return;
+  try{
+    const result=await callGemOCR({mode:'clean_one',name:item.name});
+    if(result?.name){
+      scanItems[idx].name=result.name;
+      renderScanItems();
+      showToast('\u2713 Name cleaned');
+    }
+  }catch(e){
+    showToast('Could not clean name');
+  }
+}
+
+// ══ CLEAN LIST ITEM NAME via Edge Function ══
+async function cleanListItemName(itemId){
+  const item=shoppingItems.find(i=>i.id===itemId);
+  if(!item) return;
+  const btn=document.getElementById('clean-btn-'+itemId);
+  if(btn) btn.textContent='...';
+  try{
+    const result=await callGemOCR({mode:'clean_one',name:item.name});
+    if(result?.name){
+      await db.from('shopping_list_items').update({name:result.name}).eq('id',itemId);
+      item.name=result.name;
+      renderShoppingList();
+      closeModal('modal-edit-store');
+      showToast('\u2713 '+result.name);
+    }
+  }catch(e){
+    showToast('Could not clean name');
+    if(btn) btn.textContent='\u2728 Identify';
+  }
+}
+
+// ══ GOOGLE VISION API (kept as fallback) ══
 async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
   const compressed=await compressImage(base64Image);
   const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+VISION_KEY,{
