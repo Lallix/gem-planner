@@ -771,18 +771,47 @@ async function openEditReceipt(receiptId){
   renderEditReceiptItems();
 }
 
+
+// ══ CLEAN NAME IN EDIT RECEIPT MODAL ══
+async function cleanEditReceiptItemName(idx){
+  const item=editingReceiptItems[idx];
+  if(!item||!item.name.trim()) return;
+  const btn=document.getElementById('clean-edit-btn-'+idx);
+  if(btn){ btn.textContent='...'; btn.disabled=true; }
+  try{
+    const result=await callGemOCR({mode:'clean_one',name:item.name});
+    if(result?.name){
+      editingReceiptItems[idx].name=result.name;
+      renderEditReceiptItems();
+      showToast('\u2713 '+result.name);
+    }
+  }catch(e){
+    showToast('Could not clean name');
+    if(btn){ btn.textContent='\u2728'; btn.disabled=false; }
+  }
+}
+
 function renderEditReceiptItems(){
   const el=document.getElementById('edit-receipt-items');
   if(!el) return;
   el.innerHTML=editingReceiptItems.map((item,i)=>`
-    <div style="display:flex;gap:6px;align-items:center;padding:6px;background:#F8FAF9;border-radius:10px;margin-bottom:6px">
-      <input value="${item.name}" onchange="editingReceiptItems[${i}].name=this.value"
-        style="flex:2;padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"/>
-      <input value="${item.price}" onchange="editingReceiptItems[${i}].price=this.value"
-        style="width:72px;padding:7px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"
-        placeholder="Price"/>
-      <button onclick="editingReceiptItems.splice(${i},1);renderEditReceiptItems()"
-        style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">✕</button>
+    <div style="display:flex;flex-direction:column;gap:4px;padding:8px;background:#F8FAF9;border-radius:10px;margin-bottom:6px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input value="${item.name}" onchange="editingReceiptItems[${i}].name=this.value"
+          style="flex:2;padding:7px 10px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"/>
+        <button id="clean-edit-btn-${i}" onclick="cleanEditReceiptItemName(${i})"
+          title="Clean name with AI"
+          style="flex-shrink:0;padding:6px 8px;border-radius:8px;background:var(--pink-pale);color:var(--pink);border:none;cursor:pointer;font-size:13px">&#10024;</button>
+        <button onclick="editingReceiptItems.splice(${i},1);renderEditReceiptItems()"
+          style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px 4px;flex-shrink:0">&#10005;</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input value="${item.price}" onchange="editingReceiptItems[${i}].price=this.value"
+          style="width:90px;padding:7px 8px;border-radius:8px;border:1.5px solid var(--line);font-size:13px;font-family:var(--font);outline:none"
+          placeholder="Price R"/>
+        ${item.isSpecial?`<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--green-pale);color:var(--green-dark)">&#127991; Special</span>`:''}
+        ${item.normalPrice?`<span style="font-size:11px;color:var(--muted)">was R${item.normalPrice}</span>`:''}
+      </div>
     </div>`).join('');
 }
 
@@ -3045,7 +3074,7 @@ function parseReceiptToJSON(text){
   }
 
   // Skip lines that are clearly not product items
-  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|saving|smart shopper|loyalty|rands earned|rands to spend|today you|this year|you missed|served by|customer|keep your|store cash|till |date |time |txn|rate|gross|net\b|hi |checkout|liquor|cnr |oakfield|northmead|ext\d|lic\.|vat no/i;
+  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|saving|smart shopper|loyalty|rands earned|rands to spend|today you|this year|you missed|served by|customer|keep your|store cash|till |date |time |txn|rate|gross|net\b|hi |checkout|liquor|cnr |oakfield|northmead|ext\d|lic\.|vat no|less product|less disc|product disc/i;
   const standalonePrice=/^R?\s*(\d+[.,]\d{2})\s*$/;
 
   let pendingName=null;
@@ -3129,12 +3158,12 @@ function applyClaudeReceiptResult(result){
   // Total
   if(result.total) ss('scan-total',result.total);
 
-  // Populate item list
+  // Populate item list — preserve normalPrice and isSpecial from Claude
   scanItems=(result.items||[]).map(i=>({
     name:i.name||'',
     price:i.price?String(i.price):'',
     isSpecial:i.isSpecial||false,
-    normalPrice:'',
+    normalPrice:i.normalPrice?String(i.normalPrice):'',
   }));
   renderScanItems();
 }
