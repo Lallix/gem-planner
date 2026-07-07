@@ -980,12 +980,20 @@ async function saveRecipe(){
     visibility:document.getElementById('recipe-visibility').value,
   });
   if(error){showToast('Error saving recipe');console.error(error);return;}
-  // Save ingredients
+  // Save ingredients — parse "amount | name" format or plain name
   const ingLines=document.getElementById('recipe-ingredients').value.split('\n').filter(l=>l.trim());
-  // get the recipe id we just created
   const {data:newR}=await db.from('recipes').select('id').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(1).single();
   if(newR&&ingLines.length){
-    await db.from('recipe_ingredients').insert(ingLines.map((l,i)=>({recipe_id:newR.id,name:l.trim(),sort_order:i})));
+    await db.from('recipe_ingredients').insert(ingLines.map((l,i)=>{
+      const parts=l.split('|').map(p=>p.trim());
+      if(parts.length>=2){
+        // "2 cups | flour" format from auto-split
+        return {recipe_id:newR.id,amount:parts[0],name:parts[1],sort_order:i};
+      }
+      // Plain text — try to parse amount from start
+      const {amount,name}=parseIngredient(l.trim());
+      return {recipe_id:newR.id,amount:amount||null,name:name||l.trim(),sort_order:i};
+    }));
   }
   closeModal('modal-add-recipe');
   showToast('Recipe saved ✓');
@@ -1346,17 +1354,51 @@ function viewRecipeAndAddToList(recipeId){
 }
 
 function openPlanPickerFromRecipe(recipeId){
-  // Find the recipe and open add meal modal with it pre-selected
   const recipe=allRecipes.find(r=>r.id===recipeId);
   if(!recipe){ showToast('Recipe not found'); return; }
-  // Open day picker — default to today
+  // Store recipe for use after day is picked
+  window._pendingPlanRecipe=recipe;
+  // Show day picker modal
+  renderDayPickerForRecipe(recipe);
+  openModal('modal-plan-day-picker');
+}
+
+function renderDayPickerForRecipe(recipe){
+  const el=document.getElementById('plan-day-picker-list');
+  if(!el) return;
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const now=new Date();
-  const dayOfWeek=(now.getDay()+6)%7; // 0=Mon
+  const thisMonday=new Date(now);
+  thisMonday.setDate(now.getDate()-((now.getDay()+6)%7));
+  thisMonday.setHours(0,0,0,0);
+  const weekStart=new Date(thisMonday);
+  weekStart.setDate(thisMonday.getDate()+(currentPlanWeekOffset*7));
+
+  el.innerHTML=`<div style="font-size:13px;color:var(--muted);margin-bottom:12px">Adding: <strong>${recipe.title}</strong></div>`+
+  days.map((day,i)=>{
+    const date=new Date(weekStart); date.setDate(weekStart.getDate()+i);
+    const dateStr=date.toLocaleDateString('en-ZA',{day:'numeric',month:'short'});
+    const isToday=date.toDateString()===now.toDateString();
+    return `<div onclick="confirmPlanFromRecipe(${i})"
+      style="display:flex;align-items:center;justify-content:space-between;
+        padding:12px 14px;border-radius:var(--r-md);margin-bottom:6px;cursor:pointer;
+        background:${isToday?'var(--green-pale)':'var(--card)'};
+        border:1.5px solid ${isToday?'var(--green-dark)':'var(--line)'}">
+      <div style="font-size:14px;font-weight:700;color:var(--text)">${day}${isToday?' <span style="font-size:10px;background:var(--green-dark);color:#fff;padding:2px 7px;border-radius:10px;margin-left:4px">Today</span>':''}</div>
+      <div style="font-size:12px;color:var(--muted)">${dateStr}</div>
+    </div>`;
+  }).join('');
+}
+
+async function confirmPlanFromRecipe(dayOfWeek){
+  const recipe=window._pendingPlanRecipe;
+  if(!recipe) return;
   addMealDay=dayOfWeek;
   addMealWeek=currentPlanWeekOffset||0;
   addMealType=recipe.category||'dinner';
-  // Directly confirm without going through the full picker
-  confirmAddMealEntry(recipe.id, recipe.title, recipe.category);
+  closeModal('modal-plan-day-picker');
+  await confirmAddMealEntry(recipe.id, recipe.title, recipe.category);
+  window._pendingPlanRecipe=null;
 }
 
 // ══ SWIPE TO DELETE ══
@@ -1734,19 +1776,38 @@ async function saveAllQuickItems(){
   // From grocery list selections
   quickAddSelected.forEach(id=>{
     const item=groceryItems.find(i=>i.id===id);
-    if(item) rows.push({user_id:currentUser.id,name:item.name,amount:item.unit||null,category:item.category||'misc',store_key:storeKey,week_start:ws});
+    if(item) rows.push({user_id:currentUser.id,name:item.name,amount:item.unit||null,category:item.category||'misc',store_key:storeKey,week_start:ws,quantity:1});
   });
   // From manual additions
   quickAddManual.forEach(i=>{
-    rows.push({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws});
+    rows.push({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws,quantity:1});
   });
 
-  const {error}=await db.from('shopping_list_items').insert(rows);
-  if(error){showToast('Error: '+error.message);return;}
+  // Check for duplicates — if item already exists in this basket, increment qty instead
+  let added=0; let incremented=0;
+  for(const row of rows){
+    const existing=shoppingItems.find(i=>
+      i.name.toLowerCase().trim()===row.name.toLowerCase().trim()&&
+      i.week_start===row.week_start
+    );
+    if(existing){
+      const newQty=(existing.quantity||1)+1;
+      await db.from('shopping_list_items').update({quantity:newQty}).eq('id',existing.id);
+      existing.quantity=newQty;
+      incremented++;
+    } else {
+      await db.from('shopping_list_items').insert(row);
+      added++;
+    }
+  }
+
   closeModal('modal-add-list-item');
   quickAddSelected=new Set();
   quickAddManual=[];
-  showToast('✓ '+rows.length+' item'+(rows.length!==1?'s':'')+' added');
+  const msg=[];
+  if(added) msg.push(added+' added');
+  if(incremented) msg.push(incremented+' qty updated');
+  showToast('\u2713 '+msg.join(', '));
   loadShoppingList();
 }
 
@@ -2439,7 +2500,12 @@ async function saveEditRecipe(){
   const ingLines=document.getElementById('edit-recipe-ingredients').value.split('\n').filter(l=>l.trim());
   await db.from('recipe_ingredients').delete().eq('recipe_id',currentViewRecipe.id);
   if(ingLines.length){
-    await db.from('recipe_ingredients').insert(ingLines.map((l,i)=>({recipe_id:currentViewRecipe.id,name:l.trim(),sort_order:i})));
+    await db.from('recipe_ingredients').insert(ingLines.map((l,i)=>{
+      const parts=l.split('|').map(p=>p.trim());
+      if(parts.length>=2) return {recipe_id:currentViewRecipe.id,amount:parts[0],name:parts[1],sort_order:i};
+      const {amount,name}=parseIngredient(l.trim());
+      return {recipe_id:currentViewRecipe.id,amount:amount||null,name:name||l.trim(),sort_order:i};
+    }));
   }
   closeModal('modal-view-recipe');
   showToast('Recipe updated \u2713');
