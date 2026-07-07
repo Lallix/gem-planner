@@ -1987,7 +1987,9 @@ function openIngredientSelector(recipes){
       const key=ing.name.toLowerCase().trim();
       if(!seen.has(key)){
         seen.add(key);
-        allIngredients.push({name:ing.name,amount:ing.amount||'',unit:ing.unit||'',selected:true});
+        // Build amount string from amount + unit fields
+        const amountStr=[ing.amount,ing.unit].filter(Boolean).join(' ').trim();
+        allIngredients.push({name:ing.name,amount:amountStr,selected:true});
       }
     });
   });
@@ -2013,9 +2015,9 @@ function renderIngredientSelector(){
         background:${item.selected?'var(--green-dark)':'#E0E0E0'};border:2.5px solid ${item.selected?'var(--green-dark)':'#CCC'};transition:all .2s">
         ${item.selected?'<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
       </div>
-      <div style="flex:1;min-width:0">
+      <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:8px">
         <div style="font-size:14px;font-weight:700;color:${item.selected?'var(--text)':'var(--muted)'}">${item.name}</div>
-        ${item.amount||item.unit?`<div style="font-size:11px;color:var(--muted)">${[item.amount,item.unit].filter(Boolean).join(' ')}</div>`:''}
+        ${item.amount?`<div style="font-size:12px;font-weight:600;color:var(--green-dark)">${item.amount}</div>`:''}
       </div>
     </div>`).join('');
 
@@ -2440,7 +2442,20 @@ async function viewRecipe(id){
   const meta=[r.prep_time?'⏱ '+r.prep_time+'min prep':'',r.cook_time?'🔥 '+r.cook_time+'min cook':'',r.servings?'🍽 Serves '+r.servings:''].filter(Boolean).join('  ·  ');
   document.getElementById('view-recipe-meta').textContent=meta;
   document.getElementById('view-recipe-ingredients').innerHTML=ings&&ings.length
-    ?ings.map(i=>'• '+(i.amount?i.amount+' ':'')+i.name).join('<br/>')
+    ?`<div style="display:table;width:100%;border-collapse:collapse">`+
+      ings.map(i=>`
+        <div style="display:table-row">
+          <div style="display:table-cell;width:90px;padding:5px 10px 5px 0;
+            font-size:13px;font-weight:700;color:var(--green-dark);
+            vertical-align:top;white-space:nowrap">
+            ${i.amount||''}
+          </div>
+          <div style="display:table-cell;padding:5px 0;
+            font-size:13px;color:var(--text);
+            border-bottom:0.5px solid var(--line-light);vertical-align:top">
+            ${i.name}
+          </div>
+        </div>`).join('')+`</div>`
     :'<span style="color:var(--muted)">No ingredients listed</span>';
   document.getElementById('view-recipe-instructions').textContent=r.instructions||'No instructions added yet.';
 
