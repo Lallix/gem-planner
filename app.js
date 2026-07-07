@@ -26,16 +26,17 @@ const CATEGORY_LABELS = {
 function storeLogo(key, size=36) {
   const cfg=STORES[key]||STORES.other;
   const s=size+'px';
-  const fallback=`<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white;flex-shrink:0;line-height:1">${cfg.label.charAt(0)}</div>`;
+  const fs=Math.round(size*.4)+'px';
+  const fallback=`<div style="background:${cfg.brand};width:${s};height:${s};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:${fs};font-weight:800;color:white;flex-shrink:0">${cfg.label.charAt(0)}</div>`;
   if(!cfg.logo) return fallback;
-  // Test if logo loads — use onload/onerror approach
-  return `<div style="width:${s};height:${s};border-radius:8px;background:${cfg.brand};flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size*.4)}px;font-weight:800;color:white">
+  // Outer div is the branded colour fallback
+  // Image sits on top absolutely — when loaded it covers the letter
+  return `<div style="position:relative;width:${s};height:${s};border-radius:8px;background:${cfg.brand};flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
+    <span style="font-size:${fs};font-weight:800;color:white;line-height:1">${cfg.label.charAt(0)}</span>
     <img src="${cfg.logo}" width="${size}" height="${size}"
-      style="width:${s};height:${s};object-fit:contain;display:block"
-      onload="this.parentNode.style.background='#fff';this.parentNode.style.color='transparent'"
+      style="position:absolute;top:0;left:0;width:${s};height:${s};object-fit:contain;background:#fff"
       onerror="this.style.display='none'"
     />
-    ${cfg.label.charAt(0)}
   </div>`;
 }
 
@@ -781,12 +782,20 @@ async function cleanEditReceiptItemName(idx){
   try{
     const result=await callGemOCR({mode:'clean_one',name:item.name});
     if(result?.name){
-      editingReceiptItems[idx].name=result.name;
+      const oldName=item.name;
+      const newName=result.name;
+      editingReceiptItems[idx].name=newName;
       renderEditReceiptItems();
-      showToast('\u2713 '+result.name);
+      showToast('\u2713 '+newName);
+      // Propagate in background
+      if(currentUser){
+        db.from('price_history').update({item_name:newName}).eq('user_id',currentUser.id).eq('item_name',oldName).catch(()=>{});
+        db.from('grocery_items').upsert({user_id:currentUser.id,name:newName,is_shared:false},{onConflict:'user_id,name',ignoreDuplicates:true}).catch(()=>{});
+      }
     }
   }catch(e){
     showToast('Could not clean name');
+  }finally{
     if(btn){ btn.textContent='\u2728'; btn.disabled=false; }
   }
 }
@@ -2973,13 +2982,22 @@ async function cleanItemNames(){
   const rawNames=scanItems.map(i=>i.name);
   if(!rawNames.length){ showToast('No items to clean'); return; }
   const statusEl=document.getElementById('scan-status');
-  if(statusEl) statusEl.textContent='✨ Cleaning names with Claude...';
+  if(statusEl) statusEl.textContent='\u2728 Cleaning names with Claude...';
   try{
     const result=await callGemOCR({mode:'clean',items:rawNames});
     if(result?.items&&result.items.length===scanItems.length){
+      // Store old→new name mapping for propagation
+      const nameMap=rawNames.map((old,i)=>({old,new:result.items[i]||old}));
       scanItems=scanItems.map((item,i)=>({...item,name:result.items[i]||item.name}));
       renderScanItems();
-      if(statusEl) statusEl.textContent='✓ Names cleaned — review and correct if needed';
+      if(statusEl) statusEl.textContent='\u2713 Names cleaned — review and correct if needed';
+      // Propagate to price_history in background (non-blocking)
+      if(currentUser){
+        nameMap.filter(m=>m.old!==m.new).forEach(m=>{
+          db.from('price_history').update({item_name:m.new}).eq('user_id',currentUser.id).eq('item_name',m.old).catch(()=>{});
+          db.from('grocery_items').upsert({user_id:currentUser.id,name:m.new,is_shared:false},{onConflict:'user_id,name',ignoreDuplicates:true}).catch(()=>{});
+        });
+      }
     }
   }catch(e){
     if(statusEl) statusEl.textContent='Could not clean names: '+e.message;
@@ -3006,20 +3024,38 @@ async function cleanSingleName(idx){
 async function cleanListItemName(itemId){
   const item=shoppingItems.find(i=>i.id===itemId);
   if(!item) return;
-  const btn=document.getElementById('clean-btn-'+itemId);
-  if(btn) btn.textContent='...';
+  const btn=document.getElementById('clean-btn-single');
+  if(btn){ btn.textContent='...'; btn.disabled=true; }
   try{
     const result=await callGemOCR({mode:'clean_one',name:item.name});
     if(result?.name){
-      await db.from('shopping_list_items').update({name:result.name}).eq('id',itemId);
-      item.name=result.name;
-      renderShoppingList();
+      const oldName=item.name;
+      const newName=result.name;
+      // Update everywhere in parallel
+      await Promise.all([
+        // 1. Shopping list item
+        db.from('shopping_list_items').update({name:newName}).eq('id',itemId),
+        // 2. Price history — update all entries with old name
+        db.from('price_history').update({item_name:newName}).eq('user_id',currentUser.id).eq('item_name',oldName),
+        // 3. Grocery items — upsert with clean name
+        db.from('grocery_items').upsert({
+          user_id:currentUser.id,
+          name:newName,
+          is_shared:false,
+        },{onConflict:'user_id,name',ignoreDuplicates:true}),
+      ]);
+      item.name=newName;
+      // Refresh price history cache so freq bought updates
+      if(typeof loadShoppingList==='function') loadShoppingList();
+      else renderShoppingList();
       closeModal('modal-edit-store');
-      showToast('\u2713 '+result.name);
+      showToast('\u2713 '+newName);
     }
   }catch(e){
+    console.error(e);
     showToast('Could not clean name');
-    if(btn) btn.textContent='\u2728 Identify';
+  }finally{
+    if(btn){ btn.textContent='\u2728 Identify'; btn.disabled=false; }
   }
 }
 
@@ -3558,6 +3594,11 @@ async function saveScanReceipt(){
         normal_price:i.isSpecial&&i.normalPrice?parseFloat(i.normalPrice):null,
         recorded_at:date,
       })));
+      // Propagate clean names to grocery_items so freq bought + template stay current
+      db.from('grocery_items').upsert(
+        valid.map(i=>({user_id:currentUser.id,name:i.name.trim(),is_shared:false})),
+        {onConflict:'user_id,name',ignoreDuplicates:true}
+      ).catch(()=>{});
     }
   }
 
