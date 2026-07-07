@@ -1048,31 +1048,30 @@ let freqItems=[];
 
 async function loadFrequentlyBought(){
   if(!currentUser) return;
-  // Pull most recently and frequently bought items from price_history
-  const {data}=await db.from('price_history')
-    .select('item_name,store_key,price,recorded_at')
-    .eq('user_id',currentUser.id)
-    .order('recorded_at',{ascending:false})
-    .limit(200);
+  // Source from shopping_list_items — items YOU choose to add, not raw receipt scans
+  // This ensures clean names, correct store and category
+  const {data}=await db.from('shopping_list_items')
+    .select('name,store_key,category,normal_price')
+    .eq('user_id',currentUser.id);
   if(!data||!data.length){ freqItems=[]; return; }
-  // Count frequency per item name
+  // Count by normalised name
   const counts={};
-  const lastPrice={};
-  const lastStore={};
-  data.forEach(row=>{
-    const key=row.item_name.toLowerCase().trim();
-    counts[key]=(counts[key]||0)+1;
-    if(!lastPrice[key]){ lastPrice[key]=row.price; lastStore[key]=row.store_key; }
+  data.forEach(r=>{
+    const k=r.name?.toLowerCase().trim();
+    if(!k) return;
+    if(!counts[k]) counts[k]={
+      name:r.name,
+      store_key:r.store_key||null,
+      category:r.category||'misc',
+      normal_price:r.normal_price||null,
+      count:0
+    };
+    counts[k].count++;
   });
-  // Sort by frequency, take top 10
-  freqItems=Object.entries(counts)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,10)
-    .map(([key])=>({
-      name:data.find(r=>r.item_name.toLowerCase().trim()===key)?.item_name||key,
-      price:lastPrice[key],
-      store_key:lastStore[key],
-    }));
+  // Top 10 by frequency
+  freqItems=Object.values(counts)
+    .sort((a,b)=>b.count-a.count)
+    .slice(0,10);
 }
 
 function renderFrequentlyBought(){
@@ -1783,17 +1782,22 @@ async function saveAllQuickItems(){
     rows.push({user_id:currentUser.id,name:i.name,amount:i.amount||null,category:i.category,store_key:storeKey,week_start:ws,quantity:1});
   });
 
-  // Check for duplicates — if item already exists in this basket, increment qty instead
+  // Check for duplicates against database — not just memory
   let added=0; let incremented=0;
   for(const row of rows){
-    const existing=shoppingItems.find(i=>
-      i.name.toLowerCase().trim()===row.name.toLowerCase().trim()&&
-      i.week_start===row.week_start
-    );
-    if(existing){
-      const newQty=(existing.quantity||1)+1;
-      await db.from('shopping_list_items').update({quantity:newQty}).eq('id',existing.id);
-      existing.quantity=newQty;
+    // Query DB directly for existing item with same name in same basket
+    const {data:existing}=await db.from('shopping_list_items')
+      .select('id,quantity')
+      .eq('user_id',currentUser.id)
+      .eq('week_start',row.week_start)
+      .ilike('name',row.name.trim())
+      .limit(1);
+    if(existing&&existing.length>0){
+      const newQty=(existing[0].quantity||1)+1;
+      await db.from('shopping_list_items').update({quantity:newQty}).eq('id',existing[0].id);
+      // Update memory too
+      const memItem=shoppingItems.find(i=>i.id===existing[0].id);
+      if(memItem) memItem.quantity=newQty;
       incremented++;
     } else {
       await db.from('shopping_list_items').insert(row);
@@ -3952,7 +3956,22 @@ async function importRecipeFromUrl(){
     document.getElementById('recipe-title').value=recipe.title||'';
     document.getElementById('recipe-desc').value=recipe.description||'';
     // Split amount from ingredient name where possible
-    const splitIngs=splitImportedIngredients(recipe.ingredients||[]);
+    // Use Claude Edge Function to split ingredients intelligently
+    const rawIngs=recipe.ingredients||[];
+    const statusEl=document.getElementById('recipe-import-error');
+    if(statusEl) statusEl.textContent='\u2728 Splitting ingredients with Claude...';
+    let splitIngs=rawIngs;
+    try{
+      const result=await callGemOCR({mode:'split_ingredients',ingredients:rawIngs});
+      if(result?.ingredients&&result.ingredients.length===rawIngs.length){
+        splitIngs=result.ingredients.map(i=>i.amount?`${i.amount} | ${i.name}`:i.name);
+        if(statusEl) statusEl.textContent='';
+      }
+    }catch(e){
+      // Fall back to regex parser if Edge Function fails
+      splitIngs=splitImportedIngredients(rawIngs);
+      if(statusEl) statusEl.textContent='';
+    }
     document.getElementById('recipe-ingredients').value=splitIngs.join('\n');
     document.getElementById('recipe-instructions').value=recipe.instructions||'';
     if(recipe.prepTime) document.getElementById('recipe-prep').value=recipe.prepTime;
