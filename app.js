@@ -2210,48 +2210,6 @@ async function loadUserList(){
       </div>`).join('');
 }
 
-async function createUser(){
-  const name=document.getElementById('new-user-name').value.trim();
-  const email=document.getElementById('new-user-email').value.trim();
-  const password=document.getElementById('new-user-password').value;
-  const errEl=document.getElementById('create-user-error');
-  errEl.textContent='';
-  if(!name||!email||!password){errEl.textContent='All fields are required';return;}
-  if(password.length<6){errEl.textContent='Password must be at least 6 characters';return;}
-
-  // Get current session token to authenticate the edge function call
-  const {data:{session}}=await db.auth.getSession();
-  if(!session){errEl.textContent='Session expired — please sign in again';return;}
-
-  try {
-    const res=await fetch(`${SURL}/functions/v1/create-user`,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${session.access_token}`,
-        'apikey': SKEY
-      },
-      body:JSON.stringify({name,email,password})
-    });
-
-    const result=await res.json();
-
-    if(!res.ok||result.error){
-      errEl.textContent=result.error||'Failed to create user';
-      return;
-    }
-
-    closeModal('modal-create-user');
-    ['new-user-name','new-user-email'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
-    showToast(`✓ Account created for ${name}`);
-    setTimeout(loadUserList,1500);
-
-  } catch(err){
-    errEl.textContent='Network error — please try again';
-    console.error('Create user error:',err);
-  }
-}
-
 // ══ PASSWORD CHANGE ══
 function openChangePassword(){
   const pwEl=document.getElementById('new-password'); if(pwEl) pwEl.value='';
@@ -2399,7 +2357,6 @@ function openModal(id){
 }
 function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
 function openAddRecipe(){ openModal('modal-add-recipe'); }
-function openCreateUser(){ document.getElementById('create-user-error').textContent=''; openModal('modal-create-user'); }
 
 // Close modal on overlay click
 document.addEventListener('click',e=>{

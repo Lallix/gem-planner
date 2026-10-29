@@ -333,9 +333,9 @@
           <div style="flex:1"><div class="setting-label">Upload grocery list</div><div class="setting-sub">Import from Excel template</div></div>
           <span style="color:var(--muted);font-size:18px">&#8250;</span>
         </div>
-        <div class="setting-row" onclick="openCreateUser()">
+        <div class="setting-row" onclick="window.open('https://lallix.github.io/pgv-admin/','_blank','noopener')">
           <div class="setting-icon" style="background:var(--pink-pale)">&#128100;+</div>
-          <div style="flex:1"><div class="setting-label">Create user</div><div class="setting-sub">Add a new family member</div></div>
+          <div style="flex:1"><div class="setting-label">Manage users</div><div class="setting-sub">Add people and choose their apps in PGV Admin</div></div>
           <span style="color:var(--muted);font-size:18px">&#8250;</span>
         </div>
         <div id="user-list"></div>
@@ -400,21 +400,6 @@
     <div class="modal-row">
       <button class="btn btn-outline flex-1" onclick="closeModal('modal-edit-name')">Cancel</button>
       <button class="btn btn-primary flex-1" onclick="saveName()">Save name</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-create-user" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-title">👤 Create new user</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">They'll use these credentials to sign in to GEM Planner</div>
-    <input class="modal-input" type="text" id="new-user-name" placeholder="Full name"/>
-    <input class="modal-input" type="email" id="new-user-email" placeholder="Email address"/>
-    <input class="modal-input" type="password" id="new-user-password" placeholder="Temporary password (min 6 chars)"/>
-    <div id="create-user-error" class="auth-error"></div>
-    <div class="modal-row">
-      <button class="btn btn-outline flex-1" onclick="closeModal('modal-create-user')">Cancel</button>
-      <button class="btn btn-emerald flex-1" onclick="createUser()">Create user</button>
     </div>
   </div>
 </div>
