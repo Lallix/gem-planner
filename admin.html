@@ -584,6 +584,11 @@ async function createUser(){
       },{onConflict:'id'});
       if(pe) console.error('Profile upsert error:', pe.message);
       else console.log('Profile upserted OK');
+      // Accounts made here get GEM only (the login is shared with Cycle)
+      const {error:ae}=await db.from('app_access').upsert({
+        user_id:data.user.id, app:'gem'
+      },{onConflict:'user_id,app'});
+      if(ae) console.error('App access error:', ae.message);
     }
 
     errEl.style.color='var(--emerald)';

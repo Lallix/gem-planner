@@ -540,6 +540,16 @@ async function loadUser(user){
     return;
   }
 
+  // The login is shared with Cycle; app_access says who gets GEM.
+  // If the check itself fails, let them in: the database still enforces it.
+  const {data:hasGem,error:accessErr}=await db.rpc('has_app',{p_app:'gem'});
+  if(!accessErr && hasGem!==true){
+    await db.auth.signOut();
+    document.getElementById('auth-error').textContent='⛔ This account doesn\'t have access to GEM. Please contact your GEM admin.';
+    showAuth();
+    return;
+  }
+
   isAdmin=profile?.is_admin||false;
   const name=profile?.full_name||user.email.split('@')[0];
   const ss=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
