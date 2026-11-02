@@ -1,0 +1,16 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Non-code material for this app (synced by OneDrive, never committed)
+_files/
+
+# Dependencies and OS clutter
+node_modules/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Claude local settings (machine-specific)
+.claude/settings.local.json
