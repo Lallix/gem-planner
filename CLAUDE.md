@@ -14,3 +14,6 @@ Personal groceries, expenses and meal-plan PWA with receipt OCR.
 - Only work inside this folder. Never start another app's server.
 - Use relative paths only. This folder is opened on two PCs with different Windows usernames (`GideonV` and `lalli`).
 - The repo is public: never put API keys in `app.js` or any committed file. The old Google Vision key in `app.js` is unused and should be removed.
+
+## Previous discussions
+Before starting work, read `_files\docs\claude-history\HANDOVER.md`: where the build stands, key decisions, and open questions from earlier Claude sessions. The full past conversations are in the same folder; search them when you need detail.
