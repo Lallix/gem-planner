@@ -1,7 +1,6 @@
 // ══ SUPABASE ══
 const SURL = 'https://mjaschvxhdupoemaezjt.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qYXNjaHZ4aGR1cG9lbWFlemp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjE1MDYsImV4cCI6MjA5NzUzNzUwNn0.mPAF1SmB2HimzFa58Zy3nt0ESAoE6TaOVU4YTwArobA';
-const VISION_KEY = 'AIzaSyCDHQOKG3e87WQ0fveIKR-v2S_3_2IgUhI'; // kept for fallback
 const GEM_OCR_URL = SURL+'/functions/v1/gem-ocr';
 const db = supabase.createClient(SURL, SKEY);
 
@@ -2937,10 +2936,6 @@ async function addGroceryItemToList(itemId){
 
 
 
-// ══ GOOGLE VISION KEY ══
-function getVisionKey(){ return VISION_KEY; }
-function checkVisionKey(){ return true; }
-
 // ══ PHOTO SCAN ══
 function openPhotoScan(){
   document.getElementById('photo-input').click();
@@ -3111,125 +3106,6 @@ async function cleanListItemName(itemId){
   }
 }
 
-// ══ GOOGLE VISION API (kept as fallback) ══
-async function callVisionAPI(base64Image,feature='TEXT_DETECTION'){
-  const compressed=await compressImage(base64Image);
-  const res=await fetch('https://vision.googleapis.com/v1/images:annotate?key='+VISION_KEY,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({requests:[{image:{content:compressed},features:[{type:feature,maxResults:1}]}]})
-  });
-  const data=await res.json();
-  if(!res.ok) throw new Error(data.error?.message||'Vision API error '+res.status);
-  const result=data.responses?.[0];
-  if(result?.error) throw new Error(result.error.message);
-  return result?.fullTextAnnotation?.text||result?.textAnnotations?.[0]?.description||null;
-}
-
-// ══ PARSE VISION OCR TEXT INTO STRUCTURED JSON ══
-// Handles multiple Vision API output formats:
-// Format A: item and price on same line "MILK 2L    28.99"
-// Format B: item name then price on next line "MILK 2L\n28.99"  
-// Format C: price with R prefix "MILK 2L R28.99"
-function parseReceiptToJSON(text){
-  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const result={store:null,date:null,total:null,items:[]};
-
-  // Detect store from first 6 lines
-  const headerText=lines.slice(0,6).join(' ').toLowerCase();
-  if(headerText.includes('pick n pay')||headerText.includes('picknpay')) result.store='Pick n Pay';
-  else if(headerText.includes('woolworth')) result.store='Woolworths';
-  else if(headerText.includes('checkers')) result.store='Checkers';
-  else if(headerText.includes('spar')) result.store='Spar';
-  else if(headerText.includes('walmart')||headerText.includes('game')) result.store='Walmart';
-
-  // Detect date — DD.MM.YY or DD/MM/YYYY
-  for(const line of lines){
-    const m=line.match(/(\d{1,2})[.\/](\d{2})[.\/](\d{2,4})/);
-    if(m){
-      const y=m[3].length===2?'20'+m[3]:m[3];
-      result.date=`${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-      break;
-    }
-  }
-
-  // Detect total
-  for(const line of lines){
-    if(/\btotal\b/i.test(line)&&!/sub|vat|sav|year|today/i.test(line)){
-      const m=line.match(/R?\s*(\d+[.,]\d{2})/);
-      if(m) result.total=parseFloat(m[1].replace(',','.'));
-    }
-  }
-
-  // Skip lines that are clearly not product items
-  const skipWords=/total|subtotal|vat|tax|change|tender|card|cash|thank|receipt|invoice|balance|saving|smart shopper|loyalty|rands earned|rands to spend|today you|this year|you missed|served by|customer|keep your|store cash|till |date |time |txn|rate|gross|net\b|hi |checkout|liquor|cnr |oakfield|northmead|ext\d|lic\.|vat no|less product|less disc|product disc/i;
-  const standalonePrice=/^R?\s*(\d+[.,]\d{2})\s*$/;
-
-  let pendingName=null;
-
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i];
-    if(skipWords.test(line)){ pendingName=null; continue; }
-
-    // Format B: standalone price line follows item name line
-    const soloMatch=line.match(standalonePrice);
-    if(soloMatch&&pendingName){
-      const price=parseFloat(soloMatch[1].replace(',','.'));
-      if(price>0&&price<5000){
-        result.items.push({name:pendingName,price,isSpecial:false});
-      }
-      pendingName=null;
-      continue;
-    }
-
-    // Format A/C: item + price on same line (with optional R prefix)
-    const inlineMatch=line.match(/^(.+?)\s+R?\s*(\d+[.,]\d{2})\s*$/);
-    if(inlineMatch){
-      const name=inlineMatch[1].trim();
-      const price=parseFloat(inlineMatch[2].replace(',','.'));
-      if(name.length>2&&price>0&&price<5000&&!skipWords.test(name)){
-        result.items.push({name,price,isSpecial:false});
-        pendingName=null;
-        continue;
-      }
-    }
-
-    // Detect discount line — negative price or "less/discount/saving" keyword with amount
-    const discountMatch=line.match(/^(.*)(?:discount|saving|less|special|promo).*?-?R?\s*(\d+[.,]\d{2})\s*$/i)
-      || line.match(/^-R?\s*(\d+[.,]\d{2})\s*$/);
-    if(discountMatch&&result.items.length>0){
-      const discountAmt=parseFloat((discountMatch[2]||discountMatch[1]).replace(',','.'));
-      if(discountAmt>0&&discountAmt<500){
-        // Apply to last item — mark as special
-        const lastItem=result.items[result.items.length-1];
-        lastItem.normalPrice=lastItem.price;
-        lastItem.price=Math.max(0,parseFloat((lastItem.price-discountAmt).toFixed(2)));
-        lastItem.isSpecial=true;
-      }
-      pendingName=null;
-      continue;
-    }
-
-    // Detect variable weight items e.g. "BEEF RUMP 0.543kg" or "CHICKEN 0.432 kg"
-    const weightMatch=line.match(/(\d+[.,]\d{3})\s*kg/i);
-    if(weightMatch&&result.items.length>0){
-      const lastItem=result.items[result.items.length-1];
-      lastItem.isVariable=true;
-      lastItem.weight=weightMatch[1]+'kg';
-      lastItem.name=lastItem.name+' ⚖️';
-    }
-
-    // Possible item name — hold it in case next line is price
-    if(line.length>3&&!/^\d/.test(line)&&!skipWords.test(line)&&!/^[-=*]{3,}/.test(line)){
-      pendingName=line;
-    } else {
-      pendingName=null;
-    }
-  }
-
-  return result.items.length>0?result:null;
-}
-
 
 function applyClaudeReceiptResult(result){
   // Populate scan modal fields from Claude's structured response
@@ -3256,7 +3132,7 @@ function applyClaudeReceiptResult(result){
   renderScanItems();
 }
 
-// Compress image before sending to Vision API
+// Compress image before sending to the gem-ocr edge function
 function compressImage(base64){
   return new Promise((resolve)=>{
     const img=new Image();
