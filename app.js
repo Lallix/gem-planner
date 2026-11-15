@@ -498,13 +498,8 @@ function showAuth(){ document.getElementById('auth-screen').classList.remove('hi
 function showApp(){
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  window.scrollTo({top:0,behavior:'instant'});
-  // Use requestAnimationFrame to wait for DOM paint, then load
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      loadDashboard();
-    });
-  });
+  // Nothing marks a screen active on load, so open Home (this also loads the dashboard)
+  showScreen('home');
 }
 function showSignup(){ document.getElementById('signin-form').classList.add('hidden'); document.getElementById('signup-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
 function showSignin(){ document.getElementById('signup-form').classList.add('hidden'); document.getElementById('signin-form').classList.remove('hidden'); document.getElementById('auth-error').textContent=''; }
@@ -566,7 +561,6 @@ async function loadUser(user){
   if(isAdmin){
     if(roleEl) roleEl.textContent='Admin';
     if(adminPanel){ adminPanel.classList.remove('hidden'); adminPanel.style.display=''; }
-    loadUserList();
   } else {
     if(roleEl) roleEl.textContent='Member';
     if(adminPanel){ adminPanel.classList.add('hidden'); adminPanel.style.display='none'; }
@@ -2188,27 +2182,6 @@ async function loadMealPlan(){
   }).join('');
 }
 
-// ══ ADMIN — USERS ══
-async function loadUserList(){
-  const el=document.getElementById('user-list');
-  if(!el) return; // not on admin page
-  const {data:users,error}=await db.from('profiles').select('id,full_name,email,is_admin,created_at').order('created_at');
-  if(error){ console.error('User list error:',error); }
-  el.innerHTML=(users||[]).length===0
-    ?'<div class="empty-state" style="padding:12px 0">No users yet</div>'
-    :(users||[]).map(u=>`
-      <div class="admin-user-row">
-        <div class="user-avatar">${(u.full_name||u.email||'?').charAt(0).toUpperCase()}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:700">${u.full_name||'—'}</div>
-          <div style="font-size:11px;color:var(--muted)">${u.email}</div>
-        </div>
-        <div class="pill" style="background:${u.is_admin?'var(--accent-pale)':'var(--primary-pale)'};color:${u.is_admin?'var(--accent)':'var(--primary)'}">
-          ${u.is_admin?'⭐ Admin':'Member'}
-        </div>
-      </div>`).join('');
-}
-
 // ══ PASSWORD CHANGE ══
 function openChangePassword(){
   const pwEl=document.getElementById('new-password'); if(pwEl) pwEl.value='';
@@ -2341,7 +2314,7 @@ function showScreen(name){
   if(name==='recipes') loadRecipes();
   if(name==='list') loadShoppingList();
   if(name==='plan'){ if(!allRecipes||allRecipes.length===0) loadRecipes(); loadMealPlan(); }
-  if(name==='profile'){ if(isAdmin) loadUserList(); loadProfileStats(); }
+  if(name==='profile') loadProfileStats();
 }
 
 // ══ MODALS ══
