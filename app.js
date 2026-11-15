@@ -480,10 +480,10 @@ document.addEventListener('DOMContentLoaded', async()=>{
   if(rdEl) rdEl.value=new Date().toISOString().split('T')[0];
   if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
   const {data:{session}} = await db.auth.getSession();
-  if(session){ await loadUser(session.user); showApp(); }
+  if(session){ if(await loadUser(session.user)) showApp(); }
   else showAuth();
   db.auth.onAuthStateChange(async(event,session)=>{
-    if(event==='SIGNED_IN'&&session){ await loadUser(session.user); showApp(); }
+    if(event==='SIGNED_IN'&&session){ if(await loadUser(session.user)) showApp(); }
     else if(event==='SIGNED_OUT') showAuth();
   });
 });
@@ -521,6 +521,7 @@ async function signUp(){
 async function signOut(){ await db.auth.signOut(); }
 
 // ══ LOAD USER ══
+// Returns false when the account is signed out (disabled or no GEM access), so callers don't open the app
 async function loadUser(user){
   currentUser=user;
   const {data:profile,error:profileErr}=await db.from('profiles').select('full_name,is_admin,is_disabled').eq('id',user.id).single();
@@ -529,9 +530,10 @@ async function loadUser(user){
   // Block disabled users — sign out and show message
   if(profile?.is_disabled){
     await db.auth.signOut();
+    currentUser=null;
     document.getElementById('auth-error').textContent='⛔ Your account has been disabled. Please contact your GEM admin.';
     showAuth();
-    return;
+    return false;
   }
 
   // The login is shared with Cycle; app_access says who gets GEM.
@@ -539,9 +541,10 @@ async function loadUser(user){
   const {data:hasGem,error:accessErr}=await db.rpc('has_app',{p_app:'gem'});
   if(!accessErr && hasGem!==true){
     await db.auth.signOut();
+    currentUser=null;
     document.getElementById('auth-error').textContent='⛔ This account doesn\'t have access to GEM. Please contact your GEM admin.';
     showAuth();
-    return;
+    return false;
   }
 
   isAdmin=profile?.is_admin||false;
@@ -580,6 +583,7 @@ async function loadUser(user){
     if(pData?.cycle_start_day) cycleStartDay=pData.cycle_start_day;
   }catch(e){ /* columns may not exist yet */ }
   loadProfileStats();
+  return true;
 }
 
 // ══ DASHBOARD ══

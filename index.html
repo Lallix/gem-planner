@@ -1162,11 +1162,12 @@ function renderHomeLists() {
 
 const _pLU=loadUser;
 loadUser=async function(user){
-  await _pLU(user);
+  if(!await _pLU(user)) return false;
   const name=document.getElementById('profile-name')?.textContent||'';
   const initial=name.charAt(0).toUpperCase()||'G';
   const ha=document.getElementById('home-avatar'); if(ha) ha.textContent=initial;
   const ap=document.getElementById('admin-panel'); if(ap) ap.style.display=isAdmin?'':'none';
+  return true;
 };
 
 const _pSS=showScreen;
