@@ -471,7 +471,7 @@ function formatCycleLabel(startDay=1){
 }
 
 // ══ STATE ══
-let currentUser=null, isAdmin=false, receipts=[], budget=0, cycleStartDay=1, allRecipes=[], shoppingItems=[], currentFilter='all';
+let currentUser=null, isAdmin=false, receipts=[], receiptHistory=[], budget=0, cycleStartDay=1, allRecipes=[], shoppingItems=[], currentFilter='all';
 
 // ══ INIT ══
 document.addEventListener('DOMContentLoaded', async()=>{
@@ -608,6 +608,10 @@ async function loadDashboard(){
     .lte('receipt_date',cycleEndStr)
     .order('receipt_date',{ascending:false});
   receipts=rx||[];
+  // Full spend history, for the Avg/week stat
+  const {data:hx}=await db.from('receipts').select('total,receipt_date').eq('user_id',currentUser.id)
+    .order('receipt_date',{ascending:true});
+  receiptHistory=hx||[];
   renderDashboard(now,monthName);
 }
 
@@ -647,9 +651,14 @@ function renderDashboard(now,monthName){
   const weekTotal=weekRx.reduce((s,r)=>s+(r.total||0),0);
   const daysSinceCycleStart=Math.max(1,Math.floor((now-cycleStart)/(1000*60*60*24)));
   const weeksIn=Math.max(1,daysSinceCycleStart/7);
-  const avgWeek=totalSpent/weeksIn;
+  const cycleAvgWeek=totalSpent/weeksIn;
   const daysLeft=Math.max(0,Math.floor((cycleEnd-now)/(1000*60*60*24)));
-  const predicted=totalSpent+(avgWeek/7)*daysLeft;
+  const predicted=totalSpent+(cycleAvgWeek/7)*daysLeft;
+  // Avg/week over all receipts: total spend ÷ weeks from the first receipt to today
+  const historyTotal=receiptHistory.reduce((s,r)=>s+(r.total||0),0);
+  const firstDate=receiptHistory.length?new Date(receiptHistory[0].receipt_date):now;
+  const historyWeeks=Math.max(1,(now-firstDate)/(1000*60*60*24*7));
+  const avgWeek=historyTotal/historyWeeks;
   ss('home-stat-week','R '+Math.round(weekTotal).toLocaleString());
   ss('home-stat-avg','R '+Math.round(avgWeek).toLocaleString());
   ss('home-stat-pred','R '+Math.round(predicted).toLocaleString());
